@@ -1,0 +1,35 @@
+Alunos:
+    IdAluno*
+    NomeAluno*
+    TelefoneAluno
+    DtNascimento*
+    CPF
+    RG
+    Série*
+    Turma
+    NomeMãe
+    TelefoneMãe
+    NomePai
+    TelefonePai
+    Observação
+
+
+Livros:
+    IdLivro*
+    NomeLivro*
+    DataPublicação
+    DtAquisição
+    Quantidade*
+    Descrição
+    PalavrasChave*
+
+
+Emprestimos:
+    IdEmprestimo
+    IdAluno*
+    IdLivro*
+    Quantidade*
+    DtEmprestimo*
+    DtDevolução*
+
+Palavras chave
