@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Novo Aluno{% endblock %}
+{% block content %}
+    <div class="container">
+        <h1 class="novoAlunoTitle">Novo Aluno</h1>
+        <form class="novoAlunoForm" method="post" action="">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.nomeAluno.label(class="form-label") }}
+                {{ form.nomeAluno(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.telefoneAluno.label(class="form-label") }}
+                {{ form.telefoneAluno(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.dtNascimento.label(class="form-label") }}
+                {{ form.dtNascimento(class="form-control datepicker", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.cpf.label(class="form-label") }}
+                {{ form.cpf(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.rg.label(class="form-label") }}
+                {{ form.rg(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.serieTurma.label(class="form-label") }}
+                {{ form.serieTurma(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.nomeResponsavel1.label(class="form-label") }}
+                {{ form.nomeResponsavel1(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.telefoneResponsavel1.label(class="form-label") }}
+                {{ form.telefoneResponsavel1(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.nomeResponsavel2.label(class="form-label") }}
+                {{ form.nomeResponsavel2(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.telefoneResponsavel2.label(class="form-label") }}
+                {{ form.telefoneResponsavel2(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.observacao.label(class="form-label") }}
+                {{ form.observacao(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary", type="submit") }}
+            </div>
+        </form>
+    </div>
+{% endblock %}

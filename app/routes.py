@@ -7,6 +7,7 @@ from flask_cors import CORS
 
 CORS(app)
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -60,7 +61,7 @@ def novo_livro():
                 )
         db.session.add(livro)
         db.session.commit()
-        return redirect(url_for('livros'))
+        # return redirect(url_for('livros'))
     else:
         print(form.errors)
     return render_template('novo_livro.html', form=form)
@@ -76,8 +77,7 @@ def novo_aluno():
             dtNascimento=form.dtNascimento.data, 
             cpf=form.cpf.data, 
             rg=form.rg.data, 
-            serie=form.serie.data, 
-            turma=form.turma.data, 
+            serieTurma=form.serieTurma.data, 
             nomeResponsavel1=form.nomeResponsavel1.data, 
             telefoneResponsavel1=form.telefoneResponsavel1.data, 
             nomeResponsavel2=form.nomeResponsavel2.data, 
@@ -87,7 +87,7 @@ def novo_aluno():
         print(aluno)
         db.session.add(aluno)
         db.session.commit()
-        return redirect(url_for('alunos'))
+        # return redirect(url_for('alunos'))
     else:
         print(form.errors)
         print(
@@ -96,8 +96,7 @@ def novo_aluno():
                 form.dtNascimento.data, 
                 form.cpf.data, 
                 form.rg.data, 
-                form.serie.data, 
-                form.turma.data, 
+                form.serieTurma.data, 
                 form.nomeResponsavel1.data, 
                 form.telefoneResponsavel1.data, 
                 form.nomeResponsavel2.data, 
@@ -121,7 +120,7 @@ def novo_emprestimo():
         print(emprestimo)
         db.session.add(emprestimo)
         db.session.commit()
-        return redirect(url_for('emprestimos'))
+        # return redirect(url_for('emprestimos'))
     else:
         print(form.errors)
         print(
