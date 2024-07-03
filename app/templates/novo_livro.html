@@ -1,19 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Novo Livro</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-datepicker.min.css') }}">
-    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js') }}"></script>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block pagetitle %}Novo Livro{% endblock %}
+{% block content %}
     <div class="container">
-        <h1 class="registerorder">Registrar um novo livro</h1>
-        <form class="registerform" method="post" action="">
+        <h1 class="novoLivroTitle">Registrar um novo livro</h1>
+        <form class="novoLivroForm" method="post" action="">
             {{ form.hidden_tag() }}
             <div class="form-group">
                 {{ form.nomeLivro.label(class="form-label") }}
@@ -44,16 +34,8 @@
                 {{ form.descricao(class="form-control", size=32) }}
             </div>
             <div class="form-group">
-                {{ form.submit(class="btn btn-primary") }}
+                {{ form.submit(class="btn btn-primary", type="submit") }}
             </div>
         </form>
     </div>
-    <script>
-        $(document).ready(function(){
-            $('.datepicker').datepicker({
-                format: 'yyyy-mm-dd'
-            });
-        });
-    </script>
-</body>
-</html>
+{% endblock %}

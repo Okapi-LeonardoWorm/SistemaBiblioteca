@@ -49,9 +49,20 @@ def novo_livro():
             dtAquisicao=form.dtAquisicao.data, 
             descricao=form.descricao.data
             )
+        print(
+                form.nomeLivro.data, 
+                form.quantidade.data, 
+                form.nomeAutor.data, 
+                form.nomeEditora.data, 
+                form.dataPublicacao.data, 
+                form.dtAquisicao.data, 
+                form.descricao.data
+                )
         db.session.add(livro)
         db.session.commit()
         return redirect(url_for('livros'))
+    else:
+        print(form.errors)
     return render_template('novo_livro.html', form=form)
 
 
@@ -73,9 +84,26 @@ def novo_aluno():
             telefoneResponsavel2=form.telefoneResponsavel2.data, 
             observacao=form.observacao.data
             )
+        print(aluno)
         db.session.add(aluno)
         db.session.commit()
         return redirect(url_for('alunos'))
+    else:
+        print(form.errors)
+        print(
+                form.nomeAluno.data,
+                form.telefoneAluno.data, 
+                form.dtNascimento.data, 
+                form.cpf.data, 
+                form.rg.data, 
+                form.serie.data, 
+                form.turma.data, 
+                form.nomeResponsavel1.data, 
+                form.telefoneResponsavel1.data, 
+                form.nomeResponsavel2.data, 
+                form.telefoneResponsavel2.data, 
+                form.observacao.data
+                )
     return render_template('novo_aluno.html', form=form)
 
 
@@ -90,9 +118,19 @@ def novo_emprestimo():
             aluno_id=form.aluno_id.data, 
             livro_id=form.livro_id.data
             )
+        print(emprestimo)
         db.session.add(emprestimo)
         db.session.commit()
         return redirect(url_for('emprestimos'))
+    else:
+        print(form.errors)
+        print(
+            form.quantidade.data, 
+            form.dataEmprestimo.data, 
+            form.dataDevolucao.data, 
+            form.aluno_id.data, 
+            form.livro_id.data
+        )
     return render_template('novo_emprestimo.html', form=form)
 
 
@@ -107,6 +145,8 @@ def nova_palavra_chave():
         db.session.add(palavra_chave)
         db.session.commit()
         return redirect(url_for('palavras_chave'))
+    else:
+        print(form.errors)
     return render_template('nova_palavra_chave.html', form=form)
 
 
