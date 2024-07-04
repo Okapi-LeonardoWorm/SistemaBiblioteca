@@ -62,7 +62,7 @@ class PalavraChave(db.Model):
 
     idPalavra = db.Column(db.Integer, primary_key=True, autoincrement=True)
     palavra = db.Column(db.String, nullable=False)
-    livro_id = db.Column(db.Integer, db.ForeignKey('livro.idLivro'), nullable=False)
+    livro_id = db.Column(db.Integer, db.ForeignKey('livros.idLivro'), nullable=False)
     livro = db.relationship('Livro', backref=db.backref('palavras_chave', lazy=True))
     creationDt = db.Column(db.Date, nullable=False)
     lastUpdateDt = db.Column(db.Date, nullable=False)
