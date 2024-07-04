@@ -78,7 +78,7 @@ def login():
                 print(session['usertype'])
                 print("\n\n\n")
                 login_user(user)
-                return redirect(url_for('crm'))
+                return redirect(url_for('/'))
             else:
                 print("Invalid password!")
     return render_template('login.html', form=form)

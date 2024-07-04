@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+    {% block pagetitle %}Login{% endblock %}
+    {% block content %}
+        <div class="container">
+            <h1 class="loginorder">Faça login para acessar o app</h1>
+            <h1 class="loginorder">Logar</h1>
+            <form class="loginform" method="post" action="">
+                {{ form.hidden_tag() }}
+                <div class="form-group">
+                    {{ form.username.label(class="form-label") }}
+                    {{ form.username(class="form-control", size=32) }}
+                </div>
+                <div class="form-group">
+                    {{ form.password.label(class="form-label") }}
+                    {{ form.password(class="form-control", size=32) }}
+                </div>
+                <div class="form-group">
+                    {{ form.submit(class="btn btn-primary", type="submit") }}
+                </div>
+            </form>
+        </div>
+        <div>
+            <h2>Não tem uma conta? Contate o administrador:</h2>
+        </div>
+    {% endblock %}
