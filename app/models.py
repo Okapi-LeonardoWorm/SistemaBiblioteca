@@ -13,8 +13,8 @@ class User(db.Model, UserMixin):
     # Time format: dd/mm/yyyy|hh:mm:ss
     creationdate = db.Column(db.String(80), nullable=False)
     lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
 
@@ -31,8 +31,8 @@ class Livro(db.Model):
     descricao = db.Column(db.Text, nullable=True)
     creationDt = db.Column(db.Date, nullable=False)
     lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
 class Aluno(db.Model):
@@ -53,8 +53,8 @@ class Aluno(db.Model):
     observacao = db.Column(db.Text, nullable=True)
     creationDt = db.Column(db.Date, nullable=False)
     lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
 class PalavraChave(db.Model):
@@ -66,8 +66,8 @@ class PalavraChave(db.Model):
     livro = db.relationship('Livro', backref=db.backref('palavras_chave', lazy=True))
     creationDt = db.Column(db.Date, nullable=False)
     lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
 class Emprestimo(db.Model):
@@ -83,6 +83,6 @@ class Emprestimo(db.Model):
     livro = db.relationship('Livro', backref=db.backref('emprestimos', lazy=True))
     creationDt = db.Column(db.Date, nullable=False)
     lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeingKey('users.id'), nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     
