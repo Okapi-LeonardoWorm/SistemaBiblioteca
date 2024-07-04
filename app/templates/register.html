@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block pagetitle %}Registrar{% endblock %}
+{% block content %}
+    <div class="container">
+        <h1 class="registerTitle">Registrar um novo usuário</h1>
+        <form class="registerForm" method="post" action="">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control", size=32) }}
+            </div>
+            <div class="form-group">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control", size=32) }}
+            </div>
