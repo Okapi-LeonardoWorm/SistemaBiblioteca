@@ -7,23 +7,23 @@
             {{ form.hidden_tag() }}
             <div class="form-group">
                 {{ form.quantidade.label(class="form-label") }}
-                {{ form.quantidade(class="form-control", size=32) }}
+                {{ form.quantidade(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.dataEmprestimo.label(class="form-label") }}
-                {{ form.dataEmprestimo(class="form-control datepicker", size=32) }}
+                {{ form.dataEmprestimo(class="form-control datepicker", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.dataDevolucao.label(class="form-label") }}
-                {{ form.dataDevolucao(class="form-control datepicker", size=32) }}
+                {{ form.dataDevolucao(class="form-control datepicker", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.livro_id.label(class="form-label") }}
-                {{ form.livro_id(class="form-control", size=32) }}
+                {{ form.livro_id(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.aluno_id.label(class="form-label") }}
-                {{ form.aluno_id(class="form-control", size=32) }}
+                {{ form.aluno_id(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.submit(class="btn btn-primary", type="submit") }}

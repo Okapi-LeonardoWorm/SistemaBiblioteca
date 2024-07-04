@@ -1,9 +1,9 @@
 from time import strftime
 
-from flask import redirect, render_template, session, url_for
+from flask import Flask, redirect, render_template, session, url_for
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from flask_login import (LoginManager, current_user, login_required,
+from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 
 from app.forms import (AlunoForm, EmprestimoForm, LivroForm, LoginForm,
@@ -11,6 +11,8 @@ from app.forms import (AlunoForm, EmprestimoForm, LivroForm, LoginForm,
 from app.models import Aluno, Emprestimo, Livro, PalavraChave, User
 
 from . import app, db
+
+from flask_sqlalchemy import SQLAlchemy, query
 
 
 CORS(app)
@@ -21,7 +23,14 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
 @app.route('/')
+@app.route('/index')
+@login_required
 def index():
     return render_template('index.html')
 
@@ -62,12 +71,14 @@ def register():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
+        print(f"Username: {form.username.data}")
+        print(f"Password: {form.password.data}")
         user = User.query.filter_by(username=form.username.data).first()
         print("\n\n\n")
         print(user)
-        print(user.username)
-        print(user.usertype)
-        print(type(user.usertype))
+        # print(user.username)
+        # print(user.usertype)
+        # print(type(user.usertype))
         print("\n\n\n")
 
         if user:
@@ -78,7 +89,7 @@ def login():
                 print(session['usertype'])
                 print("\n\n\n")
                 login_user(user)
-                return redirect(url_for('/'))
+                return redirect(url_for('index'))
             else:
                 print("Invalid password!")
     return render_template('login.html', form=form)
@@ -174,7 +185,8 @@ def novo_aluno():
             form.dtNascimento.data,
             form.cpf.data,
             form.rg.data,
-            form.serieTurma.data,
+            form.serie.data,
+            form.turma.data,
             form.nomeResponsavel1.data,
             form.telefoneResponsavel1.data,
             form.nomeResponsavel2.data,
