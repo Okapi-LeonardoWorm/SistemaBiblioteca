@@ -1,6 +1,6 @@
 import sqlite3
 from flask_bcrypt import Bcrypt
-from datetime import datetime
+from time import strftime
 
 bcrypt = Bcrypt()
 
@@ -20,7 +20,7 @@ try:
     cursor.execute('''
         INSERT INTO users (id, username, password, usertype, creationdate, lastUpdateDt, createdBy, updatedBy)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (1, "admin", hashed_password, "admin", datetime.now(), datetime.now(), 1, 1))
+    ''', (1, "admin", hashed_password, "admin", strftime("%Y-%m-%d"), strftime("%Y-%m-%d"), 1, 1))
 
     conn.commit()
 except Exception as e:
