@@ -1,4 +1,6 @@
 from flask_login import UserMixin
+from sqlalchemy import Enum 
+import enum
 
 from app import db
 
@@ -70,6 +72,15 @@ class PalavraChave(db.Model):
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
+class StatusEmprestimos(enum.Enum):
+    ATIVO = "ativo"
+    INICIOU_HOJE = "iniciou hoje"
+    EM_ATRASO = "em atraso"
+    ENCERRE_HOJE = "encerra hoje"
+    FINALIZADO = "finalizado"
+    PERDIDO = "perdido"
+
+
 class Emprestimo(db.Model):
     __tablename__ = 'emprestimos'
 
@@ -85,4 +96,10 @@ class Emprestimo(db.Model):
     lastUpdateDt = db.Column(db.Date, nullable=False)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    
+    status = db.Column(Enum(StatusEmprestimos), nullable=False)
+
+class PalavraLivro(db.Model):
+    __tablename__ = 'PalavrasLivro'
+
+    idLivro = db.Column(db.Integer, db.ForeignKey('livros.idLivro'), primary_key=True, nullable=False)
+    idPalavra = db.Column(db.Integer, db.ForeignKey('PalavraChave.idPalavra'), primary_key=True, nullable=False)
