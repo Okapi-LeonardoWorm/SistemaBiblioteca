@@ -1,5 +1,5 @@
 Alunos:
-    IdAluno*
+    IdAluno* PK
     NomeAluno*
     TelefoneAluno
     DtNascimento*
@@ -15,7 +15,7 @@ Alunos:
 
 
 Livros:
-    IdLivro*
+    IdLivro* PK
     NomeLivro*
     DataPublicação
     DtAquisição
@@ -25,11 +25,17 @@ Livros:
 
 
 Emprestimos:
-    IdEmprestimo
+    IdEmprestimo* PK
     IdAluno*
     IdLivro*
     Quantidade*
     DtEmprestimo*
     DtDevolução*
 
-Palavras chave
+Palavras chave:
+    idPalavra* PK
+    Palavra*
+
+PalavraLivro:
+    idLivro* PK FK
+    IdPalavra* PK FK

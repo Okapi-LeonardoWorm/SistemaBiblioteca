@@ -18,7 +18,7 @@ hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 # Inserir o usuário admin
 try:
     cursor.execute('''
-        INSERT INTO users (id, username, password, usertype, creationdate, lastUpdateDt, createdBy, updatedBy)
+        INSERT INTO users (userId, username, password, usertype, dtCreation, dtLastUpdate, createdBy, updatedBy)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (1, "admin", hashed_password, "admin", strftime("%Y-%m-%d"), strftime("%Y-%m-%d"), 1, 1))
 

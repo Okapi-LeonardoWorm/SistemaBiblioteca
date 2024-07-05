@@ -8,98 +8,96 @@ from app import db
 class User(db.Model, UserMixin):
     __tablename__ = "users"
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    userId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
     usertype = db.Column(db.String(80), nullable=False)
     # Time format: dd/mm/yyyy|hh:mm:ss
-    creationdate = db.Column(db.String(80), nullable=False)
-    lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    dtCreation = db.Column(db.String(80), nullable=False)
+    dtLastUpdate = db.Column(db.Date, nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
 
 
 
-class Livro(db.Model):
-    __tablename__ = 'livros'
+class Book(db.Model):
+    __tablename__ = 'books'
     
-    idLivro = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nomeLivro = db.Column(db.String, nullable=False)
-    quantidade = db.Column(db.Integer, nullable=False)
-    nomeAutor = db.Column(db.String, nullable=False)
-    nomeEditora = db.Column(db.String, nullable=False)
-    dataPublicacao = db.Column(db.Date, nullable=False)
-    dtAquisicao = db.Column(db.Date, nullable=True)
-    descricao = db.Column(db.Text, nullable=True)
-    creationDt = db.Column(db.Date, nullable=False)
-    lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    bookId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    bookName = db.Column(db.String, nullable=False)
+    amount = db.Column(db.Integer, nullable=False)
+    authorName = db.Column(db.String, nullable=False)
+    publishername = db.Column(db.String, nullable=False)
+    dtPublished = db.Column(db.Date, nullable=False)
+    dtAquisition = db.Column(db.Date, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    dtCreation = db.Column(db.Date, nullable=False)
+    dtLastUpdate = db.Column(db.Date, nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
 
 
-class Aluno(db.Model):
-    __tablename__ = 'alunos'
+class Student(db.Model):
+    __tablename__ = 'students'
 
-    idAluno = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nomeAluno = db.Column(db.String, nullable=False)
-    telefoneAluno = db.Column(db.String, nullable=True)
-    dtNascimento = db.Column(db.Date, nullable=False)
+    studentId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    studentName = db.Column(db.String, nullable=False)
+    studentPhone = db.Column(db.String, nullable=True)
+    dtBirth = db.Column(db.Date, nullable=False)
     cpf = db.Column(db.String(11), nullable=True)
     rg = db.Column(db.String(10), nullable=True)
-    serie = db.Column(db.Integer, nullable=False)
-    turma = db.Column(db.String, nullable=True)
-    nomeResponsavel1 = db.Column(db.String, nullable=True)
-    telefoneResponsavel1 = db.Column(db.String, nullable=True)
-    nomeResponsavel2 = db.Column(db.String, nullable=True)
-    telefoneResponsavel2 = db.Column(db.String, nullable=True)
-    observacao = db.Column(db.Text, nullable=True)
-    creationDt = db.Column(db.Date, nullable=False)
-    lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    gradeNumber = db.Column(db.Integer, nullable=False)
+    className = db.Column(db.String, nullable=True)
+    guardianName1 = db.Column(db.String, nullable=True)
+    guardianPhone1 = db.Column(db.String, nullable=True)
+    guardianName2 = db.Column(db.String, nullable=True)
+    guardianPhone2 = db.Column(db.String, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    dtCreation = db.Column(db.Date, nullable=False)
+    dtLastUpdate = db.Column(db.Date, nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
 
 
-class PalavraChave(db.Model):
-    __tablename__ = 'palavrasChave'
+class KeyWord(db.Model):
+    __tablename__ = 'keyWords'
 
-    idPalavra = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    palavra = db.Column(db.String, nullable=False)
-    livro_id = db.Column(db.Integer, db.ForeignKey('livros.idLivro'), nullable=False)
-    livro = db.relationship('Livro', backref=db.backref('palavras_chave', lazy=True))
-    creationDt = db.Column(db.Date, nullable=False)
-    lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    wordId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    Word = db.Column(db.String, nullable=False)
+    dtCreation = db.Column(db.Date, nullable=False)
+    dtLastUpdate = db.Column(db.Date, nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
 
 
-class StatusEmprestimos(enum.Enum):
-    ATIVO = "ativo"
-    INICIOU_HOJE = "iniciou hoje"
-    EM_ATRASO = "em atraso"
-    ENCERRE_HOJE = "encerra hoje"
-    FINALIZADO = "finalizado"
-    PERDIDO = "perdido"
+class StatusLoan(enum.Enum):
+    ACTIVE = "active"
+    BGN_TODAY = "bgn today"
+    OVERDUE = "overdue"
+    END_TODAY = "end today"
+    COMPLETED = "completed"
+    LOST = "lost"
 
 
-class Emprestimo(db.Model):
-    __tablename__ = 'emprestimos'
+class Loan(db.Model):
+    __tablename__ = 'loans'
 
-    idEmprestimo = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    quantidade = db.Column(db.Integer, nullable=False)
-    dataEmprestimo = db.Column(db.Date, nullable=False)
-    dataDevolucao = db.Column(db.Date, nullable=False)
-    aluno_id = db.Column(db.Integer, db.ForeignKey('alunos.idAluno'), nullable=False)
-    livro_id = db.Column(db.Integer, db.ForeignKey('livros.idLivro'), nullable=False)
-    aluno = db.relationship('Aluno', backref=db.backref('emprestimos', lazy=True))
-    livro = db.relationship('Livro', backref=db.backref('emprestimos', lazy=True))
-    creationDt = db.Column(db.Date, nullable=False)
-    lastUpdateDt = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(Enum(StatusEmprestimos), nullable=False)
+    LoanId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    amount = db.Column(db.Integer, nullable=False)
+    dtLoan = db.Column(db.Date, nullable=False)
+    dtReturn = db.Column(db.Date, nullable=False)
+    studentId = db.Column(db.Integer, db.ForeignKey('students.studentId'), nullable=False)
+    bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), nullable=False)
+    student = db.relationship('students', backref=db.backref('loans', lazy=True))
+    book = db.relationship('books', backref=db.backref('loans', lazy=True))
+    dtCreation = db.Column(db.Date, nullable=False)
+    dtLastUpdate = db.Column(db.Date, nullable=False)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    status = db.Column(Enum(StatusLoan), nullable=False)
 
-class PalavraLivro(db.Model):
-    __tablename__ = 'PalavrasLivro'
+class KeyWordBook(db.Model):
+    __tablename__ = 'PalavrasBook'
 
-    idLivro = db.Column(db.Integer, db.ForeignKey('livros.idLivro'), primary_key=True, nullable=False)
-    idPalavra = db.Column(db.Integer, db.ForeignKey('PalavraChave.idPalavra'), primary_key=True, nullable=False)
+    bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), primary_key=True, nullable=False)
+    wordId = db.Column(db.Integer, db.ForeignKey('keyWords.wordId'), primary_key=True, nullable=False)

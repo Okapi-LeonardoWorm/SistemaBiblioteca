@@ -8,7 +8,7 @@ from flask_login import (LoginManager, UserMixin, current_user, login_required,
 
 from app.forms import (AlunoForm, EmprestimoForm, LivroForm, LoginForm,
                        PalavraChaveForm, RegisterForm)
-from app.models import Aluno, Emprestimo, Livro, PalavraChave, User
+from app.models import Student, Loan, Book, KeyWord, User
 
 from . import app, db
 
@@ -98,28 +98,28 @@ def login():
 @app.route('/livros')
 @login_required
 def livros():
-    livros = Livro.query.all()
+    livros = Book.query.all()
     return render_template('livros.html', livros=livros)
 
 
 @app.route('/alunos')
 @login_required
 def alunos():
-    alunos = Aluno.query.all()
+    alunos = Student.query.all()
     return render_template('alunos.html', alunos=alunos)
 
 
 @app.route('/emprestimos')
 @login_required
 def emprestimos():
-    emprestimos = Emprestimo.query.all()
+    emprestimos = Loan.query.all()
     return render_template('emprestimos.html', emprestimos=emprestimos)
 
 
 @app.route('/palavras_chave')
 @login_required
 def palavras_chave():
-    palavras_chave = PalavraChave.query.all()
+    palavras_chave = KeyWord.query.all()
     return render_template('palavras_chave.html', palavras_chave=palavras_chave)
 
 
@@ -128,7 +128,7 @@ def palavras_chave():
 def novo_livro():
     form = LivroForm()
     if form.validate_on_submit():
-        livro = Livro(
+        livro = Book(
             nomeLivro=form.nomeLivro.data,
             quantidade=form.quantidade.data,
             nomeAutor=form.nomeAutor.data,
@@ -159,7 +159,7 @@ def novo_livro():
 def novo_aluno():
     form = AlunoForm()
     if form.validate_on_submit():
-        aluno = Aluno(
+        aluno = Student(
             nomeAluno=form.nomeAluno.data,
             telefoneAluno=form.telefoneAluno.data,
             dtNascimento=form.dtNascimento.data,
@@ -201,7 +201,7 @@ def novo_aluno():
 def novo_emprestimo():
     form = EmprestimoForm()
     if form.validate_on_submit():
-        emprestimo = Emprestimo(
+        emprestimo = Loan(
             quantidade=form.quantidade.data,
             dataEmprestimo=form.dataEmprestimo.data,
             dataDevolucao=form.dataDevolucao.data,
@@ -229,7 +229,7 @@ def novo_emprestimo():
 def nova_palavra_chave():
     form = PalavraChaveForm()
     if form.validate_on_submit():
-        palavra_chave = PalavraChave(
+        palavra_chave = KeyWord(
             palavra=form.palavra.data,
             livro_id=form.livro_id.data
         )
@@ -244,7 +244,7 @@ def nova_palavra_chave():
 @app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_livro(id):
-    livro = Livro.query.get(id)
+    livro = Book.query.get(id)
     form = LivroForm(obj=livro)
     if form.validate_on_submit():
         form.populate_obj(livro)
@@ -256,7 +256,7 @@ def editar_livro(id):
 @app.route('/editar_aluno/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_aluno(id):
-    aluno = Aluno.query.get(id)
+    aluno = Student.query.get(id)
     form = AlunoForm(obj=aluno)
     if form.validate_on_submit():
         form.populate_obj(aluno)
@@ -268,7 +268,7 @@ def editar_aluno(id):
 @app.route('/editar_emprestimo/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_emprestimo(id):
-    emprestimo = Emprestimo.query.get(id)
+    emprestimo = Loan.query.get(id)
     form = EmprestimoForm(obj=emprestimo)
     if form.validate_on_submit():
         form.populate_obj(emprestimo)
@@ -280,7 +280,7 @@ def editar_emprestimo(id):
 @app.route('/editar_palavra_chave/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_palavra_chave(id):
-    palavra_chave = PalavraChave.query.get(id)
+    palavra_chave = KeyWord.query.get(id)
     form = PalavraChaveForm(obj=palavra_chave)
     if form.validate_on_submit():
         form.populate_obj(palavra_chave)
@@ -292,7 +292,7 @@ def editar_palavra_chave(id):
 @app.route('/excluir_livro/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_livro(id):
-    livro = Livro.query.get(id)
+    livro = Book.query.get(id)
     db.session.delete(livro)
     db.session.commit()
     return redirect(url_for('livros'))
@@ -301,7 +301,7 @@ def excluir_livro(id):
 @app.route('/excluir_aluno/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_aluno(id):
-    aluno = Aluno.query.get(id)
+    aluno = Student.query.get(id)
     db.session.delete(aluno)
     db.session.commit()
     return redirect(url_for('alunos'))
@@ -310,7 +310,7 @@ def excluir_aluno(id):
 @app.route('/excluir_emprestimo/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_emprestimo(id):
-    emprestimo = Emprestimo.query.get(id)
+    emprestimo = Loan.query.get(id)
     db.session.delete(emprestimo)
     db.session.commit()
     return redirect(url_for('emprestimos'))
@@ -319,7 +319,7 @@ def excluir_emprestimo(id):
 @app.route('/excluir_palavra_chave/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_palavra_chave(id):
-    palavra_chave = PalavraChave.query.get(id)
+    palavra_chave = KeyWord.query.get(id)
     db.session.delete(palavra_chave)
     db.session.commit()
     return redirect(url_for('palavras_chave'))
