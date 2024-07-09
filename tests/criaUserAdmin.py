@@ -1,6 +1,6 @@
 import sqlite3
 from flask_bcrypt import Bcrypt
-from datetime import datetime
+from time import strftime
 
 bcrypt = Bcrypt()
 
@@ -18,9 +18,9 @@ hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
 # Inserir o usuário admin
 try:
     cursor.execute('''
-        INSERT INTO users (id, username, password, usertype, creationdate, lastUpdateDt, createdBy, updatedBy)
+        INSERT INTO users (userId, username, password, usertype, dtCreation, dtLastUpdate, createdBy, updatedBy)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (1, "admin", hashed_password, "admin", datetime.now(), datetime.now(), 1, 1))
+    ''', (1, "admin", hashed_password, "admin", strftime("%Y-%m-%d"), strftime("%Y-%m-%d"), 1, 1))
 
     conn.commit()
 except Exception as e:

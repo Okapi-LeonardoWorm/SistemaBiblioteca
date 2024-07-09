@@ -7,9 +7,15 @@
             {{ form.hidden_tag() }}
             <div class="form-group">
                 {{ form.username.label(class="form-label") }}
-                {{ form.username(class="form-control", size=32) }}
+                {{ form.username(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.password.label(class="form-label") }}
-                {{ form.password(class="form-control", size=32) }}
+                {{ form.password(class="form-control", size=32, autocomplete="off") }}
             </div>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary", type="submit") }}
+            </div>
+        </form>
+    </div>
+{% endblock %}

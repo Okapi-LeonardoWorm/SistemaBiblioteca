@@ -1,35 +1,52 @@
 Alunos:
-    IdAluno*
-    NomeAluno*
-    TelefoneAluno
-    DtNascimento*
-    CPF
-    RG
-    Série*
-    Turma
-    NomeMãe
-    TelefoneMãe
-    NomePai
-    TelefonePai
-    Observação
+    studentId int pk
+    studentName str
+    studentPhone str
+    dtBirth date
+    cpf str
+    rg str
+    gradeNumber int
+    className str
+    guardianName1 str
+    guardianPhone1 str
+    guardianName2 str
+    guardianPhone2 str
+    notes text
+    dtCreation date
+    dtLastUpdate date
+    createdBy int fk
+    updatedBy int fk
 
 
 Livros:
-    IdLivro*
-    NomeLivro*
-    DataPublicação
-    DtAquisição
-    Quantidade*
-    Descrição
-    PalavrasChave*
+    bookId int pk
+    bookName str
+    amount int
+    authorName str
+    edition int
+    dtPublished date
+    publishername str
+    dtAquisition date
+    ISBN str 
+    description text
+    dtCreation date
+    dtLastUpdate date
+    createdBy int fk
+    updatedBy int fk
 
 
 Emprestimos:
-    IdEmprestimo
+    IdEmprestimo* PK
     IdAluno*
     IdLivro*
     Quantidade*
     DtEmprestimo*
     DtDevolução*
 
-Palavras chave
+Palavras chave:
+    idPalavra* PK
+    Palavra*
+
+PalavraLivro:
+    idLivro* PK FK
+    IdPalavra* PK FK

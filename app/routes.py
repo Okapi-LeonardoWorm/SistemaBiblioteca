@@ -1,16 +1,19 @@
-from time import strftime
+# from time import strftime
+from datetime import date
 
-from flask import redirect, render_template, session, url_for
+from flask import Flask, redirect, render_template, session, url_for
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from flask_login import (LoginManager, current_user, login_required,
+from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 
 from app.forms import (AlunoForm, EmprestimoForm, LivroForm, LoginForm,
                        PalavraChaveForm, RegisterForm)
-from app.models import Aluno, Emprestimo, Livro, PalavraChave, User
+from app.models import Student, Loan, Book, KeyWord, User
 
 from . import app, db
+
+from flask_sqlalchemy import SQLAlchemy, query
 
 
 CORS(app)
@@ -21,9 +24,31 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
+@login_manager.user_loader
+def load_user(userId):
+    return User.query.get(int(userId))
+
+
 @app.route('/')
+@app.route('/index')
+@login_required
 def index():
-    return render_template('index.html')
+    # return render_template('index.html') # Original
+    return redirect(url_for('menu')) # Inserida para redirecionar para a página de menu na criação do minimo para uso
+
+
+@app.route('/menu')
+@login_required
+def menu():
+    return render_template('menu.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    session['logged_in'] = False
+    logout_user()
+    return redirect(url_for('login'))
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -32,23 +57,24 @@ def register():
     form = RegisterForm()
     if form.validate_on_submit():
         name = form.username.data.strip()
+        name = name.lower()
 
         hashed_password = bcrypt.generate_password_hash(
             form.password.data).decode('utf-8')
 
-        usertype = "normal"
+        usertype = "regular"
 
-        creationdate = strftime("%Y-%m-%d")
-        lastUpdateDt = strftime("%Y-%m-%d")
+        dtCreation = date.today() # strftime("%Y-%m-%d")
+        dtLastUpdate = date.today() # strftime("%Y-%m-%d")
 
         new_user = User(
             username=name,
             password=hashed_password,
             usertype=usertype,
-            creationdate=creationdate,
-            lastUpdateDt=lastUpdateDt,
-            createdBy=current_user.id,
-            updatedBy=current_user.id
+            dtCreation=dtCreation,
+            dtLastUpdate=dtLastUpdate,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId
         )
 
         db.session.add(new_user)
@@ -63,22 +89,13 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
-        print("\n\n\n")
-        print(user)
-        print(user.username)
-        print(user.usertype)
-        print(type(user.usertype))
-        print("\n\n\n")
 
         if user:
             if bcrypt.check_password_hash(user.password, form.password.data):
                 session['logged_in'] = True
                 session['usertype'] = user.usertype
-                print("\n\n\n")
-                print(session['usertype'])
-                print("\n\n\n")
                 login_user(user)
-                return redirect(url_for('/'))
+                return redirect(url_for('index'))
             else:
                 print("Invalid password!")
     return render_template('login.html', form=form)
@@ -87,28 +104,28 @@ def login():
 @app.route('/livros')
 @login_required
 def livros():
-    livros = Livro.query.all()
+    livros = Book.query.all()
     return render_template('livros.html', livros=livros)
 
 
 @app.route('/alunos')
 @login_required
 def alunos():
-    alunos = Aluno.query.all()
+    alunos = Student.query.all()
     return render_template('alunos.html', alunos=alunos)
 
 
 @app.route('/emprestimos')
 @login_required
 def emprestimos():
-    emprestimos = Emprestimo.query.all()
+    emprestimos = Loan.query.all()
     return render_template('emprestimos.html', emprestimos=emprestimos)
 
 
 @app.route('/palavras_chave')
 @login_required
 def palavras_chave():
-    palavras_chave = PalavraChave.query.all()
+    palavras_chave = KeyWord.query.all()
     return render_template('palavras_chave.html', palavras_chave=palavras_chave)
 
 
@@ -117,23 +134,18 @@ def palavras_chave():
 def novo_livro():
     form = LivroForm()
     if form.validate_on_submit():
-        livro = Livro(
-            nomeLivro=form.nomeLivro.data,
-            quantidade=form.quantidade.data,
-            nomeAutor=form.nomeAutor.data,
-            nomeEditora=form.nomeEditora.data,
-            dataPublicacao=form.dataPublicacao.data,
-            dtAquisicao=form.dtAquisicao.data,
-            descricao=form.descricao.data
-        )
-        print(
-            form.nomeLivro.data,
-            form.quantidade.data,
-            form.nomeAutor.data,
-            form.nomeEditora.data,
-            form.dataPublicacao.data,
-            form.dtAquisicao.data,
-            form.descricao.data
+        livro = Book(
+            bookName=form.bookName.date,
+            amount=form.amount.date,
+            authorName=form.authorName.date,
+            publishername=form.publishername.date,
+            dtPublished=form.dtPublished.date,
+            dtAquisition=form.dtAquisition.date,
+            description=form.description.date,
+            dtCreation=form.dtCreation.date,
+            dtLastUpdate=form.dtLastUpdate.date,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
         )
         db.session.add(livro)
         db.session.commit()
@@ -148,19 +160,23 @@ def novo_livro():
 def novo_aluno():
     form = AlunoForm()
     if form.validate_on_submit():
-        aluno = Aluno(
-            nomeAluno=form.nomeAluno.data,
-            telefoneAluno=form.telefoneAluno.data,
-            dtNascimento=form.dtNascimento.data,
+        aluno = Student(
+            studentName=form.studentName.data,
+            studentPhone=form.studentPhone.data,
+            dtBirth=form.dtBirth.data,
             cpf=form.cpf.data,
             rg=form.rg.data,
-            serie=form.serie.data,
-            turma=form.turma.data,
-            nomeResponsavel1=form.nomeResponsavel1.data,
-            telefoneResponsavel1=form.telefoneResponsavel1.data,
-            nomeResponsavel2=form.nomeResponsavel2.data,
-            telefoneResponsavel2=form.telefoneResponsavel2.data,
-            observacao=form.observacao.data
+            gradeNumber=form.gradeNumber.data,
+            className=form.className.data,
+            guardianName1=form.guardianName1.data,
+            guardianPhone1=form.guardianPhone1.data,
+            guardianName2=form.guardianName2.data,
+            guardianPhone2=form.guardianPhone2.data,
+            notes=form.notes.data,
+            dtCreation=form.dtCreation.data,
+            dtLastUpdate=form.dtLastUpdate.data,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
         )
         print(aluno)
         db.session.add(aluno)
@@ -168,19 +184,7 @@ def novo_aluno():
         # return redirect(url_for('alunos'))
     else:
         print(form.errors)
-        print(
-            form.nomeAluno.data,
-            form.telefoneAluno.data,
-            form.dtNascimento.data,
-            form.cpf.data,
-            form.rg.data,
-            form.serieTurma.data,
-            form.nomeResponsavel1.data,
-            form.telefoneResponsavel1.data,
-            form.nomeResponsavel2.data,
-            form.telefoneResponsavel2.data,
-            form.observacao.data
-        )
+        
     return render_template('novo_aluno.html', form=form)
 
 
@@ -189,12 +193,19 @@ def novo_aluno():
 def novo_emprestimo():
     form = EmprestimoForm()
     if form.validate_on_submit():
-        emprestimo = Emprestimo(
-            quantidade=form.quantidade.data,
-            dataEmprestimo=form.dataEmprestimo.data,
-            dataDevolucao=form.dataDevolucao.data,
-            aluno_id=form.aluno_id.data,
-            livro_id=form.livro_id.data
+        emprestimo = Loan(
+            amount=form.amount.data,
+            dtLoan=form.dtLoan.data,
+            dtReturn=form.dtReturn.data,
+            studentId=form.studentId.data,
+            bookId=form.bookId.data,
+            student=form.student.data,
+            book=form.book.data,
+            dtCreation=form.dtCreation.data,
+            dtLastUpdate=form.dtLastUpdate.data,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
+            status=form.status.data,
         )
         print(emprestimo)
         db.session.add(emprestimo)
@@ -202,13 +213,7 @@ def novo_emprestimo():
         # return redirect(url_for('emprestimos'))
     else:
         print(form.errors)
-        print(
-            form.quantidade.data,
-            form.dataEmprestimo.data,
-            form.dataDevolucao.data,
-            form.aluno_id.data,
-            form.livro_id.data
-        )
+        
     return render_template('novo_emprestimo.html', form=form)
 
 
@@ -217,7 +222,7 @@ def novo_emprestimo():
 def nova_palavra_chave():
     form = PalavraChaveForm()
     if form.validate_on_submit():
-        palavra_chave = PalavraChave(
+        palavra_chave = KeyWord(
             palavra=form.palavra.data,
             livro_id=form.livro_id.data
         )
@@ -232,7 +237,7 @@ def nova_palavra_chave():
 @app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_livro(id):
-    livro = Livro.query.get(id)
+    livro = Book.query.get(id)
     form = LivroForm(obj=livro)
     if form.validate_on_submit():
         form.populate_obj(livro)
@@ -244,7 +249,7 @@ def editar_livro(id):
 @app.route('/editar_aluno/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_aluno(id):
-    aluno = Aluno.query.get(id)
+    aluno = Student.query.get(id)
     form = AlunoForm(obj=aluno)
     if form.validate_on_submit():
         form.populate_obj(aluno)
@@ -256,7 +261,7 @@ def editar_aluno(id):
 @app.route('/editar_emprestimo/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_emprestimo(id):
-    emprestimo = Emprestimo.query.get(id)
+    emprestimo = Loan.query.get(id)
     form = EmprestimoForm(obj=emprestimo)
     if form.validate_on_submit():
         form.populate_obj(emprestimo)
@@ -268,7 +273,7 @@ def editar_emprestimo(id):
 @app.route('/editar_palavra_chave/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_palavra_chave(id):
-    palavra_chave = PalavraChave.query.get(id)
+    palavra_chave = KeyWord.query.get(id)
     form = PalavraChaveForm(obj=palavra_chave)
     if form.validate_on_submit():
         form.populate_obj(palavra_chave)
@@ -280,7 +285,7 @@ def editar_palavra_chave(id):
 @app.route('/excluir_livro/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_livro(id):
-    livro = Livro.query.get(id)
+    livro = Book.query.get(id)
     db.session.delete(livro)
     db.session.commit()
     return redirect(url_for('livros'))
@@ -289,7 +294,7 @@ def excluir_livro(id):
 @app.route('/excluir_aluno/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_aluno(id):
-    aluno = Aluno.query.get(id)
+    aluno = Student.query.get(id)
     db.session.delete(aluno)
     db.session.commit()
     return redirect(url_for('alunos'))
@@ -298,7 +303,7 @@ def excluir_aluno(id):
 @app.route('/excluir_emprestimo/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_emprestimo(id):
-    emprestimo = Emprestimo.query.get(id)
+    emprestimo = Loan.query.get(id)
     db.session.delete(emprestimo)
     db.session.commit()
     return redirect(url_for('emprestimos'))
@@ -307,7 +312,7 @@ def excluir_emprestimo(id):
 @app.route('/excluir_palavra_chave/<int:id>', methods=['GET', 'POST'])
 @login_required
 def excluir_palavra_chave(id):
-    palavra_chave = PalavraChave.query.get(id)
+    palavra_chave = KeyWord.query.get(id)
     db.session.delete(palavra_chave)
     db.session.commit()
     return redirect(url_for('palavras_chave'))
