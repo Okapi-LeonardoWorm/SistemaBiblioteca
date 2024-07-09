@@ -1,4 +1,5 @@
-from time import strftime
+# from time import strftime
+from datetime import date
 
 from flask import Flask, redirect, render_template, session, url_for
 from flask_bcrypt import Bcrypt
@@ -24,15 +25,30 @@ login_manager.login_view = 'login'
 
 
 @login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+def load_user(userId):
+    return User.query.get(int(userId))
 
 
 @app.route('/')
 @app.route('/index')
 @login_required
 def index():
-    return render_template('index.html')
+    # return render_template('index.html') # Original
+    return redirect(url_for('menu')) # Inserida para redirecionar para a página de menu na criação do minimo para uso
+
+
+@app.route('/menu')
+@login_required
+def menu():
+    return render_template('menu.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    session['logged_in'] = False
+    logout_user()
+    return redirect(url_for('login'))
 
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -41,23 +57,24 @@ def register():
     form = RegisterForm()
     if form.validate_on_submit():
         name = form.username.data.strip()
+        name = name.lower()
 
         hashed_password = bcrypt.generate_password_hash(
             form.password.data).decode('utf-8')
 
-        usertype = "normal"
+        usertype = "regular"
 
-        creationdate = strftime("%Y-%m-%d")
-        lastUpdateDt = strftime("%Y-%m-%d")
+        dtCreation = date.today() # strftime("%Y-%m-%d")
+        dtLastUpdate = date.today() # strftime("%Y-%m-%d")
 
         new_user = User(
             username=name,
             password=hashed_password,
             usertype=usertype,
-            creationdate=creationdate,
-            lastUpdateDt=lastUpdateDt,
-            createdBy=current_user.id,
-            updatedBy=current_user.id
+            dtCreation=dtCreation,
+            dtLastUpdate=dtLastUpdate,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId
         )
 
         db.session.add(new_user)
@@ -71,23 +88,12 @@ def register():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        print(f"Username: {form.username.data}")
-        print(f"Password: {form.password.data}")
         user = User.query.filter_by(username=form.username.data).first()
-        print("\n\n\n")
-        print(user)
-        # print(user.username)
-        # print(user.usertype)
-        # print(type(user.usertype))
-        print("\n\n\n")
 
         if user:
             if bcrypt.check_password_hash(user.password, form.password.data):
                 session['logged_in'] = True
                 session['usertype'] = user.usertype
-                print("\n\n\n")
-                print(session['usertype'])
-                print("\n\n\n")
                 login_user(user)
                 return redirect(url_for('index'))
             else:
@@ -129,22 +135,17 @@ def novo_livro():
     form = LivroForm()
     if form.validate_on_submit():
         livro = Book(
-            nomeLivro=form.nomeLivro.data,
-            quantidade=form.quantidade.data,
-            nomeAutor=form.nomeAutor.data,
-            nomeEditora=form.nomeEditora.data,
-            dataPublicacao=form.dataPublicacao.data,
-            dtAquisicao=form.dtAquisicao.data,
-            descricao=form.descricao.data
-        )
-        print(
-            form.nomeLivro.data,
-            form.quantidade.data,
-            form.nomeAutor.data,
-            form.nomeEditora.data,
-            form.dataPublicacao.data,
-            form.dtAquisicao.data,
-            form.descricao.data
+            bookName=form.bookName.date,
+            amount=form.amount.date,
+            authorName=form.authorName.date,
+            publishername=form.publishername.date,
+            dtPublished=form.dtPublished.date,
+            dtAquisition=form.dtAquisition.date,
+            description=form.description.date,
+            dtCreation=form.dtCreation.date,
+            dtLastUpdate=form.dtLastUpdate.date,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
         )
         db.session.add(livro)
         db.session.commit()
@@ -160,18 +161,22 @@ def novo_aluno():
     form = AlunoForm()
     if form.validate_on_submit():
         aluno = Student(
-            nomeAluno=form.nomeAluno.data,
-            telefoneAluno=form.telefoneAluno.data,
-            dtNascimento=form.dtNascimento.data,
+            studentName=form.studentName.data,
+            studentPhone=form.studentPhone.data,
+            dtBirth=form.dtBirth.data,
             cpf=form.cpf.data,
             rg=form.rg.data,
-            serie=form.serie.data,
-            turma=form.turma.data,
-            nomeResponsavel1=form.nomeResponsavel1.data,
-            telefoneResponsavel1=form.telefoneResponsavel1.data,
-            nomeResponsavel2=form.nomeResponsavel2.data,
-            telefoneResponsavel2=form.telefoneResponsavel2.data,
-            observacao=form.observacao.data
+            gradeNumber=form.gradeNumber.data,
+            className=form.className.data,
+            guardianName1=form.guardianName1.data,
+            guardianPhone1=form.guardianPhone1.data,
+            guardianName2=form.guardianName2.data,
+            guardianPhone2=form.guardianPhone2.data,
+            notes=form.notes.data,
+            dtCreation=form.dtCreation.data,
+            dtLastUpdate=form.dtLastUpdate.data,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
         )
         print(aluno)
         db.session.add(aluno)
@@ -179,20 +184,7 @@ def novo_aluno():
         # return redirect(url_for('alunos'))
     else:
         print(form.errors)
-        print(
-            form.nomeAluno.data,
-            form.telefoneAluno.data,
-            form.dtNascimento.data,
-            form.cpf.data,
-            form.rg.data,
-            form.serie.data,
-            form.turma.data,
-            form.nomeResponsavel1.data,
-            form.telefoneResponsavel1.data,
-            form.nomeResponsavel2.data,
-            form.telefoneResponsavel2.data,
-            form.observacao.data
-        )
+        
     return render_template('novo_aluno.html', form=form)
 
 
@@ -202,11 +194,18 @@ def novo_emprestimo():
     form = EmprestimoForm()
     if form.validate_on_submit():
         emprestimo = Loan(
-            quantidade=form.quantidade.data,
-            dataEmprestimo=form.dataEmprestimo.data,
-            dataDevolucao=form.dataDevolucao.data,
-            aluno_id=form.aluno_id.data,
-            livro_id=form.livro_id.data
+            amount=form.amount.data,
+            dtLoan=form.dtLoan.data,
+            dtReturn=form.dtReturn.data,
+            studentId=form.studentId.data,
+            bookId=form.bookId.data,
+            student=form.student.data,
+            book=form.book.data,
+            dtCreation=form.dtCreation.data,
+            dtLastUpdate=form.dtLastUpdate.data,
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
+            status=form.status.data,
         )
         print(emprestimo)
         db.session.add(emprestimo)
@@ -214,13 +213,7 @@ def novo_emprestimo():
         # return redirect(url_for('emprestimos'))
     else:
         print(form.errors)
-        print(
-            form.quantidade.data,
-            form.dataEmprestimo.data,
-            form.dataDevolucao.data,
-            form.aluno_id.data,
-            form.livro_id.data
-        )
+        
     return render_template('novo_emprestimo.html', form=form)
 
 

@@ -13,10 +13,13 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(80), nullable=False)
     usertype = db.Column(db.String(80), nullable=False)
     # Time format: dd/mm/yyyy|hh:mm:ss
-    dtCreation = db.Column(db.String(80), nullable=False)
+    dtCreation = db.Column(db.Date, nullable=False)
     dtLastUpdate = db.Column(db.Date, nullable=False)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+
+    def get_id(self):
+        return self.userId
 
 
 
@@ -72,11 +75,11 @@ class KeyWord(db.Model):
 
 class StatusLoan(enum.Enum):
     ACTIVE = "active"
-    BGN_TODAY = "bgn today"
     OVERDUE = "overdue"
-    END_TODAY = "end today"
     COMPLETED = "completed"
     LOST = "lost"
+    # BGN_TODAY = "bgn today"
+    # END_TODAY = "end today"
 
 
 class Loan(db.Model):
@@ -88,8 +91,8 @@ class Loan(db.Model):
     dtReturn = db.Column(db.Date, nullable=False)
     studentId = db.Column(db.Integer, db.ForeignKey('students.studentId'), nullable=False)
     bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), nullable=False)
-    student = db.relationship('students', backref=db.backref('loans', lazy=True))
-    book = db.relationship('books', backref=db.backref('loans', lazy=True))
+    student = db.relationship('Student', backref=db.backref('loans', lazy=True))
+    book = db.relationship('Book', backref=db.backref('loans', lazy=True))
     dtCreation = db.Column(db.Date, nullable=False)
     dtLastUpdate = db.Column(db.Date, nullable=False)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
