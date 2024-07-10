@@ -7,8 +7,8 @@ from flask_cors import CORS
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 
-from app.forms import (AlunoForm, EmprestimoForm, LivroForm, LoginForm,
-                       PalavraChaveForm, RegisterForm)
+from app.forms import (StudentForm, LoanForm, BookForm, LoginForm,
+                       KeyWordForm, RegisterForm)
 from app.models import Student, Loan, Book, KeyWord, User
 
 from . import app, db
@@ -132,18 +132,18 @@ def palavras_chave():
 @app.route('/novo_livro', methods=['GET', 'POST'])
 @login_required
 def novo_livro():
-    form = LivroForm()
+    form = BookForm()
     if form.validate_on_submit():
         livro = Book(
             bookName=form.bookName.date,
             amount=form.amount.date,
             authorName=form.authorName.date,
             publishername=form.publishername.date,
-            dtPublished=form.dtPublished.date,
-            dtAquisition=form.dtAquisition.date,
+            publishedDate=form.publishedDate.date,
+            aquisitionDate=form.aquisitionDate.date,
             description=form.description.date,
-            dtCreation=form.dtCreation.date,
-            dtLastUpdate=form.dtLastUpdate.date,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
@@ -158,12 +158,12 @@ def novo_livro():
 @app.route('/novo_aluno', methods=['GET', 'POST'])
 @login_required
 def novo_aluno():
-    form = AlunoForm()
+    form = StudentForm()
     if form.validate_on_submit():
         aluno = Student(
             studentName=form.studentName.data,
             studentPhone=form.studentPhone.data,
-            dtBirth=form.dtBirth.data,
+            birthDate=form.birthDate.data,
             cpf=form.cpf.data,
             rg=form.rg.data,
             gradeNumber=form.gradeNumber.data,
@@ -173,8 +173,8 @@ def novo_aluno():
             guardianName2=form.guardianName2.data,
             guardianPhone2=form.guardianPhone2.data,
             notes=form.notes.data,
-            dtCreation=form.dtCreation.data,
-            dtLastUpdate=form.dtLastUpdate.data,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
@@ -191,7 +191,7 @@ def novo_aluno():
 @app.route('/novo_emprestimo', methods=['GET', 'POST'])
 @login_required
 def novo_emprestimo():
-    form = EmprestimoForm()
+    form = LoanForm()
     if form.validate_on_submit():
         emprestimo = Loan(
             amount=form.amount.data,
@@ -201,8 +201,8 @@ def novo_emprestimo():
             bookId=form.bookId.data,
             student=form.student.data,
             book=form.book.data,
-            dtCreation=form.dtCreation.data,
-            dtLastUpdate=form.dtLastUpdate.data,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
             status=form.status.data,
@@ -220,11 +220,14 @@ def novo_emprestimo():
 @app.route('/nova_palavra_chave', methods=['GET', 'POST'])
 @login_required
 def nova_palavra_chave():
-    form = PalavraChaveForm()
+    form = KeyWordForm()
     if form.validate_on_submit():
         palavra_chave = KeyWord(
-            palavra=form.palavra.data,
-            livro_id=form.livro_id.data
+            Word=form.Word.data,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
         )
         db.session.add(palavra_chave)
         db.session.commit()
@@ -238,7 +241,7 @@ def nova_palavra_chave():
 @login_required
 def editar_livro(id):
     livro = Book.query.get(id)
-    form = LivroForm(obj=livro)
+    form = BookForm(obj=livro)
     if form.validate_on_submit():
         form.populate_obj(livro)
         db.session.commit()
@@ -250,7 +253,7 @@ def editar_livro(id):
 @login_required
 def editar_aluno(id):
     aluno = Student.query.get(id)
-    form = AlunoForm(obj=aluno)
+    form = StudentForm(obj=aluno)
     if form.validate_on_submit():
         form.populate_obj(aluno)
         db.session.commit()
@@ -262,7 +265,7 @@ def editar_aluno(id):
 @login_required
 def editar_emprestimo(id):
     emprestimo = Loan.query.get(id)
-    form = EmprestimoForm(obj=emprestimo)
+    form = LoanForm(obj=emprestimo)
     if form.validate_on_submit():
         form.populate_obj(emprestimo)
         db.session.commit()
@@ -274,7 +277,7 @@ def editar_emprestimo(id):
 @login_required
 def editar_palavra_chave(id):
     palavra_chave = KeyWord.query.get(id)
-    form = PalavraChaveForm(obj=palavra_chave)
+    form = KeyWordForm(obj=palavra_chave)
     if form.validate_on_submit():
         form.populate_obj(palavra_chave)
         db.session.commit()

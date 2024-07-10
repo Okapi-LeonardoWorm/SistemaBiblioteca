@@ -36,59 +36,63 @@ class RegisterForm(FlaskForm):
                 "Username already exists! Please try another one.")
 
 
-class LivroForm(FlaskForm):
-    nomeLivro = StringField('Nome do Livro', validators=[DataRequired()])
-    quantidade = IntegerField('Quantidade', default=1, validators=[
+class BookForm(FlaskForm):
+    bookName = StringField('Nome do Livro', validators=[DataRequired()])
+    amount = IntegerField('Quantidade', default=1, validators=[
                               DataRequired(), NumberRange(min=1)])
-    nomeAutor = StringField('Nome do Autor', validators=[DataRequired()])
-    nomeEditora = StringField('Nome da Editora', validators=[DataRequired()])
-    dataPublicacao = DateField(
+    authorName = StringField('Nome do Autor', validators=[DataRequired()])
+    publisherName = StringField('Nome da Editora', validators=[DataRequired()])
+    publishedDate = DateField(
         'Data de Publicação', format='%Y-%m-%d', validators=[DataRequired()])
-    dtAquisicao = DateField('Data de Aquisição',
+    aquisitionDate = DateField('Data de Aquisição',
                             format='%Y-%m-%d', validators=[DataRequired()])
-    descricao = TextAreaField('Descrição', validators=[Optional()])
+    description = TextAreaField('Descrição', validators=[Optional()])
     submit = SubmitField('Cadastrar')
 
 
-class AlunoForm(FlaskForm):
-    nomeAluno = StringField('Nome do Aluno', validators=[DataRequired()])
-    telefoneAluno = StringField('Telefone do Aluno', validators=[Optional(), Length(
+class StudentForm(FlaskForm):
+    studentName = StringField('Nome do Aluno', validators=[DataRequired()])
+    studentPhone = StringField('Telefone do Aluno', validators=[Optional(), Length(
         max=12), Regexp(r'^\d+$', message="Telefone deve conter apenas números")])
-    dtNascimento = DateField('Data de Nascimento',
+    birthDate = DateField('Data de Nascimento',
                              format='%Y-%m-%d', validators=[DataRequired()])
     cpf = StringField('CPF', validators=[Optional(), Length(
         min=11, max=11), Regexp(r'^\d+$', message="CPF deve conter apenas números")])
     rg = StringField('RG', validators=[Optional(), Length(min=9, max=10), Regexp(
         r'^\d+$', message="RG deve conter apenas números")])
-    serie = StringField('Série', validators=[DataRequired()])
-    turma = StringField('Turma', validators=[Optional()])
-    nomeResponsavel1 = StringField(
+    gradeNumber = StringField('Série', validators=[DataRequired()])
+    className = StringField('Turma', validators=[Optional()])
+    guardianName1 = StringField(
         'Nome do Responsável 1', validators=[Optional()])
-    telefoneResponsavel1 = StringField(
+    guardianPhone1 = StringField(
         'Telefone do Responsável 1', validators=[Optional()])
-    nomeResponsavel2 = StringField(
+    guardianName2 = StringField(
         'Nome do Responsável 2', validators=[Optional()])
-    telefoneResponsavel2 = StringField(
+    guardianPhone2 = StringField(
         'Telefone do Responsável 2', validators=[Optional()])
-    observacao = TextAreaField('Observação', validators=[Optional()])
+    notes = TextAreaField('Observação', validators=[Optional()])
     submit = SubmitField('Cadastrar')
 
 
-class EmprestimoForm(FlaskForm):
-    quantidade = IntegerField('Quantidade', validators=[
+class KeyWordForm(FlaskForm):
+    word = StringField('Palavra', validators=[DataRequired()])
+    
+
+class LoanForm(FlaskForm):
+    amount = IntegerField('Quantidade', validators=[
                               DataRequired(), NumberRange(min=1)])
-    dataEmprestimo = DateField(
+    loanDate = DateField(
         'Data de Empréstimo', format='%Y-%m-%d', validators=[DataRequired()])
-    dataDevolucao = DateField(
+    returnDate = DateField(
         'Data de Devolução', format='%Y-%m-%d', validators=[DataRequired()])
-    aluno_id = IntegerField('ID do Aluno', validators=[
+    studentId = IntegerField('ID do Aluno', validators=[
                             DataRequired(), NumberRange(min=1)])
-    livro_id = IntegerField('ID do Livro', validators=[
+    bookId = IntegerField('ID do Livro', validators=[
                             DataRequired(), NumberRange(min=1)])
     submit = SubmitField('Cadastrar')
 
 
-class PalavraChaveForm(FlaskForm):
-    palavra = StringField('Palavra', validators=[DataRequired()])
-    livro_id = IntegerField('ID do Livro', validators=[DataRequired()])
+class KeyWordBookForm(FlaskForm):
+    bookId = IntegerField('ID do Livro', validators=[DataRequired()])
+    wordId = StringField('ID da Palavra', validators=[DataRequired()])
     submit = SubmitField('Cadastrar')
