@@ -94,6 +94,8 @@ def login():
                 return redirect(url_for('index'))
             else:
                 print("Invalid password!")
+    else:
+        print("Err:>", form.errors)
     return render_template('login.html', form=form)
 
 
