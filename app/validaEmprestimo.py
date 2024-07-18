@@ -23,17 +23,19 @@ def v2(form):
 def v3(form, activeBookLoans, book):
     # Inicializa a quantidade disponível como a quantidade total de livros
     availableBooks = book.amount
-
+    print("availableBooks INI: ", availableBooks)
     # Itera sobre todos os empréstimos ativos
     for loan in activeBookLoans:
         # Verifica se as datas de empréstimo solicitadas coincidem com as datas dos empréstimos existentes
-        # if form.loanDate.data <= loan.returnDate and form.returnDate.data >= loan.loanDate:
-        if form.loanDate.data < loan.returnDate:
-            availableBooks -= 1
+        # if form.loanDate.data <= loan.returnDate and form.returnDate.data >= loan.loanDate: # Logica do GitHub Copilot
+        # if form.returnDate.data > loan.loanDate >= form.loanDate.data or form.loanDate.data <= loan.returnDate < form.returnDate.data: # Minha lógica
+        if form.loanDate.data < loan.returnDate and form.returnDate.data > loan.loanDate: # Logica do GPT
+            availableBooks -= loan.amount
+    print("availableBooks: END", availableBooks)
     
     # Verifica se a quantidade de livros disponíveis é suficiente para a quantidade de livros solicitada no empréstimo
     if form.amount.data <= availableBooks:
-        # print(f"\nform: {form.amount.data}\n qtLivrosDisp: {availableBooks}\n empatvs: {len(activeBookLoans)}\n")
+        print("availableBooks: IF", form.amount.data <= availableBooks)
         return True
 
     return False

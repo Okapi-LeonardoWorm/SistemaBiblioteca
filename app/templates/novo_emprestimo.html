@@ -11,11 +11,11 @@
             </div>
             <div class="form-group">
                 {{ form.loanDate.label(class="form-label") }}
-                {{ form.loanDate(class="form-control datepicker", size=32, autocomplete="off") }}
+                {{ form.loanDate(class="form-control datepicker startDate", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.returnDate.label(class="form-label") }}
-                {{ form.returnDate(class="form-control datepicker", size=32, autocomplete="off") }}
+                {{ form.returnDate(class="form-control datepicker endDate", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.bookId.label(class="form-label") }}

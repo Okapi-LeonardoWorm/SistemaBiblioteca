@@ -4,6 +4,7 @@ from wtforms import (DateField, IntegerField, PasswordField, StringField,
 from wtforms.validators import (DataRequired, InputRequired, Length,
                                 NumberRange, Optional, Regexp, ValidationError)
 from app.models import User
+from datetime import datetime, timedelta
 
 
 class LoginForm(FlaskForm):
@@ -39,13 +40,13 @@ class RegisterForm(FlaskForm):
 class BookForm(FlaskForm):
     bookName = StringField('Nome do Livro', validators=[DataRequired()])
     amount = IntegerField('Quantidade', default=1, validators=[
-                              DataRequired(), NumberRange(min=1)])
+        DataRequired(), NumberRange(min=1)])
     authorName = StringField('Nome do Autor', validators=[DataRequired()])
     publisherName = StringField('Nome da Editora', validators=[DataRequired()])
     publishedDate = DateField(
         'Data de Publicação', format='%Y-%m-%d', validators=[DataRequired()])
     acquisitionDate = DateField('Data de Aquisição',
-                            format='%Y-%m-%d', validators=[DataRequired()])
+                                format='%Y-%m-%d', validators=[DataRequired()])
     description = TextAreaField('Descrição', validators=[Optional()])
     submit = SubmitField('Cadastrar')
 
@@ -55,7 +56,7 @@ class StudentForm(FlaskForm):
     studentPhone = StringField('Telefone do Aluno', validators=[Optional(), Length(
         max=12), Regexp(r'^\d+$', message="Telefone deve conter apenas números")])
     birthDate = DateField('Data de Nascimento',
-                             format='%Y-%m-%d', validators=[DataRequired()])
+                          format='%Y-%m-%d', validators=[DataRequired()])
     cpf = StringField('CPF', validators=[Optional(), Length(
         min=11, max=11), Regexp(r'^\d+$', message="CPF deve conter apenas números")])
     rg = StringField('RG', validators=[Optional(), Length(min=9, max=10), Regexp(
@@ -77,19 +78,20 @@ class StudentForm(FlaskForm):
 class KeyWordForm(FlaskForm):
     word = StringField('Palavra', validators=[DataRequired()])
     submit = SubmitField('Cadastrar')
-    
+
 
 class LoanForm(FlaskForm):
-    amount = IntegerField('Quantidade', validators=[
-                              DataRequired(), NumberRange(min=1)])
+    amount = IntegerField('Quantidade', default=1, validators=[
+        DataRequired(), NumberRange(min=1)])
     loanDate = DateField(
-        'Data de Empréstimo', format='%Y-%m-%d', validators=[DataRequired()])
+        'Data de Empréstimo', default=datetime.today, format='%Y-%m-%d', validators=[DataRequired()])
     returnDate = DateField(
-        'Data de Devolução', format='%Y-%m-%d', validators=[DataRequired()])
+        'Data de Devolução',
+        default=(datetime.today() + timedelta(days=7)), format='%Y-%m-%d', validators=[DataRequired()])
     studentId = IntegerField('ID do Aluno', validators=[
-                            DataRequired(), NumberRange(min=1)])
+        DataRequired(), NumberRange(min=1)])
     bookId = IntegerField('ID do Livro', validators=[
-                            DataRequired(), NumberRange(min=1)])
+        DataRequired(), NumberRange(min=1)])
     submit = SubmitField('Cadastrar')
 
 
