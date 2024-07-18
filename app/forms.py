@@ -44,7 +44,7 @@ class BookForm(FlaskForm):
     publisherName = StringField('Nome da Editora', validators=[DataRequired()])
     publishedDate = DateField(
         'Data de Publicação', format='%Y-%m-%d', validators=[DataRequired()])
-    aquisitionDate = DateField('Data de Aquisição',
+    acquisitionDate = DateField('Data de Aquisição',
                             format='%Y-%m-%d', validators=[DataRequired()])
     description = TextAreaField('Descrição', validators=[Optional()])
     submit = SubmitField('Cadastrar')
@@ -76,6 +76,7 @@ class StudentForm(FlaskForm):
 
 class KeyWordForm(FlaskForm):
     word = StringField('Palavra', validators=[DataRequired()])
+    submit = SubmitField('Cadastrar')
     
 
 class LoanForm(FlaskForm):

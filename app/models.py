@@ -11,7 +11,7 @@ class User(db.Model, UserMixin):
     userId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(20), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
-    usertype = db.Column(db.String(80), nullable=False)
+    userType = db.Column(db.String(80), nullable=False)
     # Time format: dd/mm/yyyy|hh:mm:ss
     creationDate = db.Column(db.Date, nullable=False)
     lastUpdate = db.Column(db.Date, nullable=False)
@@ -30,9 +30,9 @@ class Book(db.Model):
     bookName = db.Column(db.String, nullable=False)
     amount = db.Column(db.Integer, nullable=False)
     authorName = db.Column(db.String, nullable=False)
-    publishername = db.Column(db.String, nullable=False)
+    publisherName = db.Column(db.String, nullable=False)
     publishedDate = db.Column(db.Date, nullable=False)
-    aquisitionDate = db.Column(db.Date, nullable=True)
+    acquisitionDate = db.Column(db.Date, nullable=True)
     description = db.Column(db.Text, nullable=True)
     creationDate = db.Column(db.Date, nullable=False)
     lastUpdate = db.Column(db.Date, nullable=False)
@@ -66,7 +66,7 @@ class KeyWord(db.Model):
     __tablename__ = 'keyWords'
 
     wordId = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    Word = db.Column(db.String, nullable=False)
+    word = db.Column(db.String, unique=True, nullable=False)
     creationDate = db.Column(db.Date, nullable=False)
     lastUpdate = db.Column(db.Date, nullable=False)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)

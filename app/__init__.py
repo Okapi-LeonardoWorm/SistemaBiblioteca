@@ -13,6 +13,7 @@ app.config.from_object('config.Config')
 db.init_app(app)
 migrate.init_app(app, db)
 
+
 with app.app_context():
     from . import models
     from . import routes

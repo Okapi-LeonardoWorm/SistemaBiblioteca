@@ -1,1 +1,17 @@
-Nova palavra chave
+{% extends 'base.html' %}
+{% block pagetitle %}Nova Palavra Chave{% endblock %}
+{% block content %}
+    <div class="container">
+        <h1 class="novoLivroTitle">Registrar uma nova palavra chave</h1>
+        <form class="novoLivroForm" method="post" action="">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.word.label(class="form-label") }}
+                {{ form.word(class="form-control", size=32, autocomplete="off") }}
+            </div>
+            <div class="form-group">
+                {{ form.submit(class="btn btn-primary", type="submit") }}
+            </div>
+        </form>
+    </div>
+{% endblock %}

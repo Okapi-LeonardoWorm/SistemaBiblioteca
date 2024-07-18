@@ -9,9 +9,10 @@ from flask_login import (LoginManager, UserMixin, current_user, login_required,
 
 from app.forms import (StudentForm, LoanForm, BookForm, LoginForm,
                        KeyWordForm, RegisterForm)
-from app.models import Student, Loan, Book, KeyWord, User
+from app.models import Student, Loan, Book, KeyWord, User, StatusLoan
 
-from . import app, db
+from . import app
+from .dbExecute import addFromForm
 
 from flask_sqlalchemy import SQLAlchemy, query
 
@@ -56,29 +57,22 @@ def logout():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        name = form.username.data.strip()
-        name = name.lower()
+        name = form.username.data.strip().lower()
 
         hashed_password = bcrypt.generate_password_hash(
             form.password.data).decode('utf-8')
 
-        usertype = "regular"
-
-        dtCreation = date.today() # strftime("%Y-%m-%d")
-        dtLastUpdate = date.today() # strftime("%Y-%m-%d")
-
         new_user = User(
             username=name,
             password=hashed_password,
-            usertype=usertype,
-            dtCreation=dtCreation,
-            dtLastUpdate=dtLastUpdate,
+            userType="regular",
+            creationDate=date.today(),
+            lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId
         )
-
-        db.session.add(new_user)
-        db.session.commit()
+        if new_user:
+            addFromForm(new_user)
         return redirect(url_for('login'))
 
     return render_template('register.html', form=form)
@@ -88,12 +82,13 @@ def register():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        usernameStr = form.username.data.strip().lower()
+        user = User.query.filter_by(username=usernameStr).first()
 
         if user:
             if bcrypt.check_password_hash(user.password, form.password.data):
                 session['logged_in'] = True
-                session['usertype'] = user.usertype
+                session['userType'] = user.userType
                 login_user(user)
                 return redirect(url_for('index'))
             else:
@@ -134,21 +129,21 @@ def palavras_chave():
 def novo_livro():
     form = BookForm()
     if form.validate_on_submit():
-        livro = Book(
-            bookName=form.bookName.date,
-            amount=form.amount.date,
-            authorName=form.authorName.date,
-            publishername=form.publishername.date,
-            publishedDate=form.publishedDate.date,
-            aquisitionDate=form.aquisitionDate.date,
-            description=form.description.date,
+        new_book = Book(
+            bookName=form.bookName.data,
+            amount=form.amount.data,
+            authorName=form.authorName.data,
+            publisherName=form.publisherName.data,
+            publishedDate=form.publishedDate.data,
+            acquisitionDate=form.acquisitionDate.data,
+            description=form.description.data,
             creationDate=date.today(),
             lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
-        db.session.add(livro)
-        db.session.commit()
+        if new_book:
+            addFromForm(new_book)
         # return redirect(url_for('livros'))
     else:
         print(form.errors)
@@ -160,7 +155,7 @@ def novo_livro():
 def novo_aluno():
     form = StudentForm()
     if form.validate_on_submit():
-        aluno = Student(
+        new_student = Student(
             studentName=form.studentName.data,
             studentPhone=form.studentPhone.data,
             birthDate=form.birthDate.data,
@@ -178,9 +173,9 @@ def novo_aluno():
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
-        print(aluno)
-        db.session.add(aluno)
-        db.session.commit()
+        print(new_student)
+        if new_student:
+            addFromForm(new_student)
         # return redirect(url_for('alunos'))
     else:
         print(form.errors)
@@ -193,23 +188,21 @@ def novo_aluno():
 def novo_emprestimo():
     form = LoanForm()
     if form.validate_on_submit():
-        emprestimo = Loan(
+        new_Loan = Loan(
             amount=form.amount.data,
-            dtLoan=form.dtLoan.data,
-            dtReturn=form.dtReturn.data,
+            loanDate=form.loanDate.data,
+            returnDate=form.returnDate.data,
             studentId=form.studentId.data,
             bookId=form.bookId.data,
-            student=form.student.data,
-            book=form.book.data,
             creationDate=date.today(),
             lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
-            status=form.status.data,
+            status=StatusLoan.ACTIVE,
         )
-        print(emprestimo)
-        db.session.add(emprestimo)
-        db.session.commit()
+        print(new_Loan)
+        if new_Loan:
+            addFromForm(new_Loan)
         # return redirect(url_for('emprestimos'))
     else:
         print(form.errors)
@@ -222,16 +215,17 @@ def novo_emprestimo():
 def nova_palavra_chave():
     form = KeyWordForm()
     if form.validate_on_submit():
-        palavra_chave = KeyWord(
-            Word=form.Word.data,
+        wordStr = form.word.data.strip().lower()
+        newKeyWord = KeyWord(
+            word=wordStr,
             creationDate=date.today(),
             lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
-        db.session.add(palavra_chave)
-        db.session.commit()
-        return redirect(url_for('palavras_chave'))
+        if newKeyWord:
+            addFromForm(newKeyWord)
+        # return redirect(url_for('palavras_chave'))
     else:
         print(form.errors)
     return render_template('nova_palavra_chave.html', form=form)
@@ -244,7 +238,7 @@ def editar_livro(id):
     form = BookForm(obj=livro)
     if form.validate_on_submit():
         form.populate_obj(livro)
-        db.session.commit()
+        # db.session.commit()
         return redirect(url_for('livros'))
     return render_template('editar_livro.html', form=form)
 
@@ -256,7 +250,7 @@ def editar_aluno(id):
     form = StudentForm(obj=aluno)
     if form.validate_on_submit():
         form.populate_obj(aluno)
-        db.session.commit()
+        # db.session.commit()
         return redirect(url_for('alunos'))
     return render_template('editar_aluno.html', form=form)
 
@@ -268,7 +262,7 @@ def editar_emprestimo(id):
     form = LoanForm(obj=emprestimo)
     if form.validate_on_submit():
         form.populate_obj(emprestimo)
-        db.session.commit()
+        # db.session.commit()
         return redirect(url_for('emprestimos'))
     return render_template('editar_emprestimo.html', form=form)
 
@@ -280,7 +274,7 @@ def editar_palavra_chave(id):
     form = KeyWordForm(obj=palavra_chave)
     if form.validate_on_submit():
         form.populate_obj(palavra_chave)
-        db.session.commit()
+        # db.session.commit()
         return redirect(url_for('palavras_chave'))
     return render_template('editar_palavra_chave.html', form=form)
 
@@ -289,8 +283,8 @@ def editar_palavra_chave(id):
 @login_required
 def excluir_livro(id):
     livro = Book.query.get(id)
-    db.session.delete(livro)
-    db.session.commit()
+    # db.session.delete(livro)
+    # db.session.commit()
     return redirect(url_for('livros'))
 
 
@@ -298,8 +292,8 @@ def excluir_livro(id):
 @login_required
 def excluir_aluno(id):
     aluno = Student.query.get(id)
-    db.session.delete(aluno)
-    db.session.commit()
+    # db.session.delete(aluno)
+    # db.session.commit()
     return redirect(url_for('alunos'))
 
 
@@ -307,8 +301,8 @@ def excluir_aluno(id):
 @login_required
 def excluir_emprestimo(id):
     emprestimo = Loan.query.get(id)
-    db.session.delete(emprestimo)
-    db.session.commit()
+    # db.session.delete(emprestimo)
+    # db.session.commit()
     return redirect(url_for('emprestimos'))
 
 
@@ -316,6 +310,6 @@ def excluir_emprestimo(id):
 @login_required
 def excluir_palavra_chave(id):
     palavra_chave = KeyWord.query.get(id)
-    db.session.delete(palavra_chave)
-    db.session.commit()
+    # db.session.delete(palavra_chave)
+    # db.session.commit()
     return redirect(url_for('palavras_chave'))

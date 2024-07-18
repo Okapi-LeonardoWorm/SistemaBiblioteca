@@ -6,32 +6,32 @@
         <form class="novoLivroForm" method="post" action="">
             {{ form.hidden_tag() }}
             <div class="form-group">
-                {{ form.nomeLivro.label(class="form-label") }}
-                {{ form.nomeLivro(class="form-control", size=32, autocomplete="off") }}
+                {{ form.bookName.label(class="form-label") }}
+                {{ form.bookName(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
-                {{ form.quantidade.label(class="form-label") }}
-                {{ form.quantidade(class="form-control", size=32, autocomplete="off") }}
+                {{ form.amount.label(class="form-label") }}
+                {{ form.amount(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
-                {{ form.nomeAutor.label(class="form-label") }}
-                {{ form.nomeAutor(class="form-control", size=32, autocomplete="off") }}
+                {{ form.authorName.label(class="form-label") }}
+                {{ form.authorName(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
-                {{ form.nomeEditora.label(class="form-label") }}
-                {{ form.nomeEditora(class="form-control", size=32, autocomplete="off") }}
+                {{ form.publisherName.label(class="form-label") }}
+                {{ form.publisherName(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
-                {{ form.dataPublicacao.label(class="form-label") }}
-                {{ form.dataPublicacao(class="form-control datepicker", size=32, autocomplete="off") }}
+                {{ form.publishedDate.label(class="form-label") }}
+                {{ form.publishedDate(class="form-control datepicker", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
-                {{ form.dtAquisicao.label(class="form-label") }}
-                {{ form.dtAquisicao(class="form-control datepicker", size=32, autocomplete="off") }}
+                {{ form.acquisitionDate.label(class="form-label") }}
+                {{ form.acquisitionDate(class="form-control datepicker", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
-                {{ form.descricao.label(class="form-label") }}
-                {{ form.descricao(class="form-control", size=32, autocomplete="off") }}
+                {{ form.description.label(class="form-label") }}
+                {{ form.description(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
                 {{ form.submit(class="btn btn-primary", type="submit") }}
