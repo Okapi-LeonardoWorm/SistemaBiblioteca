@@ -13,6 +13,7 @@ from app.models import Student, Loan, Book, KeyWord, User, StatusLoan
 
 from . import app
 from .dbExecute import addFromForm
+from .validaEmprestimo import validaEmprestimo
 
 from flask_sqlalchemy import SQLAlchemy, query
 
@@ -188,22 +189,22 @@ def novo_aluno():
 def novo_emprestimo():
     form = LoanForm()
     if form.validate_on_submit():
-        new_Loan = Loan(
-            amount=form.amount.data,
-            loanDate=form.loanDate.data,
-            returnDate=form.returnDate.data,
-            studentId=form.studentId.data,
-            bookId=form.bookId.data,
-            creationDate=date.today(),
-            lastUpdate=date.today(),
-            createdBy=current_user.userId,
-            updatedBy=current_user.userId,
-            status=StatusLoan.ACTIVE,
-        )
-        print(new_Loan)
-        if new_Loan:
-            addFromForm(new_Loan)
-        # return redirect(url_for('emprestimos'))
+        if validaEmprestimo(form, Loan, Book, StatusLoan):
+            new_Loan = Loan(
+                amount=form.amount.data,
+                loanDate=form.loanDate.data,
+                returnDate=form.returnDate.data,
+                studentId=form.studentId.data,
+                bookId=form.bookId.data,
+                creationDate=date.today(),
+                lastUpdate=date.today(),
+                createdBy=current_user.userId,
+                updatedBy=current_user.userId,
+                status=StatusLoan.ACTIVE,
+            )
+            if new_Loan:
+                addFromForm(new_Loan)
+            # return redirect(url_for('emprestimos'))
     else:
         print(form.errors)
         

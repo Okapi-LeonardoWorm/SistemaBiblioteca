@@ -100,7 +100,7 @@ class Loan(db.Model):
     status = db.Column(Enum(StatusLoan), nullable=False)
 
 class KeyWordBook(db.Model):
-    __tablename__ = 'PalavrasBook'
+    __tablename__ = 'KeyWordBooks'
 
     bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), primary_key=True, nullable=False)
     wordId = db.Column(db.Integer, db.ForeignKey('keyWords.wordId'), primary_key=True, nullable=False)
