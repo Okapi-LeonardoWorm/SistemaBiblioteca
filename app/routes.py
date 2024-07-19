@@ -26,6 +26,14 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
+@app.context_processor
+def inject_globals():
+    return dict(
+        username=session.get('username'),
+        userType=session.get('userType'),
+        userId=session.get('userId'))
+
+
 @login_manager.user_loader
 def load_user(userId):
     return User.query.get(int(userId))
@@ -74,7 +82,7 @@ def register():
         )
         if new_user:
             addFromForm(new_user)
-        return redirect(url_for('login'))
+        # return redirect(url_for('login'))
 
     return render_template('register.html', form=form)
 
@@ -89,6 +97,8 @@ def login():
         if user:
             if bcrypt.check_password_hash(user.password, form.password.data):
                 session['logged_in'] = True
+                session['username'] = usernameStr
+                session['userId'] = user.userId
                 session['userType'] = user.userType
                 login_user(user)
                 return redirect(url_for('index'))
@@ -147,7 +157,7 @@ def novo_livro():
         )
         if new_book:
             addFromForm(new_book)
-        # return redirect(url_for('livros'))
+        return redirect(url_for('novo_livro'))
     else:
         print(form.errors)
     return render_template('novo_livro.html', form=form)

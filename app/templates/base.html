@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +14,12 @@
     <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
     <script src="{{ url_for('static', filename='js/bootstrap-datepicker.min.js') }}"></script>
+
+    <style>
+        .highlight-last-word {
+            color: #28a745; /* Cor desejada para a última palavra */
+        }
+    </style>
     
     {% block cssstyle %}{% endblock %}
     
@@ -21,6 +27,26 @@
 </head>
 <body>
     <header>
+        <div class="container-fluid px-5 py-3 bg-dark text-white">
+            <div class="">
+                <div class="row justify-content-between align-items-center">
+                    <h6 class="mb-0" id="username">Logado como: <u>{{ userId }}: {{ username }}</u></h6>
+                    <a href="{{ url_for('logout') }}" class="col-auto m-1 btn btn-danger">logout</a>
+                </div>
+                <div class="row menuOptions">
+                    <a href="{{ url_for('login') }}" class="col-auto m-1 btn btn-primary">login</a>
+                    <a href="{{ url_for('register') }}" class="col-auto m-1 btn btn-primary">Registrar novo usuário</a>
+                    <a href="{{ url_for('alunos') }}" class="col-auto m-1 btn btn-primary">Alunos</a>
+                    <a href="{{ url_for('livros') }}" class="col-auto m-1 btn btn-primary">Livros</a>
+                    <a href="{{ url_for('palavras_chave') }}" class="col-auto m-1 btn btn-primary">palavras_chave</a>
+                    <a href="{{ url_for('emprestimos') }}" class="col-auto m-1 btn btn-primary">Emprestimos</a>
+                    <a href="{{ url_for('novo_livro') }}" class="col-auto m-1 btn btn-primary">novo_livro</a>
+                    <a href="{{ url_for('novo_aluno') }}" class="col-auto m-1 btn btn-primary">novo_aluno</a>
+                    <a href="{{ url_for('novo_emprestimo') }}" class="col-auto m-1 btn btn-primary">novo_emprestimo</a>
+                    <a href="{{ url_for('nova_palavra_chave') }}" class="col-auto m-1 btn btn-primary">nova_palavra_chave</a>
+                </div>
+            </div>
+        </div>
         {% block header %}
         {% endblock %}
     </header>
