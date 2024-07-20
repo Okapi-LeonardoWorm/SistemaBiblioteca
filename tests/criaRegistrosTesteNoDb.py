@@ -4,7 +4,7 @@ from random import randint
 from datetime import date
 from flask_bcrypt import Bcrypt
 from app import app, db
-from app.models import User, Book
+from app.models import User, Book, KeyWord
 from .criaUserAdmin import criaAdminUser
 from time import sleep
 
@@ -41,6 +41,7 @@ def insert_users(start, end):
             db.session.bulk_save_objects(users)
             print(f"U - {strftime('%H:%M:%S')}: {i}")
             db.session.commit()
+
 
 def insert_books(start, end):
     with app.app_context():
@@ -79,6 +80,34 @@ def insert_books(start, end):
             db.session.bulk_save_objects(books)
             print(f"B - {strftime('%H:%M:%S')}: {i}")
             db.session.commit()
+
+
+def insert_keyWord(start, end):
+    with app.app_context():
+        words = []
+        for i in range(start, end):
+            word = f"word_{i}"
+
+            new_keyWord = KeyWord(
+                Word=Word,
+                creationDate=date.today(),
+                lastUpdate=date.today(),
+                createdBy=1,
+                updatedBy=1,
+            )
+            words.append(new_keyWord)
+
+            if len(words) % 1000 == 0:
+              db.session.bulk_save_objects(words)
+                print(f"U - {strftime('%H:%M:%S')}: {i}")
+                db.session.commit()
+                words = []
+
+        if words:
+            db.session.bulk_save_objects(words)
+            print(f"U - {strftime('%H:%M:%S')}: {i}")
+            db.session.commit()
+
 
 if __name__ == "__main__":
     # Cria um usuário admin para poder inserir registros no banco de dados
