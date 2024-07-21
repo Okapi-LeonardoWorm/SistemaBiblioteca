@@ -89,7 +89,7 @@ def insert_keyWord(start, end):
             word = f"word_{i}"
 
             new_keyWord = KeyWord(
-                Word=Word,
+                word=word,
                 creationDate=date.today(),
                 lastUpdate=date.today(),
                 createdBy=1,
@@ -98,7 +98,7 @@ def insert_keyWord(start, end):
             words.append(new_keyWord)
 
             if len(words) % 1000 == 0:
-              db.session.bulk_save_objects(words)
+                db.session.bulk_save_objects(words)
                 print(f"U - {strftime('%H:%M:%S')}: {i}")
                 db.session.commit()
                 words = []
@@ -116,10 +116,20 @@ if __name__ == "__main__":
     num_processes = 4  # Number of parallel processes
     user_batches = [(i, i + 10) for i in range(1, 100, 10)]
     book_batches = [(i, i + 10) for i in range(1, 100, 10)]
+    keyWord_batches = [(i, i + 10) for i in range(1, 100, 10)]
 
     with Pool(num_processes) as pool:
-        pool.starmap(insert_users, user_batches)
-        # sleep(5)
-        pool.starmap(insert_books, book_batches)
+        try:
+            pool.starmap(insert_users, user_batches)
+        except:
+            pass
+        try:
+            pool.starmap(insert_books, book_batches)
+        except:
+            pass
+        try:
+            pool.starmap(insert_keyWord, keyWord_batches)
+        except:
+            pass
 
     print("Done!")
