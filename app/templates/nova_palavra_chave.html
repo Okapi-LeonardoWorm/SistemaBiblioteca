@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block pagetitle %}Nova Palavra Chave{% endblock %}
 {% block content %}
-    <div class="container">
-        <h1 class="novoLivroTitle">Registrar uma nova palavra chave</h1>
+    <div class="container d-flex justify-content-center">
         <form class="novoLivroForm" method="post" action="">
+            <h1 class="novoLivroTitle">Registrar uma nova palavra chave</h1>
             {{ form.hidden_tag() }}
             <div class="form-group">
                 {{ form.word.label(class="form-label") }}

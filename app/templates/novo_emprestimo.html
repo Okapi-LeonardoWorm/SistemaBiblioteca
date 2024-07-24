@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block pagetitle %}Novo Empréstimo{% endblock %}
 {% block content %}
-    <div class="container">
-        <h1 class="novoEmprestimmoTitle">Registrar um novo empréstimo</h1>
+    <div class="container d-flex justify-content-center">
         <form class="novoEmprestimmoForm" method="post" action="">
+            <h1 class="novoEmprestimmoTitle">Registrar um novo empréstimo</h1>
             {{ form.hidden_tag() }}
             <div class="form-group">
                 {{ form.amount.label(class="form-label") }}

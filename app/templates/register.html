@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% block pagetitle %}Registrar{% endblock %}
 {% block content %}
-    <div class="container">
-        <h1 class="registerTitle">Registrar um novo usuário</h1>
+    <div class="container d-flex justify-content-center">
         <form class="registerForm" method="post" action="">
+            <h1 class="registerTitle">Registrar um novo usuário</h1>
             {{ form.hidden_tag() }}
             <div class="form-group">
                 {{ form.username.label(class="form-label") }}

@@ -1,7 +1,7 @@
 # from time import strftime
 from datetime import date
 
-from flask import Flask, redirect, render_template, session, url_for
+from flask import Flask, redirect, render_template, session, url_for, flash
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
@@ -81,7 +81,11 @@ def register():
             updatedBy=current_user.userId
         )
         if new_user:
-            addFromForm(new_user)
+            if addFromForm(new_user):
+                flash('Usuário cadastrado com sucesso!', 'success')
+                return redirect(url_for('register'))
+            else:
+                flash('Erro ao cadastrar usuário!', 'danger')
         # return redirect(url_for('login'))
 
     return render_template('register.html', form=form)
@@ -103,7 +107,8 @@ def login():
                 login_user(user)
                 return redirect(url_for('index'))
             else:
-                print("Invalid password!")
+                # Enviar mensagem de erro para o frontEnd
+                pass
     else:
         print("Err:>", form.errors)
     return render_template('login.html', form=form)
@@ -156,10 +161,12 @@ def novo_livro():
             updatedBy=current_user.userId,
         )
         if new_book:
-            addFromForm(new_book)
-        return redirect(url_for('novo_livro'))
-    else:
-        print(form.errors)
+            if addFromForm(new_book):
+                flash('Livro cadastrado com sucesso!', 'success')
+                return redirect(url_for('novo_livro'))
+            else:
+                flash('Erro ao cadastrar livro!', 'danger')
+                print(form.errors)
     return render_template('novo_livro.html', form=form)
 
 
@@ -186,12 +193,13 @@ def novo_aluno():
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
-        print(new_student)
         if new_student:
-            addFromForm(new_student)
-        # return redirect(url_for('alunos'))
-    else:
-        print(form.errors)
+            if addFromForm(new_student):
+                flash('Aluno cadastrado com sucesso!', 'success')
+                return redirect(url_for('novo_aluno'))
+            else:
+                flash('Erro ao cadastrar aluno!', 'danger')
+                print(form.errors)
         
     return render_template('novo_aluno.html', form=form)
 
@@ -215,10 +223,12 @@ def novo_emprestimo():
                 status=StatusLoan.ACTIVE,
             )
             if new_Loan:
-                addFromForm(new_Loan)
-            # return redirect(url_for('emprestimos'))
-    else:
-        print(form.errors)
+                if addFromForm(new_Loan):
+                    flash('Empréstimo cadastrado com sucesso!', 'success')
+                    return redirect(url_for('novo_emprestimo'))
+                else:
+                    flash('Erro ao cadastrar empréstimo!', 'danger')
+                    print(form.errors)
         
     return render_template('novo_emprestimo.html', form=form)
 
@@ -237,10 +247,12 @@ def nova_palavra_chave():
             updatedBy=current_user.userId,
         )
         if newKeyWord:
-            addFromForm(newKeyWord)
-        # return redirect(url_for('palavras_chave'))
-    else:
-        print(form.errors)
+            if addFromForm(newKeyWord):
+                flash('Palavra-chave cadastrada com sucesso!', 'success')
+                return redirect(url_for('nova_palavra_chave'))
+            else:
+                flash('Erro ao cadastrar palavra-chave!', 'danger')
+                print(form.errors)
     return render_template('nova_palavra_chave.html', form=form)
 
 
