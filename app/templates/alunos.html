@@ -1,1 +1,14 @@
-tela de alunos
+{% extends 'base.html' %}
+{% block pagetitle %}Alunos{% endblock %}
+{% block content %}
+  <div>
+    <h1 class="alunos">Alunos</h1>
+
+      {% for aluno in alunos %}
+        <div class="">
+          {{ aluno }}
+        </div>
+      {% endfor %}
+  </div>
+
+{% endblock %}

@@ -1,1 +1,19 @@
-Livros
+{% extends 'base.html' %}
+{% block pagetitle %}Livros{% endblock %}
+{% block content %}
+  <div>
+    <h1 class="BooksTitle">livros</h1>
+
+      {% for livro in livros %}
+        <div class="bookItem">
+          <div class="bookID">
+            {{ livro.bookId }}
+          </div>
+          <div class="bookName">
+            {{ livro.bookName }}
+          </div>
+        </div>
+      {% endfor %}
+  </div>
+
+{% endblock %}
