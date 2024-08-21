@@ -7,10 +7,19 @@
       {% for livro in livros %}
         <div class="bookItem">
           <div class="bookID">
+            <h5>ID:</h5>
             {{ livro.bookId }}
           </div>
           <div class="bookName">
+            <h5>Nome</h5>
             {{ livro.bookName }}
+          </div>
+          <div class="bookAvailable">
+            <h5>Disponível</h5>
+            {{ livro.bookAmount }}/{{ livro.bookAmount }}
+          </div>
+          <div class="bookAmount">
+            {{ livro.bookAmount }}
           </div>
         </div>
       {% endfor %}
