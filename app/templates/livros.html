@@ -1,28 +1,98 @@
 {% extends 'base.html' %}
+{% block cssstyle %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/books.css') }}">
+{% endblock %}
 {% block pagetitle %}Livros{% endblock %}
 {% block content %}
   <div>
-    <h1 class="BooksTitle">livros</h1>
-
-      {% for livro in livros %}
-        <div class="bookItem">
-          <div class="bookID">
+    <h1 class="BooksTitle">Livros</h1>
+    <div class="container">
+      {{ form.hidden_tag() }}
+      <div class="form-group">
+        {{ form.id.label(class="form-label") }}
+        {{ form.id(class="form-control", size=32) }}
+      </div>
+      <div class="form-group">
+        {{ form.bookName.label(class="form-label") }}
+        {{ form.bookName(class="form-control", size=32) }}
+      </div>
+      <div class="form-group">
+        {{ form.authorName.label(class="form-label") }}
+        {{ form.authorName(class="form-control", size=32) }}
+      </div>
+      <div class="form-group">
+        {{ form.publisherName.label(class="form-label") }}
+        {{ form.publisherName(class="form-control", size=32) }}
+      </div>
+      <div class="form-group">
+        {{ form.publishedDate.label(class="form-label") }}
+        {{ form.publishedDate(class="form-control", size=32) }}
+      </div>
+      <div class="form-group">
+        {{ form.acquisitionDate.label(class="form-label") }}
+        {{ form.acquisitionDate(class="form-control", size=32) }}
+      </div>
+      <div class="form-group">
+        {{ form.keyWords.label(class="form-label") }}
+        {{ form.keyWords(class="form-control", size=32) }}
+      </div>
+      
+    </div>
+    {% for livro in livros %}
+      <div class="bookItem">
+        <div class="mainContent">
+          <div class="bookId">
             <h5>ID:</h5>
             {{ livro.bookId }}
           </div>
           <div class="bookName">
-            <h5>Nome</h5>
+            <h5>Nome:</h5>
             {{ livro.bookName }}
           </div>
-          <div class="bookAvailable">
-            <h5>Disponível</h5>
-            {{ livro.bookAmount }}/{{ livro.bookAmount }}
+          <div class="amount">
+            <h5>Disponível:</h5>
+            {{ livro.amount }} de {{ livro.amount }}
           </div>
-          <div class="bookAmount">
-            {{ livro.bookAmount }}
+          <div class="publisherName">
+            <h5>Editora:</h5>
+            {{ livro.publisherName }}
+          </div>
+          <div class="publishedDate">
+            <h5>Lançamento:</h5>
+            {{ livro.publishedDate }}
           </div>
         </div>
-      {% endfor %}
+      
+        <button class="toggleSeeMore" onclick="toggleSeeMore(this)">ver mais</button>
+
+        <div class="seeMore" style="display: none;">
+          <div class="description">
+            <h5>Descrição:</h5>
+            {{ livro.description }}
+          </div>
+          <div class="keyWords">
+            <h5>Palavras Chave:</h5>
+            {{ livro.keyWords }}
+          </div>
+          <div class="acquisitionDate">
+            <h5>Aquisição:</h5>
+            {{ livro.acquisitionDate }}
+          </div>
+          <div class="creationDate">
+            <h5>Criado em:</h5>
+            {{ livro.creationDate }}
+          </div>
+          <div class="lastUpdate">
+            <h5>Última modificação:</h5>
+            {{ livro.lastUpdate }}
+          </div>
+          <div class="createdBy">
+            <h5>Criado por:</h5>
+            {{ livro.createdBy }}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
   </div>
 
 {% endblock %}
