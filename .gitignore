@@ -4,3 +4,4 @@ venv/
 tempCodeRunnerFile.python
 tests/tempCodeRunnerFile.py
 tests/tempCodeRunnerFile.py
+.vscode/extensions.json
