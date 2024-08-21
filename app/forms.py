@@ -7,6 +7,7 @@ from app.models import User
 from datetime import datetime, timedelta
 
 
+# Forms to create and validate the data that will be inserted in the database
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
         min=3, max=20, message="Seu nome de usuário deve conter entre 3 e 20 caracteres"),  Regexp(r'^[a-z_]+$', message="O nome de usuário pode conter apenas letras minúsculas e sublinhados(Underline), não pode conter espaços.")], render_kw={"placeholder": "Username"})
@@ -99,3 +100,16 @@ class KeyWordBookForm(FlaskForm):
     bookId = IntegerField('ID do Livro', validators=[DataRequired()])
     wordId = StringField('ID da Palavra', validators=[DataRequired()])
     submit = SubmitField('Cadastrar')
+
+
+# Form to search
+class SearchBooksForm(FlaskForm):
+    id = IntegerField('ID', validators=[Optional()])
+    bookName = StringField('Nome do Livro', validators=[Optional()])
+    authorName = StringField('Nome do Autor', validators=[Optional()])
+    publisherName = StringField('Nome da Editora', validators=[Optional()])
+    publishedDate = DateField('Data de Publicação',
+                              format='%Y-%m-%d', validators=[Optional()])
+    acquisitionDate = DateField('Data de Aquisição',
+                                format='%Y-%m-%d', validators=[Optional()])
+    keyWords = StringField('Palavras-chave', validators=[Optional()])
