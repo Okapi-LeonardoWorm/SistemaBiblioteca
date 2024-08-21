@@ -1,0 +1,50 @@
+.bookItem {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  margin: 10px;
+  padding: 15px 20px 15px 20px;
+
+  border: 1px solid #CCC;
+  border-radius: 15px;
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.toggleSeeMore {
+  background: none;
+  background-color: none;
+  
+  border: none;
+  border-radius: 0;
+
+  outline: none;
+  
+  box-shadow: none;
+  user-select: none;
+  appearance: none; 
+  text-decoration: none;
+  
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+
+  color: #007bff;
+  margin-top: 10px;
+  cursor: pointer;
+}
+
+.seeMore {
+  display: none;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
