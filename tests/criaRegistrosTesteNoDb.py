@@ -33,13 +33,13 @@ def insert_users(start, end):
 
             if len(users) % 1000 == 0:
                 db.session.bulk_save_objects(users)
-                print(f"U - {strftime('%H:%M:%S')}: {i}")
+                print(f"Users - {strftime('%H:%M:%S')}: {i}")
                 db.session.commit()
                 users = []
 
         if users:
             db.session.bulk_save_objects(users)
-            print(f"U - {strftime('%H:%M:%S')}: {i}")
+            print(f"Users - {strftime('%H:%M:%S')}: {i}")
             db.session.commit()
 
 
@@ -72,13 +72,13 @@ def insert_books(start, end):
 
             if len(books) % 100 == 0:
                 db.session.bulk_save_objects(books)
-                print(f"B - {strftime('%H:%M:%S')}: {i}")
+                print(f"Books - {strftime('%H:%M:%S')}: {i}")
                 db.session.commit()
                 books = []
 
         if books:
             db.session.bulk_save_objects(books)
-            print(f"B - {strftime('%H:%M:%S')}: {i}")
+            print(f"Books - {strftime('%H:%M:%S')}: {i}")
             db.session.commit()
 
 
@@ -99,13 +99,13 @@ def insert_keyWord(start, end):
 
             if len(words) % 1000 == 0:
                 db.session.bulk_save_objects(words)
-                print(f"U - {strftime('%H:%M:%S')}: {i}")
+                print(f"KeyWords - {strftime('%H:%M:%S')}: {i}")
                 db.session.commit()
                 words = []
 
         if words:
             db.session.bulk_save_objects(words)
-            print(f"U - {strftime('%H:%M:%S')}: {i}")
+            print(f"KeyWords - {strftime('%H:%M:%S')}: {i}")
             db.session.commit()
 
 

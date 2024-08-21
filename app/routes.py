@@ -9,7 +9,7 @@ from flask_login import (LoginManager, UserMixin, current_user, login_required,
 
 from app.forms import (StudentForm, LoanForm, BookForm, LoginForm,
                        KeyWordForm, RegisterForm)
-from app.models import Student, Loan, Book, KeyWord, User, StatusLoan
+from app.models import Student, Loan, Book, KeyWord, User, StatusLoan, KeyWordBook
 
 from . import app
 from .dbExecute import addFromForm
@@ -142,12 +142,22 @@ def palavras_chave():
     return render_template('palavras_chave.html', palavras_chave=palavras_chave)
 
 
+
+def splitStringIntoList(string):
+    string = string.split(';')
+    for i in string:
+        i = i.strip()
+        i = i.lower()
+                
+    return string
+
+
 @app.route('/novo_livro', methods=['GET', 'POST'])
 @login_required
 def novo_livro():
     form = BookForm()
     if form.validate_on_submit():
-        new_book = Book(
+        newBook = Book(
             bookName=form.bookName.data,
             amount=form.amount.data,
             authorName=form.authorName.data,
@@ -160,8 +170,38 @@ def novo_livro():
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
-        if new_book:
-            if addFromForm(new_book):
+        if newBook:
+            nBookObj = addFromForm(newBook)
+            if nBookObj[0]:
+                keyWordsList = splitStringIntoList(form.keywords.data)
+                wordsForRelation = []
+                for keyWord in keyWordsList:
+                    # Verifica se a keyWord já existe no banco
+                    keyWordExists = KeyWord.query.filter_by(word=keyWord).first()
+
+                    if not keyWordExists:
+                        newKeyWord = KeyWord(
+                            word=keyWord,
+                            creationDate=date.today(),
+                            lastUpdate=date.today(),
+                            createdBy=current_user.userId,
+                            updatedBy=current_user.userId,
+                        )
+                        if newKeyWord:
+                            nKeyword = addFromForm(newKeyWord)
+                            if nKeyword[0]:
+                                print(f"Palavra-chave {nKeyword[1].word} cadastrada com sucesso!")
+                                wordsForRelation.append(nKeyword[1])
+                
+                for kr in wordsForRelation:
+                    print(f"Relacionando livro {nBookObj[1].bookName} com palavra-chave {kr.word}")
+                    newKeyWordBook = KeyWordBook(
+                        bookId=nBookObj[1].bookId,
+                        wordId=kr.wordId
+                    )
+                    if newKeyWordBook:
+                        addFromForm(newKeyWordBook)
+
                 flash('Livro cadastrado com sucesso!', 'success')
                 return redirect(url_for('novo_livro'))
             else:

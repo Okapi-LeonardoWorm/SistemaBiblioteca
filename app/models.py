@@ -104,3 +104,7 @@ class KeyWordBook(db.Model):
 
     bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), primary_key=True, nullable=False)
     wordId = db.Column(db.Integer, db.ForeignKey('keyWords.wordId'), primary_key=True, nullable=False)
+
+    def __init__(self, bookId, wordId):
+        self.bookId = bookId
+        self.wordId = wordId
