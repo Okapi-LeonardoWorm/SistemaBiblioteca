@@ -34,6 +34,12 @@
                 {{ form.description(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
+                {{ form.keyWords.label(class="form-label") }}
+                {{ form.keyWords(class="form-control", size=32, autocomplete="off") }}
+                <span>Separe as palavras usando o ponto e vírgula</span>
+                <span>Exemplo: palavra; chave; desse; livro; 12345; coisas...;</span>
+            </div>
+            <div class="form-group">
                 {{ form.submit(class="btn btn-primary", type="submit") }}
             </div>
         </form>
