@@ -49,6 +49,7 @@ class BookForm(FlaskForm):
     acquisitionDate = DateField('Data de Aquisição',
                                 format='%Y-%m-%d', validators=[DataRequired()])
     description = TextAreaField('Descrição', validators=[Optional()])
+    keyWords = StringField('Palavras-chave', validators=[Optional()])
     submit = SubmitField('Cadastrar')
 
 
