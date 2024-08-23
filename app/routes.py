@@ -8,7 +8,7 @@ from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 
 from app.forms import (StudentForm, LoanForm, BookForm, LoginForm,
-                       KeyWordForm, RegisterForm)
+                       KeyWordForm, RegisterForm, SearchBooksForm)
 from app.models import Student, Loan, Book, KeyWord, User, StatusLoan, KeyWordBook
 
 from . import app
@@ -117,8 +117,9 @@ def login():
 @app.route('/livros')
 @login_required
 def livros():
-    livros = Book.query.all()
-    return render_template('livros.html', livros=livros)
+    form=SearchBooksForm()
+    livros=Book.query.all()
+    return render_template('livros.html', form=form, livros=livros)
 
 
 @app.route('/alunos')
@@ -172,13 +173,12 @@ def novo_livro():
         )
         if newBook:
             nBookObj = addFromForm(newBook)
-            if nBookObj[0]:
-                keyWordsList = splitStringIntoList(form.keywords.data)
+            if nBookObj:
+                keyWordsList = splitStringIntoList(form.keyWords.data)
                 wordsForRelation = []
-                for keyWord in keyWordsList:
-                    # Verifica se a keyWord já existe no banco
-                    keyWordExists = KeyWord.query.filter_by(word=keyWord).first()
 
+                for keyWord in keyWordsList:
+                    keyWordExists = KeyWord.query.filter_by(word=keyWord).first()
                     if not keyWordExists:
                         newKeyWord = KeyWord(
                             word=keyWord,
@@ -187,28 +187,24 @@ def novo_livro():
                             createdBy=current_user.userId,
                             updatedBy=current_user.userId,
                         )
-                        if newKeyWord:
-                            nKeyword = addFromForm(newKeyWord)
-                            if nKeyword[0]:
-                                print(f"Palavra-chave {nKeyword[1].word} cadastrada com sucesso!")
-                                wordsForRelation.append(nKeyword[1])
-                
+                        addFromForm(newKeyWord)
+                        wordsForRelation.append(newKeyWord)
+                    else:
+                        wordsForRelation.append(keyWordExists)
+
                 for kr in wordsForRelation:
-                    print(f"Relacionando livro {nBookObj[1].bookName} com palavra-chave {kr.word}")
                     newKeyWordBook = KeyWordBook(
-                        bookId=nBookObj[1].bookId,
+                        bookId=nBookObj.bookId,
                         wordId=kr.wordId
                     )
-                    if newKeyWordBook:
-                        addFromForm(newKeyWordBook)
+                    addFromForm(newKeyWordBook)
 
                 flash('Livro cadastrado com sucesso!', 'success')
                 return redirect(url_for('novo_livro'))
             else:
                 flash('Erro ao cadastrar livro!', 'danger')
-                print(form.errors)
-    return render_template('novo_livro.html', form=form)
 
+    return render_template('novo_livro.html', form=form)
 
 @app.route('/novo_aluno', methods=['GET', 'POST'])
 @login_required
