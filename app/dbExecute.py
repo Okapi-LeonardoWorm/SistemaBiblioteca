@@ -18,8 +18,8 @@ def addFromForm(newObj):
     try:
         db.session.add(newObj)
         db.session.commit()
+        return newObj
     except Exception as e:
         print(f"\n{e}\n")
         db.session.rollback()
-        return False
-    return True
+        return None
