@@ -44,7 +44,18 @@
 
 .seeMore {
   display: none;
-  flex-direction: row;
+  flex-direction: column;
   justify-content: space-between;
 }
 
+.description span{
+  border: 1px solid #CCC;
+  border-radius: 15px;
+
+  padding: 15px;
+
+}
+
+.keyWords {
+  
+}
