@@ -4,40 +4,41 @@
 {% endblock %}
 {% block pagetitle %}Livros{% endblock %}
 {% block content %}
-  <div>
-    <h1 class="BooksTitle">Livros</h1>
-    <div class="container">
-      {{ form.hidden_tag() }}
-      <div class="form-group">
-        {{ form.id.label(class="form-label") }}
-        {{ form.id(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.bookName.label(class="form-label") }}
-        {{ form.bookName(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.authorName.label(class="form-label") }}
-        {{ form.authorName(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.publisherName.label(class="form-label") }}
-        {{ form.publisherName(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.publishedDate.label(class="form-label") }}
-        {{ form.publishedDate(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.acquisitionDate.label(class="form-label") }}
-        {{ form.acquisitionDate(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.keyWords.label(class="form-label") }}
-        {{ form.keyWords(class="form-control", size=32) }}
-      </div>
-      
+<div class="container mainDiv">
+  <h1 class="BooksTitle">Livros</h1>
+  <div class="container">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+      {{ form.id.label(class="form-label") }}
+      {{ form.id(class="form-control", size=32) }}
     </div>
+    <div class="form-group">
+      {{ form.bookName.label(class="form-label") }}
+      {{ form.bookName(class="form-control", size=32) }}
+    </div>
+    <div class="form-group">
+      {{ form.authorName.label(class="form-label") }}
+      {{ form.authorName(class="form-control", size=32) }}
+    </div>
+    <div class="form-group">
+      {{ form.publisherName.label(class="form-label") }}
+      {{ form.publisherName(class="form-control", size=32) }}
+    </div>
+    <div class="form-group">
+      {{ form.publishedDate.label(class="form-label") }}
+      {{ form.publishedDate(class="form-control", size=32) }}
+    </div>
+    <div class="form-group">
+      {{ form.acquisitionDate.label(class="form-label") }}
+      {{ form.acquisitionDate(class="form-control", size=32) }}
+    </div>
+    <div class="form-group">
+      {{ form.keyWords.label(class="form-label") }}
+      {{ form.keyWords(class="form-control", size=32) }}
+    </div>
+  </div>
+
+  <div class="container">
     {% for livro in livros %}
       <div class="bookItem">
         <div class="mainContent">
@@ -62,17 +63,21 @@
             {{ livro.publishedDate }}
           </div>
         </div>
-      
+        
         <button class="toggleSeeMore" onclick="toggleSeeMore(this)">ver mais</button>
-
+        
         <div class="seeMore" style="display: none;">
           <div class="description">
             <h5>Descrição:</h5>
-            {{ livro.description }}
+            <span>{{ livro.description }}</span>
           </div>
           <div class="keyWords">
             <h5>Palavras Chave:</h5>
-            {{ livro.keyWords }}
+            <div class="keywordsList">
+              {% for kword in livro.keywords %}
+                <span class="keyword">{{ kword.word }}</span>
+              {% endfor %}          
+            </div>
           </div>
           <div class="acquisitionDate">
             <h5>Aquisição:</h5>
@@ -93,6 +98,8 @@
         </div>
       </div>
     {% endfor %}
+    </div>
   </div>
-
-{% endblock %}
+</div>
+  
+  {% endblock %}
