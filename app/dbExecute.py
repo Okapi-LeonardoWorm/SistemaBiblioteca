@@ -23,3 +23,16 @@ def addFromForm(newObj):
         print(f"\n{e}\n")
         db.session.rollback()
         return None
+
+    """
+        if type(newObj)==list:
+            try:
+                for obj in newObj:
+                    db.session.add(obj)
+            except Exception as e:
+                print(f"\n{e}\n")
+                db.session.rollback()
+                return None
+        db.session.commit()
+        return True
+    """
