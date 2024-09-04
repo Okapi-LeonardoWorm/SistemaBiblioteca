@@ -133,3 +133,5 @@ if __name__ == "__main__":
             pass
 
     print("Done!")
+
+# run me with -> python -m tests.criaRegistrosTesteNoDb
