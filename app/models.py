@@ -29,15 +29,18 @@ class Book(db.Model):
     bookId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     bookName = db.Column(db.String, nullable=False)
     amount = db.Column(db.Integer, nullable=False)
-    authorName = db.Column(db.String, nullable=False)
-    publisherName = db.Column(db.String, nullable=False)
-    publishedDate = db.Column(db.Date, nullable=False)
+    authorName = db.Column(db.String, nullable=True)
+    publisherName = db.Column(db.String, nullable=True)
+    publishedDate = db.Column(db.Date, nullable=True)
     acquisitionDate = db.Column(db.Date, nullable=True)
     description = db.Column(db.Text, nullable=True)
     creationDate = db.Column(db.Date, nullable=False)
     lastUpdate = db.Column(db.Date, nullable=False)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    
+     # Relacionamento com keywords
+    keywords = db.relationship('KeyWord', secondary='KeyWordBooks', backref='books')
 
 
 class Student(db.Model):
