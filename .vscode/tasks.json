@@ -1,0 +1,23 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+      {
+          "label": "Activate venv",
+          "type": "shell",
+          "command": "${workspaceFolder}/venv/Scripts/activate",
+          "windows": {
+              "command": "${workspaceFolder}/venv/Scripts/activate"
+          },
+          "linux": {
+              "command": "source ${workspaceFolder}/venv/bin/activate"
+          },
+          "osx": {
+              "command": "source ${workspaceFolder}/venv/bin/activate"
+          },
+          "group": {
+              "kind": "build",
+              "isDefault": true
+          }
+      }
+  ]
+}
