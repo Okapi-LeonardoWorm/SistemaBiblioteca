@@ -53,9 +53,33 @@
   border-radius: 15px;
 
   padding: 15px;
-
+  
 }
 
 .keyWords {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+  border: 1px solid #CCC;
+  border-radius: 15px;
+  
+  padding: 15px;
+}
+
+.keyWord {
+  flex-direction: row;
+  justify-content: space-between;
+  flex-wrap: wrap;
+
+  border: 1px solid #CCC;
+  border-radius: 15px;
+
+  background-color: #ccc;
+
+  padding: 5px;
+  margin-left: 5px;
+  margin-right: 5px;
   
 }
