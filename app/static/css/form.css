@@ -5,3 +5,7 @@ form {
     border: 1px solid #CCC;
     border-radius: 1em;
 }
+
+.required {
+    color: red;
+}

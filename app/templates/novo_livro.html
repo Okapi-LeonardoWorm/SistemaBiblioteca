@@ -6,11 +6,11 @@
             <h1 class="novoLivroTitle">Registrar um novo livro</h1>
             {{ form.hidden_tag() }}
             <div class="form-group">
-                {{ form.bookName.label(class="form-label") }}
+                {{ form.bookName.label(class="form-label") }}<span class="required">*</span>
                 {{ form.bookName(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
-                {{ form.amount.label(class="form-label") }}
+                {{ form.amount.label(class="form-label") }}<span class="required">*</span>
                 {{ form.amount(class="form-control", size=32, autocomplete="off") }}
             </div>
             <div class="form-group">
