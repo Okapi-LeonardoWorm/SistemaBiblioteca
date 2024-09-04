@@ -42,12 +42,12 @@ class BookForm(FlaskForm):
     bookName = StringField('Nome do Livro', validators=[DataRequired()])
     amount = IntegerField('Quantidade', default=1, validators=[
         DataRequired(), NumberRange(min=1)])
-    authorName = StringField('Nome do Autor', validators=[DataRequired()])
-    publisherName = StringField('Nome da Editora', validators=[DataRequired()])
+    authorName = StringField('Nome do Autor', validators=[Optional()])
+    publisherName = StringField('Nome da Editora', validators=[Optional()])
     publishedDate = DateField(
-        'Data de Publicação', format='%Y-%m-%d', validators=[DataRequired()])
+        'Data de Publicação', format='%Y-%m-%d', validators=[Optional()])
     acquisitionDate = DateField('Data de Aquisição',
-                                format='%Y-%m-%d', validators=[DataRequired()])
+                                format='%Y-%m-%d', validators=[Optional()])
     description = TextAreaField('Descrição', validators=[Optional()])
     keyWords = StringField('Palavras-chave', validators=[Optional()])
     submit = SubmitField('Cadastrar')
