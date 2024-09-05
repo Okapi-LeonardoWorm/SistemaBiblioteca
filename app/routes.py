@@ -1,9 +1,10 @@
 # from time import strftime
 from datetime import date
 
-from flask import Flask, redirect, render_template, session, url_for, flash
+from flask import Flask, redirect, render_template, session, url_for, flash, request
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from flask_paginate import Pagination
 from flask_login import (LoginManager, UserMixin, current_user, login_required,
                          login_user, logout_user)
 
@@ -117,9 +118,38 @@ def login():
 @app.route('/livros')
 @login_required
 def livros():
-    form=SearchBooksForm()
-    livros=Book.query.all()
-    return render_template('livros.html', form=form, livros=livros)
+    # Define qual form usar nessa página
+    form = SearchBooksForm()
+    
+    # Obtém a página atual a partir dos parâmetros da URL (padrão é a página 1)
+    page = request.args.get('page', 1, type=int)
+    
+    # Busca todos os livros do banco
+    query = Book.query
+
+    # Adiciona filtros à pesquisa da query caso existam
+    if form.validate_on_submit():
+        if form.bookId.data:
+            query = query.filter(Book.bookId == form.bookId.data)
+        if form.bookName.data:
+            query = query.filter(Book.bookName.ilike(f"%{form.bookName.data}%"))
+        if form.authorName.data:
+            query = query.filter(Book.authorName.ilike(f"%{form.authorName.data}%"))
+        if form.publisherName.data:
+            query = query.filter(Book.publisherName.ilike(f"%{form.publisherName.data}%"))
+        if form.publishedDate.data:
+            query = query.filter(Book.publishedDate == form.publishedDate.data)
+        if form.acquisitionDate.data:
+            query = query.filter(Book.acquisitionDate == form.acquisitionDate.data)
+
+    per_page = 10
+
+    # Paginação com limite de 10 livros por página
+    livros_paginados = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    pagination = Pagination(page=page, total=livros_paginados.total, per_page=per_page, css_framework='bootstrap4')
+
+    return render_template('livros.html', form=form, livros=livros_paginados.items, pagination=pagination)
 
 
 @app.route('/alunos')
