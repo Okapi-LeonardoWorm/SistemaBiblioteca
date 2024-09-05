@@ -114,3 +114,4 @@ class SearchBooksForm(FlaskForm):
     acquisitionDate = DateField('Data de Aquisição',
                                 format='%Y-%m-%d', validators=[Optional()])
     keyWords = StringField('Palavras-chave', validators=[Optional()])
+    submit = SubmitField('Buscar')
