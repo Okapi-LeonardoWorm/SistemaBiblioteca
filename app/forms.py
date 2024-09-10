@@ -105,7 +105,7 @@ class KeyWordBookForm(FlaskForm):
 
 # Form to search
 class SearchBooksForm(FlaskForm):
-    id = IntegerField('ID', validators=[Optional()])
+    bookId = IntegerField('ID', validators=[Optional()])
     bookName = StringField('Nome do Livro', validators=[Optional()])
     authorName = StringField('Nome do Autor', validators=[Optional()])
     publisherName = StringField('Nome da Editora', validators=[Optional()])
