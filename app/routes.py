@@ -1,43 +1,16 @@
 # from time import strftime
 from datetime import date
 
-from flask import Flask, redirect, render_template, session, url_for, flash, request
-from flask_bcrypt import Bcrypt
-from flask_cors import CORS
-from flask_paginate import Pagination
-from flask_login import (LoginManager, UserMixin, current_user, login_required,
-                         login_user, logout_user)
+from flask import flash, redirect, render_template, request, session, url_for
+from flask_login import current_user, login_required, login_user, logout_user
+from flask_paginate import Pagination, get_page_parameter
 
-from app.forms import (StudentForm, LoanForm, BookForm, LoginForm,
-                       KeyWordForm, RegisterForm, SearchBooksForm)
-from app.models import Student, Loan, Book, KeyWord, User, StatusLoan, KeyWordBook
-
-from . import app
+from . import app, bcrypt, db
 from .dbExecute import addFromForm
+from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
+                    SearchBooksForm, StudentForm)
+from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, Student, User
 from .validaEmprestimo import validaEmprestimo
-
-from flask_sqlalchemy import SQLAlchemy, query
-
-
-CORS(app)
-bcrypt = Bcrypt(app)
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-
-@app.context_processor
-def inject_globals():
-    return dict(
-        username=session.get('username'),
-        userType=session.get('userType'),
-        userId=session.get('userId'))
-
-
-@login_manager.user_loader
-def load_user(userId):
-    return User.query.get(int(userId))
 
 
 @app.route('/')
@@ -115,20 +88,21 @@ def login():
     return render_template('login.html', form=form)
 
 
-@app.route('/livros')
+@app.route('/livros', methods=['GET', 'POST'])
 @login_required
 def livros():
     # Define qual form usar nessa página
     form = SearchBooksForm()
-    
+
     # Obtém a página atual a partir dos parâmetros da URL (padrão é a página 1)
-    page = request.args.get('page', 1, type=int)
+    page = request.args.get(get_page_parameter(), 1, type=int)
     
     # Busca todos os livros do banco
     query = Book.query
 
     # Adiciona filtros à pesquisa da query caso existam
-    if form.validate_on_submit():
+    if form.validate():
+        print("Formulário válido")
         if form.bookId.data:
             query = query.filter(Book.bookId == form.bookId.data)
         if form.bookName.data:
