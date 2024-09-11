@@ -104,17 +104,19 @@ def livros():
     if form.validate():
         print("Formulário válido")
         if form.bookId.data:
-            query = query.filter(Book.bookId == form.bookId.data)
+            query = query.filter(Book.bookId == form.bookId.data.lower())
         if form.bookName.data:
-            query = query.filter(Book.bookName.ilike(f"%{form.bookName.data}%"))
+            query = query.filter(Book.bookName.ilike(f"%{form.bookName.data.lower()}%"))
         if form.authorName.data:
-            query = query.filter(Book.authorName.ilike(f"%{form.authorName.data}%"))
+            query = query.filter(Book.authorName.ilike(f"%{form.authorName.data.lower()}%"))
         if form.publisherName.data:
-            query = query.filter(Book.publisherName.ilike(f"%{form.publisherName.data}%"))
+            query = query.filter(Book.publisherName.ilike(f"%{form.publisherName.data.lower()}%"))
         if form.publishedDate.data:
-            query = query.filter(Book.publishedDate == form.publishedDate.data)
+            query = query.filter(Book.publishedDate == form.publishedDate.data.lower())
         if form.acquisitionDate.data:
-            query = query.filter(Book.acquisitionDate == form.acquisitionDate.data)
+            query = query.filter(Book.acquisitionDate == form.acquisitionDate.data.lower())
+        if form.keywords.data:
+            query  = query.filter(Book.keywords.any(KeyWord.word.ilike(f"%{form.keywords.data.lower()}%")))
 
     per_page = 10
 
@@ -163,13 +165,13 @@ def novo_livro():
     form = BookForm()
     if form.validate_on_submit():
         newBook = Book(
-            bookName=form.bookName.data,
+            bookName=form.bookName.data.lower().strip(),
             amount=form.amount.data,
-            authorName=form.authorName.data,
-            publisherName=form.publisherName.data,
+            authorName=form.authorName.data.lower().strip(),
+            publisherName=form.publisherName.data.lower().strip(),
             publishedDate=form.publishedDate.data,
             acquisitionDate=form.acquisitionDate.data,
-            description=form.description.data,
+            description=form.description.data.lower().strip(),
             creationDate=date.today(),
             lastUpdate=date.today(),
             createdBy=current_user.userId,
@@ -216,18 +218,18 @@ def novo_aluno():
     form = StudentForm()
     if form.validate_on_submit():
         new_student = Student(
-            studentName=form.studentName.data,
-            studentPhone=form.studentPhone.data,
+            studentName=form.studentName.data.lower().strip(),
+            studentPhone=form.studentPhone.data.strip(),
             birthDate=form.birthDate.data,
-            cpf=form.cpf.data,
-            rg=form.rg.data,
-            gradeNumber=form.gradeNumber.data,
-            className=form.className.data,
-            guardianName1=form.guardianName1.data,
-            guardianPhone1=form.guardianPhone1.data,
-            guardianName2=form.guardianName2.data,
-            guardianPhone2=form.guardianPhone2.data,
-            notes=form.notes.data,
+            cpf=form.cpf.data.strip(), 
+            rg=form.rg.data.strip(),
+            gradeNumber=form.gradeNumber.data.strip(),
+            className=form.className.data.lower().strip(),
+            guardianName1=form.guardianName1.data.lower().strip(),
+            guardianPhone1=form.guardianPhone1.data.strip(),
+            guardianName2=form.guardianName2.data.lower().strip(),
+            guardianPhone2=form.guardianPhone2.data.strip(),
+            notes=form.notes.data.lower().strip(),
             creationDate=date.today(),
             lastUpdate=date.today(),
             createdBy=current_user.userId,
