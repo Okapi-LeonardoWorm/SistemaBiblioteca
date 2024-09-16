@@ -6,7 +6,6 @@ from flask_bcrypt import Bcrypt
 from app import app, db
 from app.models import User, Book, KeyWord
 from .criaUserAdmin import criaAdminUser
-from time import sleep
 
 # run me with -> python -m tests.criaRegistrosTesteNoDb
 
@@ -114,19 +113,19 @@ if __name__ == "__main__":
     a = criaAdminUser()
     
     num_processes = 4  # Number of parallel processes
-    user_batches = [(i, i + 10) for i in range(1, 100, 10)]
-    book_batches = [(i, i + 10) for i in range(1, 100, 10)]
-    keyWord_batches = [(i, i + 10) for i in range(1, 100, 10)]
+    user_batches = [(i, i + 10) for i in range(1, 10, 5)]
+    # book_batches = [(i, i + 10) for i in range(1, 10, 5)]
+    keyWord_batches = [(i, i + 10) for i in range(1, 10, 5)]
 
     with Pool(num_processes) as pool:
         try:
             pool.starmap(insert_users, user_batches)
         except:
             pass
-        try:
-            pool.starmap(insert_books, book_batches)
-        except:
-            pass
+        # try:
+        #     pool.starmap(insert_books, book_batches)
+        # except:
+        #     pass
         try:
             pool.starmap(insert_keyWord, keyWord_batches)
         except:
