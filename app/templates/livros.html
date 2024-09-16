@@ -1,6 +1,5 @@
 {% extends 'base.html' %}
 {% block cssstyle %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/books.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
 {% endblock %}
 {% block pagetitle %}Livros{% endblock %}
@@ -46,8 +45,35 @@
   </div>
 
   <div class="container">
-    {% for livro in livros %}
-      <div class="bookItem">
+    <!-- <table>
+      <thead>
+          <tr>
+              <th>ID</th>
+              <th>Nome do Livro</th>
+              <th>Autor</th>
+              <th>Editora</th>
+              <th>Quantidade Total</th>
+              <th>Quantidade Disponível</th>
+          </tr>
+      </thead>
+      <tbody>
+          {% for livro, quantidadeDisponivel in livros %}
+          <tr>
+              <td>{{ livro.bookId }}</td>
+              <td>{{ livro.bookName }}</td>
+              <td>{{ livro.authorName }}</td>
+              <td>{{ livro.publisherName }}</td>
+              <td>{{ livro.amount }}</td>
+              <td>{{ quantidadeDisponivel }}</td>
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table> -->
+
+
+
+    {% for livro, quantidadeDisponivel  in livros %}
+      <div class="objectItem">
         <div class="mainContent">
           <div class="bookId">
             <h5>ID:</h5>
@@ -59,7 +85,7 @@
           </div>
           <div class="amount">
             <h5>Disponível:</h5>
-            {{ livro.amount }} de {{ livro.amount }}
+            {{ quantidadeDisponivel }} de {{ livro.amount }}
           </div>
           <div class="authorName">
             <h5>Autor:</h5>
