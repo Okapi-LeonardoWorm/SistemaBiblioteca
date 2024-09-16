@@ -8,7 +8,7 @@ from flask_paginate import Pagination, get_page_parameter
 from . import app, bcrypt, db
 from .dbExecute import addFromForm
 from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
-                    SearchBooksForm, StudentForm)
+                    SearchBooksForm, StudentForm, SearchLoansForm)
 from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, Student, User
 from .validaEmprestimo import validaEmprestimo
 
@@ -91,41 +91,45 @@ def login():
 @app.route('/livros', methods=['GET', 'POST'])
 @login_required
 def livros():
-    # Define qual form usar nessa página
     form = SearchBooksForm()
-
-    # Obtém a página atual a partir dos parâmetros da URL (padrão é a página 1)
     page = request.args.get(get_page_parameter(), 1, type=int)
     
-    # Busca todos os livros do banco
     query = Book.query
 
-    # Adiciona filtros à pesquisa da query caso existam
     if form.validate():
-        print("Formulário válido")
         if form.bookId.data:
-            query = query.filter(Book.bookId == form.bookId.data.lower())
+            query = query.filter(Book.bookId == form.bookId.data)
         if form.bookName.data:
-            query = query.filter(Book.bookName.ilike(f"%{form.bookName.data.lower()}%"))
+            query = query.filter(Book.bookName.ilike(f"%{form.bookName.data}%"))
         if form.authorName.data:
-            query = query.filter(Book.authorName.ilike(f"%{form.authorName.data.lower()}%"))
+            query = query.filter(Book.authorName.ilike(f"%{form.authorName.data}%"))
         if form.publisherName.data:
-            query = query.filter(Book.publisherName.ilike(f"%{form.publisherName.data.lower()}%"))
+            query = query.filter(Book.publisherName.ilike(f"%{form.publisherName.data}%"))
         if form.publishedDate.data:
-            query = query.filter(Book.publishedDate == form.publishedDate.data.lower())
+            query = query.filter(Book.publishedDate == form.publishedDate.data)
         if form.acquisitionDate.data:
-            query = query.filter(Book.acquisitionDate == form.acquisitionDate.data.lower())
+            query = query.filter(Book.acquisitionDate == form.acquisitionDate.data)
         if form.keywords.data:
-            query  = query.filter(Book.keywords.any(KeyWord.word.ilike(f"%{form.keywords.data.lower()}%")))
+            query = query.join(Book.keywords).filter(KeyWord.word.ilike(f"%{form.keywords.data}%"))
 
     per_page = 10
-
-    # Paginação com limite de 10 livros por página
     livros_paginados = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    # Calcular a quantidade de livros disponíveis
+    livrosDisponiveis = []
+    for livro in livros_paginados.items:
+        emprestimosAtivos = Loan.query.filter_by(bookId=livro.bookId, status=StatusLoan.ACTIVE).all()
+        quantidadeEmprestada = sum(emprestimo.amount for emprestimo in emprestimosAtivos)
+        quantidadeDisponivel = livro.amount - quantidadeEmprestada
+        livrosDisponiveis.append((livro, quantidadeDisponivel))
+        
+        # livro.pulishedDate = livro.publishedDate.strftime('%d/%m/%Y')
+        # livro.acquisitionDate = livro.acquisitionDate.strftime('%d/%m/%Y')
+
 
     pagination = Pagination(page=page, total=livros_paginados.total, per_page=per_page, css_framework='bootstrap4')
 
-    return render_template('livros.html', form=form, livros=livros_paginados.items, pagination=pagination)
+    return render_template('livros.html', form=form, livros=livrosDisponiveis, pagination=pagination)
 
 
 @app.route('/alunos')
@@ -135,11 +139,38 @@ def alunos():
     return render_template('alunos.html', alunos=alunos)
 
 
-@app.route('/emprestimos')
+@app.route('/emprestimos', methods=['GET', 'POST'])
 @login_required
 def emprestimos():
-    emprestimos = Loan.query.all()
-    return render_template('emprestimos.html', emprestimos=emprestimos)
+    form = SearchLoansForm()
+    page = request.args.get(get_page_parameter(), 1, type=int)
+    
+    query = Loan.query
+
+    if form.validate():
+        if form.loanId.data:
+            query = query.filter(Loan.loanId == form.loanId.data)
+        if form.bookId.data:
+            query = query.filter(Loan.bookId == form.bookId.data)
+        if form.studentId.data:
+            query = query.filter(Loan.studentId == form.studentId.data)
+        if form.loanDate.data:
+            query = query.filter(Loan.loanDate == form.loanDate.data)
+        if form.returnDate.data:
+            query = query.filter(Loan.returnDate == form.returnDate.data)
+        if form.createdBy.data:
+            query = query.filter(Loan.createdBy == form.createdBy.data)
+        if form.status.data:
+            # Converter o valor do formulário para o Enum correspondente
+            status_enum = StatusLoan(form.status.data.upper())
+            query = query.filter(Loan.status == status_enum)
+
+    per_page = 10
+    emprestimosPaginados = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    pagination = Pagination(page=page, total=emprestimosPaginados.total, per_page=per_page, css_framework='bootstrap4')
+
+    return render_template('emprestimos.html', form=form, loans=emprestimosPaginados, pagination=pagination)
 
 
 @app.route('/palavras_chave')
