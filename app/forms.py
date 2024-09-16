@@ -1,10 +1,11 @@
 from flask_wtf import FlaskForm
 from wtforms import (DateField, IntegerField, PasswordField, StringField,
-                     SubmitField, TextAreaField)
+                     SubmitField, RadioField, SelectField, TextAreaField)
 from wtforms.validators import (DataRequired, InputRequired, Length,
                                 NumberRange, Optional, Regexp, ValidationError)
 from app.models import User
 from datetime import datetime, timedelta
+from app.models import StatusLoan
 
 
 # Forms to create and validate the data that will be inserted in the database
@@ -103,7 +104,7 @@ class KeyWordBookForm(FlaskForm):
     submit = SubmitField('Cadastrar')
 
 
-# Form to search
+# Search forms
 class SearchBooksForm(FlaskForm):
     bookId = IntegerField('ID', validators=[Optional()])
     bookName = StringField('Nome do Livro', validators=[Optional()])
@@ -115,3 +116,20 @@ class SearchBooksForm(FlaskForm):
                                 format='%Y-%m-%d', validators=[Optional()])
     keywords = StringField('Palavras-chave', validators=[Optional()])
     submit = SubmitField('Buscar')
+    
+
+class SearchLoansForm(FlaskForm):
+    loanId = IntegerField('ID do Empréstimo', validators=[Optional()])
+    bookId = IntegerField('ID do Livro', validators=[Optional()])
+    studentId = IntegerField('ID do Aluno', validators=[Optional()])
+    userId = IntegerField('ID do Usuário', validators=[Optional()])
+    loanDate = DateField('Data de Empréstimo',
+                         format='%Y-%m-%d', validators=[Optional()])
+    returnDate = DateField('Data de Devolução',
+                           format='%Y-%m-%d', validators=[Optional()])
+    createdBy = StringField('Criado por', validators=[Optional()])
+    # Definir as opções de status a partir do Enum StatusLoan
+    status_choices = [(status.name, status.value.capitalize()) for status in StatusLoan]
+    status = SelectField('Status', choices=status_choices, validators=[Optional()])
+    submit = SubmitField('Buscar')
+    
