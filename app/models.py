@@ -39,7 +39,7 @@ class Book(db.Model):
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     
-     # Relacionamento com keywords
+    # Relacionamento com keywords
     keywords = db.relationship('KeyWord', secondary='KeyWordBooks', backref='books')
 
 
@@ -77,10 +77,10 @@ class KeyWord(db.Model):
 
 
 class StatusLoan(enum.Enum):
-    ACTIVE = "active"
-    OVERDUE = "overdue"
-    COMPLETED = "completed"
-    LOST = "lost"
+    ACTIVE = "Ativo"
+    OVERDUE = "Atrasado"
+    COMPLETED = "Concluído"
+    LOST = "Perdido"
     # BGN_TODAY = "bgn today"
     # END_TODAY = "end today"
 
@@ -101,6 +101,7 @@ class Loan(db.Model):
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     status = db.Column(Enum(StatusLoan), nullable=False)
+
 
 class KeyWordBook(db.Model):
     __tablename__ = 'KeyWordBooks'
