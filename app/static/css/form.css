@@ -1,11 +1,124 @@
 form {
-    margin: 15px;
-    padding: 15px;
-    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+
+    margin: 10px;
+    padding: 15px 20px 15px 20px;
+
     border: 1px solid #CCC;
-    border-radius: 1em;
+    border-radius: 15px;
+
+    width: 100%;
 }
 
 .required {
     color: red;
+}
+
+form:first-child {
+    align-items: flex-start;
+}
+
+form:last-child {
+    align-items: flex-end;
+}
+
+form>form-group {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.objectItem {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+
+    margin: 10px;
+    padding: 15px 20px 15px 20px;
+
+    border: 1px solid #CCC;
+    border-radius: 15px;
+}
+
+.mainContent {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.toggleSeeMore {
+    background: none;
+    background-color: none;
+
+    border: none;
+    border-radius: 0;
+
+    outline: none;
+
+    box-shadow: none;
+    user-select: none;
+    appearance: none;
+    text-decoration: none;
+
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -o-user-select: none;
+
+    color: #007bff;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.seeMore {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.description span {
+    border: 1px solid #CCC;
+    border-radius: 15px;
+
+    padding: 15px;
+
+}
+
+.keyWords {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+
+    border: 1px solid #CCC;
+    border-radius: 15px;
+
+    padding: 15px;
+}
+
+.keyWord {
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: wrap;
+
+    border: 1px solid #CCC;
+    border-radius: 15px;
+
+    background-color: #ccc;
+
+    padding: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+
+}
+
+.SelectField>.form-control {
+    height: 100px;
+    width: 250px;
 }
