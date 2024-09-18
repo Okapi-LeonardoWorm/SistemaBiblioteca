@@ -1,0 +1,113 @@
+:root {
+    --primary-color: #007bff;
+    --primary-color-hover: #0056b3;
+    --background-color: #ebebebee;
+    --border-color: #ffffff;
+    --text-color: #272727;
+    --table-header-bg: #dbdbdb;
+    --table-row-even-bg: #e2e2e2;
+    --keyword-bg: #e4e4e4;
+}
+
+/* body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  } */
+
+.form {
+    max-width: 30%;
+    min-width: 30%;
+    width: 100%;
+    margin: 0 auto;
+    padding: 20px;
+    /* border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--background-color); */
+}
+
+h2 {
+    text-align: center;
+    /* color: var(--text-color); */
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    /* font-weight: bold; */
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    /* border: 1px solid var(--border-color); */
+    border-radius: 4px;
+}
+
+/* .form-group input[type="submit"] {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+  } */
+
+/* .form-group input[type="submit"]:hover {
+    background-color: var(--primary-color-hover);
+  } */
+
+.content {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
+
+.tables {
+    display: flex;
+    flex-direction: column;
+    max-width: 70%;
+    min-width: 70%;
+}
+
+/* table {
+    width: 100%;
+    border-collapse: collapse;
+  } */
+
+/* th,
+  td {
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    text-align: left;
+  } */
+
+/* th {
+    background-color: var(--table-header-bg);
+  } */
+
+/* tr:nth-child(even) {
+    background-color: var(--table-row-even-bg);
+  } */
+
+.keywordsTd {
+    padding: 0;
+    /* Remove padding to let flex items fit better */
+}
+
+.keywordsTd>ul>li {
+    display: inline-block;
+    margin: 4px;
+    background-color: var(--keyword-bg);
+    padding: 4px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.toggleSeeMore {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+}
