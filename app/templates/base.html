@@ -24,7 +24,7 @@
         }
     </style>
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}"> -->
 
     {% block cssstyle %}{% endblock %}
     
@@ -100,19 +100,26 @@
         </script>
         <script>
             function toggleSeeMore(button) {
-                const seeMoreSection = button.nextElementSibling;
-                if (seeMoreSection.style.display === "none") {
-                  seeMoreSection.style.display = "flex";
-                  button.textContent = "ver menos";
-                } else {
-                  seeMoreSection.style.display = "none";
-                  button.textContent = "ver mais";
-                }
-              }
+                // Obtém a classe do botão (que inclui o bookId com o prefixo)
+                const bookId = button.classList[1]; // A segunda classe é algo como 'book-1'
+            
+                // Seleciona todos os elementos com a classe 'seeMore' que correspondem ao bookId
+                const seeMoreSections = document.querySelectorAll(`.seeMore.${bookId}`);
+            
+                // Verifica se algum desses elementos está visível
+                let isVisible = Array.from(seeMoreSections).some(section => section.style.display !== 'none');
+            
+                // Alterna a visibilidade dos elementos
+                seeMoreSections.forEach(section => {
+                    section.style.display = isVisible ? 'none' : 'table-row'; // Exibe como linha de tabela
+                });
+            
+                // Atualiza o texto do botão
+                button.textContent = isVisible ? 'ver mais' : 'ver menos';
+            }
         </script>
     </main>
     <footer>
-        
         {% block footer %}{% endblock %}
     </footer>
 </body>
