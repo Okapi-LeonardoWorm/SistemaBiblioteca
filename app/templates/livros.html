@@ -42,9 +42,8 @@
     </form>
   </div>
   <div class="tables table-responsive-sm">
-    {% for livro, quantidadeDisponivel in livros %}
-    <table class="table bookTable table-bordered table-sm">
-      <thead class="head mainHead thead-dark">
+    <table class="table bookTable table-bordered table-sm table-striped">
+      <thead class="head mainHead thead-light">
         <tr>
           <th scope="col">ID</th>
           <th scope="col">Nome</th>
@@ -56,6 +55,7 @@
         </tr>
       </thead>
       <tbody>
+        {% for livro, quantidadeDisponivel in livros %}
         <tr>
           <td>{{ livro.bookId }}</td>
           <td>{{ livro.bookName }}</td>
@@ -67,7 +67,8 @@
         </tr>
         <tr>
           <td colspan="7">
-            <button class="toggleSeeMore book-{{ livro.bookId }} btn btn-outline-info" onclick="toggleSeeMore(this)">ver mais</button>
+            <button class="toggleSeeMore book-{{ livro.bookId }} btn btn-outline-info" onclick="toggleSeeMore(this)">ver
+              mais</button>
           </td>
         </tr>
         <tr class="seeMore book-{{ livro.bookId }} table-active" style="display: none;">
@@ -90,12 +91,19 @@
         </tr>
         <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
           <td colspan="7">Criado em: {{ livro.creationDate }}</td>
+        </tr>
+        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
           <td colspan="7">Última modificação: {{ livro.lastUpdate }}</td>
+        </tr>
+        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
+          <td colspan="7">Última modificação: {{ livro.lastUpdate }}</td>
+        </tr>
+        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
           <td colspan="7">Criado por: {{ livro.createdBy }}:{{ livro.createdBy.username }}</td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
-    {% endfor %}
   </div>
 </div>
 <div class="pagination-container">
