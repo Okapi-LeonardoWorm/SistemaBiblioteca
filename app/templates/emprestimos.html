@@ -1,65 +1,70 @@
 {% extends 'base.html' %}
 {% block cssstyle %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/loan.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/form.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/searchPages.css') }}">
 {% endblock %}
 {% block pagetitle %}Emprestimos{% endblock %}
 {% block content %}
 <div class="container mainDiv">
   <h1 class="BooksTitle">Emprestimos</h1>
-
+<div class="content">
   <div class="container form">
-    <form class="searchLoansForm" method="post" action="">
-      {{ form.hidden_tag()}}
+    <!-- <form class="searchBooksForm" method="post" action="">
+      {{ form.hidden_tag() }}
       <div class="form-group">
         {{ form.bookId.label(class="form-label") }}
         {{ form.bookId(class="form-control", size=32) }}
       </div>
       <div class="form-group">
-        {{ form.userId.label(class="form-label") }}
-        {{ form.userId(class="form-control", size=32) }}
+        {{ form.bookName.label(class="form-label") }}
+        {{ form.bookName(class="form-control", size=32) }}
       </div>
       <div class="form-group">
-        {{ form.studentId.label(class="form-label") }}
-        {{ form.studentId(class="form-control", size=32) }}
+        {{ form.authorName.label(class="form-label") }}
+        {{ form.authorName(class="form-control", size=32) }}
       </div>
       <div class="form-group">
-        {{ form.loanDate.label(class="form-label") }}
-        {{ form.loanDate(class="form-control", size=32) }}
+        {{ form.publisherName.label(class="form-label") }}
+        {{ form.publisherName(class="form-control", size=32) }}
       </div>
-      <div class="form-group">
-        {{ form.returnDate.label(class="form-label") }}
-        {{ form.returnDate(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.createdBy.label(class="form-label") }}
-        {{ form.createdBy(class="form-control", size=32) }}
-      </div>
-      <div class="form-group SelectField">
-        {{ form.status.label(class="form-label") }}
-        {{ form.status(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
+      <div class="form-group submit">
         {{ form.submit(class="btn btn-primary", type="submit") }}
       </div>
-    </form>
+    </form> -->
   </div>
-
-  <div class="continer">
-    {% for loan in loans %}
-    <div class="loan objectItem">
-      <div class="bookId">ID do Livro: {{ loan.bookId }}</div>
-      <div class="userId">ID do Usuário: {{ loan.userId }}</div>
-      <div class="userId">ID do Aluno: {{ loan.studentId }}</div>
-      <div class="loanDate">Data do Empréstimo: {{ loan.loanDate }}</div>
-      <div class="returnDate">Data de Devolução: {{ loan.returnDate }}</div>
-      <div class="createdBy">Criado por: {{ loan.createdBy }}</div>
-      <div class="status">Status: {{ loan.status }}</div>
-    </div>
-    {% endfor %}
-    <!-- Renderiza o controle de paginação -->
-    <div class="pagination-container">
-      {{ pagination.links }}
-    </div>
-    {% endblock %}
+  <div class="tables table-responsive-sm">
+    <table class="table bookTable table-bordered table-sm table-striped">
+      <thead class="head mainHead thead-light">
+        <tr>
+          <th scope="col">ID do Emprestimo</th>
+          <th scope="col">ID do Livro</th>
+          <th scope="col">ID do Usuário</th>
+          <th scope="col">ID do Aluno</th>
+          <th scope="col">Quantidade</th>
+          <th scope="col">Data do Empréstimo</th>
+          <th scope="col">Data de Devolução</th>
+          <th scope="col">Status</th>
+          <th scope="col">Criado por</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for livro, quantidadeDisponivel in livros %}
+        <tr>
+          <td>{{ lian.loanId }}</td>
+          <td>{{ lian.bookId }}</td>
+          <td>{{ lian.userId }}</td>
+          <td>{{ lian.studentId }}</td>
+          <td>{{ lian.amount }}</td>
+          <td>{{ lian.loanDate }}</td>
+          <td>{{ lian.returnDate }}</td>
+          <td>{{ lian.status }}</td>
+          <td>{{ lian.createdBy }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+</div>
+<div class="pagination-container">
+  {{ pagination.links }}
+</div>
+{% endblock %}
