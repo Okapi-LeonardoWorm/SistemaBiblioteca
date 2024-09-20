@@ -122,6 +122,7 @@ class SearchLoansForm(FlaskForm):
     loanId = IntegerField('ID do Empréstimo', validators=[Optional()])
     bookId = IntegerField('ID do Livro', validators=[Optional()])
     bookName = StringField('Nome do Livro', validators=[Optional()])
+    publisherName = StringField('Nome da Editora', validators=[Optional()])
     authorName = StringField('Nome do autor', validators=[Optional()])
     studentId = IntegerField('ID do Aluno', validators=[Optional()])
     studentName = StringField('Nome do Aluno', validators=[Optional()])
