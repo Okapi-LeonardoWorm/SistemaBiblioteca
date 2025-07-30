@@ -1,7 +1,7 @@
-Alunos:
-    studentId int pk
-    studentName str
-    studentPhone str
+Usuarios:
+    userId int pk
+    userName str
+    userPhone str
     dtBirth date
     cpf str
     rg str
@@ -16,6 +16,7 @@ Alunos:
     dtLastUpdate date
     createdBy int fk
     updatedBy int fk
+    userType str
 
 
 Livros:
@@ -37,7 +38,7 @@ Livros:
 
 Emprestimos:
     IdEmprestimo* PK
-    IdAluno*
+    IdUsuario*
     IdLivro*
     Quantidade*
     DtEmprestimo*
