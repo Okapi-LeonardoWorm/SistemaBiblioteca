@@ -8,8 +8,8 @@ from flask_paginate import Pagination, get_page_parameter
 from . import app, bcrypt, db
 from .dbExecute import addFromForm
 from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
-                    SearchBooksForm, StudentForm, SearchLoansForm)
-from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, Student, User
+                    SearchBooksForm, UserForm, SearchLoansForm)
+from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User # Remove Student import
 from .validaEmprestimo import validaEmprestimo
 
 
@@ -52,7 +52,19 @@ def register():
             creationDate=date.today(),
             lastUpdate=date.today(),
             createdBy=current_user.userId,
-            updatedBy=current_user.userId
+            updatedBy=current_user.userId,
+            # Adicionar campos do Aluno aqui com valores padrão ou nulos inicialmente
+            userPhone=None,
+            birthDate=date.today(), # Pode ser necessário ajustar valor padrão
+            cpf=None,
+            rg=None,
+            gradeNumber=0, # Pode ser necessário ajustar valor padrão
+            className=None,
+            guardianName1=None,
+            guardianPhone1=None,
+            guardianName2=None,
+            guardianPhone2=None,
+            notes=None
         )
         if new_user:
             if addFromForm(new_user):
@@ -132,11 +144,12 @@ def livros():
     return render_template('livros.html', form=form, livros=livrosDisponiveis, pagination=pagination)
 
 
-@app.route('/alunos')
-@login_required
-def alunos():
-    alunos = Student.query.all()
-    return render_template('alunos.html', alunos=alunos)
+# Rota temporária para alunos, será substituída por users
+# @app.route('/alunos')
+# @login_required
+# def alunos():
+#     alunos = Student.query.all() # Ainda usando o model Student temporariamente
+#     return render_template('alunos.html', alunos=alunos)
 
 
 @app.route('/emprestimos', methods=['GET', 'POST'])
@@ -152,8 +165,8 @@ def emprestimos():
             query = query.filter(Loan.loanId == form.loanId.data)
         if form.bookId.data:
             query = query.filter(Loan.bookId == form.bookId.data)
-        if form.studentId.data:
-            query = query.filter(Loan.studentId == form.studentId.data)
+        # if form.studentId.data:
+        #     query = query.filter(Loan.studentId == form.studentId.data)
         if form.loanDate.data:
             query = query.filter(Loan.loanDate == form.loanDate.data)
         if form.returnDate.data:
@@ -243,38 +256,39 @@ def novo_livro():
 
     return render_template('novo_livro.html', form=form)
 
-@app.route('/novo_aluno', methods=['GET', 'POST'])
-@login_required
-def novo_aluno():
-    form = StudentForm()
-    if form.validate_on_submit():
-        new_student = Student(
-            studentName=form.studentName.data.lower().strip(),
-            studentPhone=form.studentPhone.data.strip(),
-            birthDate=form.birthDate.data,
-            cpf=form.cpf.data.strip(), 
-            rg=form.rg.data.strip(),
-            gradeNumber=form.gradeNumber.data.strip(),
-            className=form.className.data.lower().strip(),
-            guardianName1=form.guardianName1.data.lower().strip(),
-            guardianPhone1=form.guardianPhone1.data.strip(),
-            guardianName2=form.guardianName2.data.lower().strip(),
-            guardianPhone2=form.guardianPhone2.data.strip(),
-            notes=form.notes.data.lower().strip(),
-            creationDate=date.today(),
-            lastUpdate=date.today(),
-            createdBy=current_user.userId,
-            updatedBy=current_user.userId,
-        )
-        if new_student:
-            if addFromForm(new_student):
-                flash('Aluno cadastrado com sucesso!', 'success')
-                return redirect(url_for('novo_aluno'))
-            else:
-                flash('Erro ao cadastrar aluno!', 'danger')
-                print(form.errors)
+# Rota temporária para novo aluno, será substituída por novo usuário
+# @app.route('/novo_aluno', methods=['GET', 'POST'])
+# @login_required
+# def novo_aluno():
+#     form = StudentForm() # Ainda usando StudentForm temporariamente
+#     if form.validate_on_submit():
+#         new_student = Student(
+#             studentName=form.studentName.data.lower().strip(),
+#             studentPhone=form.studentPhone.data.strip(),
+#             birthDate=form.birthDate.data,
+#             cpf=form.cpf.data.strip(), 
+#             rg=form.rg.data.strip(),
+#             gradeNumber=form.gradeNumber.data, # Corrigido para não usar .strip() em int
+#             className=form.className.data.lower().strip(),
+#             guardianName1=form.guardianName1.data.lower().strip(),
+#             guardianPhone1=form.guardianPhone1.data.strip(),
+#             guardianName2=form.guardianName2.data.lower().strip(),
+#             guardianPhone2=form.guardianPhone2.data.strip(),
+#             notes=form.notes.data.lower().strip(),
+#             creationDate=date.today(),
+#             lastUpdate=date.today(),
+#             createdBy=current_user.userId,
+#             updatedBy=current_user.userId,
+#         )
+#         if new_student:
+#             if addFromForm(new_student):
+#                 flash('Aluno cadastrado com sucesso!', 'success')
+#                 return redirect(url_for('novo_aluno'))
+#             else:
+#                 flash('Erro ao cadastrar aluno!', 'danger')
+#                 print(form.errors)
         
-    return render_template('novo_aluno.html', form=form)
+#     return render_template('novo_aluno.html', form=form)
 
 
 @app.route('/novo_emprestimo', methods=['GET', 'POST'])
@@ -282,27 +296,28 @@ def novo_aluno():
 def novo_emprestimo():
     form = LoanForm()
     if form.validate_on_submit():
-        if validaEmprestimo(form, Loan, Book, StatusLoan):
-            new_Loan = Loan(
-                amount=form.amount.data,
-                loanDate=form.loanDate.data,
-                returnDate=form.returnDate.data,
-                studentId=form.studentId.data,
-                bookId=form.bookId.data,
-                creationDate=date.today(),
-                lastUpdate=date.today(),
-                createdBy=current_user.userId,
-                updatedBy=current_user.userId,
-                status=StatusLoan.ACTIVE,
-            )
-            if new_Loan:
-                if addFromForm(new_Loan):
-                    flash('Empréstimo cadastrado com sucesso!', 'success')
-                    return redirect(url_for('novo_emprestimo'))
-                else:
-                    flash('Erro ao cadastrar empréstimo!', 'danger')
-                    print(form.errors)
-        
+        # Substituir validaEmprestimo para usar o modelo User
+        # if validaEmprestimo(form, Loan, Book, StatusLoan):
+        #     new_Loan = Loan(
+        #         amount=form.amount.data,
+        #         loanDate=form.loanDate.data,
+        #         returnDate=form.returnDate.data,
+        #         studentId=form.studentId.data,
+        #         bookId=form.bookId.data,
+        #         creationDate=date.today(),
+        #         lastUpdate=date.today(),
+        #         createdBy=current_user.userId,
+        #         updatedBy=current_user.userId,
+        #         status=StatusLoan.ACTIVE,
+        #     )
+        #     if new_Loan:
+        #         if addFromForm(new_Loan):
+        #             flash('Empréstimo cadastrado com sucesso!', 'success')
+        #             return redirect(url_for('novo_emprestimo'))
+        #         else:
+        #             flash('Erro ao cadastrar empréstimo!', 'danger')
+        #             print(form.errors)
+        pass # Placeholder
     return render_template('novo_emprestimo.html', form=form)
 
 
@@ -341,16 +356,17 @@ def editar_livro(id):
     return render_template('editar_livro.html', form=form)
 
 
-@app.route('/editar_aluno/<int:id>', methods=['GET', 'POST'])
-@login_required
-def editar_aluno(id):
-    aluno = Student.query.get(id)
-    form = StudentForm(obj=aluno)
-    if form.validate_on_submit():
-        form.populate_obj(aluno)
-        # db.session.commit()
-        return redirect(url_for('alunos'))
-    return render_template('editar_aluno.html', form=form)
+# Rota temporária para editar aluno, será substituída por editar usuário
+# @app.route('/editar_aluno/<int:id>', methods=['GET', 'POST'])
+# @login_required
+# def editar_aluno(id):
+#     aluno = Student.query.get(id) # Ainda usando o model Student temporariamente
+#     form = StudentForm(obj=aluno)
+#     if form.validate_on_submit():
+#         form.populate_obj(aluno)
+#         # db.session.commit()
+#         return redirect(url_for('alunos'))
+#     return render_template('editar_aluno.html', form=form)
 
 
 @app.route('/editar_emprestimo/<int:id>', methods=['GET', 'POST'])
@@ -386,13 +402,14 @@ def excluir_livro(id):
     return redirect(url_for('livros'))
 
 
-@app.route('/excluir_aluno/<int:id>', methods=['GET', 'POST'])
-@login_required
-def excluir_aluno(id):
-    aluno = Student.query.get(id)
-    # db.session.delete(aluno)
-    # db.session.commit()
-    return redirect(url_for('alunos'))
+# Rota temporária para excluir aluno, será substituída por excluir usuário
+# @app.route('/excluir_aluno/<int:id>', methods=['GET', 'POST'])
+# @login_required
+# def excluir_aluno(id):
+#     aluno = Student.query.get(id) # Ainda usando o model Student temporariamente
+#     # db.session.delete(aluno)
+#     # db.session.commit()
+#     return redirect(url_for('alunos'))
 
 
 @app.route('/excluir_emprestimo/<int:id>', methods=['GET', 'POST'])
@@ -411,3 +428,95 @@ def excluir_palavra_chave(id):
     # db.session.delete(palavra_chave)
     # db.session.commit()
     return redirect(url_for('palavras_chave'))
+
+# Rotas para User Management
+@app.route('/users')
+@login_required
+def list_users():
+    users = User.query.all()
+    return render_template('users.html', users=users)
+
+@app.route('/users/new', methods=['GET', 'POST'])
+@login_required
+def new_user():
+    form = UserForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        new_user = User(
+            username=form.username.data,
+            password=hashed_password,
+            userType=form.userType.data,
+            creationDate=form.creationDate.data,
+            lastUpdate=form.lastUpdate.data,
+            createdBy=form.createdBy.data,
+            updatedBy=form.updatedBy.data,
+            userPhone=form.userPhone.data,
+            birthDate=form.birthDate.data,
+            cpf=form.cpf.data,
+            rg=form.rg.data,
+            gradeNumber=form.gradeNumber.data,
+            className=form.className.data,
+            guardianName1=form.guardianName1.data,
+            guardianPhone1=form.guardianPhone1.data,
+            guardianName2=form.guardianName2.data,
+            guardianPhone2=form.guardianPhone2.data,
+            notes=form.notes.data
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Usuário criado com sucesso!', 'success')
+        return redirect(url_for('list_users'))
+    return render_template('new_user.html', form=form)
+
+@app.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    user = User.query.get_or_404(user_id)
+    form = UserForm(obj=user)
+    if form.validate_on_submit():
+        form.populate_obj(user)
+        # Handle password change separately if the field is filled
+        if form.password.data:
+            user.password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        db.session.commit()
+        flash('Usuário atualizado com sucesso!', 'success')
+        return redirect(url_for('list_users'))
+    return render_template('edit_user.html', form=form, user=user)
+
+@app.route('/users/delete/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash('Usuário excluído com sucesso!', 'success')
+    return redirect(url_for('list_users'))
+
+@app.route('/novo_emprestimo', methods=['GET', 'POST'])
+@login_required
+def novo_emprestimo():
+    form = LoanForm()
+    if form.validate_on_submit():
+        # Substituir validaEmprestimo para usar o modelo User
+        # if validaEmprestimo(form, Loan, Book, StatusLoan):
+        new_Loan = Loan(
+            amount=form.amount.data,
+            loanDate=form.loanDate.data,
+            returnDate=form.returnDate.data,
+            userId=form.studentId.data, # Alterado para userId
+            bookId=form.bookId.data,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
+            status=StatusLoan.ACTIVE,
+        )
+        if new_Loan:
+            if addFromForm(new_Loan):
+                flash('Empréstimo cadastrado com sucesso!', 'success')
+                return redirect(url_for('novo_emprestimo'))
+            else:
+                flash('Erro ao cadastrar empréstimo!', 'danger')
+                print(form.errors)
+        pass
+    return render_template('novo_emprestimo.html', form=form)

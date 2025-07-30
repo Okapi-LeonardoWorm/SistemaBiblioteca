@@ -57,13 +57,13 @@ class BookForm(FlaskForm):
 class StudentForm(FlaskForm):
     studentName = StringField('Nome do Aluno', validators=[DataRequired()])
     studentPhone = StringField('Telefone do Aluno', validators=[Optional(), Length(
-        max=12), Regexp(r'^\d+$', message="Telefone deve conter apenas números")])
+        max=12), Regexp(r'^d+$', message="Telefone deve conter apenas números")])
     birthDate = DateField('Data de Nascimento',
                           format='%Y-%m-%d', validators=[DataRequired()])
     cpf = StringField('CPF', validators=[Optional(), Length(
-        min=11, max=11), Regexp(r'^\d+$', message="CPF deve conter apenas números")])
+        min=11, max=11), Regexp(r'^d+$', message="CPF deve conter apenas números")])
     rg = StringField('RG', validators=[Optional(), Length(min=9, max=10), Regexp(
-        r'^\d+$', message="RG deve conter apenas números")])
+        r'^d+$', message="RG deve conter apenas números")])
     gradeNumber = StringField('Série', validators=[DataRequired()])
     className = StringField('Turma', validators=[Optional()])
     guardianName1 = StringField(
@@ -138,3 +138,29 @@ class SearchLoansForm(FlaskForm):
     status = SelectField('Status', choices=status_choices, validators=[Optional()])
     submit = SubmitField('Buscar')
     
+
+class UserForm(FlaskForm):
+    username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=3, max=20)])
+    password = PasswordField('Senha', validators=[DataRequired(), Length(min=4, max=80)])
+    userType = StringField('Tipo de Usuário', validators=[DataRequired(), Length(max=80)])
+    creationDate = DateField('Data de Criação', format='%Y-%m-%d', validators=[DataRequired()])
+    lastUpdate = DateField('Última Atualização', format='%Y-%m-%d', validators=[DataRequired()])
+    createdBy = IntegerField('Criado Por', validators=[DataRequired()])
+    updatedBy = IntegerField('Atualizado Por', validators=[DataRequired()])
+    userPhone = StringField('Telefone do Usuário', validators=[Optional()])
+    birthDate = DateField('Data de Nascimento', format='%Y-%m-%d', validators=[DataRequired()])
+    cpf = StringField('CPF', validators=[Optional()])
+    rg = StringField('RG', validators=[Optional()])
+    gradeNumber = IntegerField('Número da Série', validators=[DataRequired()])
+    className = StringField('Nome da Turma', validators=[Optional()])
+    guardianName1 = StringField('Nome do Responsável 1', validators=[Optional()])
+    guardianPhone1 = StringField('Telefone do Responsável 1', validators=[Optional()])
+    guardianName2 = StringField('Nome do Responsável 2', validators=[Optional()])
+    guardianPhone2 = StringField('Telefone do Responsável 2', validators=[Optional()])
+    notes = TextAreaField('Observações', validators=[Optional()])
+    submit = SubmitField('Salvar Usuário')
+
+    def validate_username(self, username):
+        existing_user_username = User.query.filter_by(username=username.data).first()
+        if existing_user_username:
+            raise ValidationError('Nome de usuário já existe. Por favor, escolha um nome diferente.')
