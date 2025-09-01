@@ -47,10 +47,10 @@
         <div class="col-lg-8">
             <h3 class="section-title">Empréstimos com Devolução Próxima</h3>
             <div class="filter-buttons btn-group mb-3">
-                <a href="{{ url_for('dashboard', filter='today') }}" class="btn btn-outline-primary {% if loan_filter == 'today' %}active{% endif %}">Hoje</a>
-                <a href="{{ url_for('dashboard', filter='week') }}" class="btn btn-outline-primary {% if loan_filter == 'week' %}active{% endif %}">Esta Semana</a>
-                <a href="{{ url_for('dashboard', filter='all') }}" class="btn btn-outline-primary {% if loan_filter == 'all' %}active{% endif %}">Todos</a>
-                <a href="{{ url_for('dashboard', filter='overdue') }}" class="btn btn-outline-danger position-relative {% if loan_filter == 'overdue' %}active{% endif %}">
+                <a href="{{ url_for('main.dashboard', filter='today') }}" class="btn btn-outline-primary {% if loan_filter == 'today' %}active{% endif %}">Hoje</a>
+                <a href="{{ url_for('main.dashboard', filter='week') }}" class="btn btn-outline-primary {% if loan_filter == 'week' %}active{% endif %}">Esta Semana</a>
+                <a href="{{ url_for('main.dashboard', filter='all') }}" class="btn btn-outline-primary {% if loan_filter == 'all' %}active{% endif %}">Todos</a>
+                <a href="{{ url_for('main.dashboard', filter='overdue') }}" class="btn btn-outline-danger position-relative {% if loan_filter == 'overdue' %}active{% endif %}">
                     Atrasados
                     {% if overdue_loans_count > 0 %}
                         <span class="overdue-badge">{{ overdue_loans_count }}</span>
@@ -60,7 +60,7 @@
             
             <div class="list-group">
                 {% for loan in loans.items %}
-                    <a href="{{ url_for('editar_emprestimo', id=loan.LoanId) }}" class="list-group-item list-group-item-action">
+                    <a href="{{ url_for('main.editar_emprestimo', loan_id=loan.loanId) }}" class="list-group-item list-group-item-action">
                         <strong>Livro:</strong> {{ loan.book.bookName }} | <strong>Usuário:</strong> {{ loan.user.username }} | <strong>Devolução:</strong> {{ loan.returnDate.strftime('%d/%m/%Y') }}
                     </a>
                 {% else %}

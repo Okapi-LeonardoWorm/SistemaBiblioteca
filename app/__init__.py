@@ -4,6 +4,7 @@ from flask_cors import CORS
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_bootstrap import Bootstrap5
 
 
 
@@ -12,6 +13,8 @@ db = SQLAlchemy()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 migrate = Migrate()
+bootstrap = Bootstrap5()
+
 
 def createApp():
     # Cria o app
@@ -23,6 +26,7 @@ def createApp():
     bcrypt.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
+    bootstrap.init_app(app)
     CORS(app)
     
     login_manager.login_view = 'main.login'
