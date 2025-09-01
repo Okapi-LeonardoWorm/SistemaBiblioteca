@@ -5,9 +5,7 @@ from app.models import User # Importar o modelo User
 # verifica se a quantidade de livros solicitada é maior que 0
 def v1(form):
     if form.amount.data <= 0:
-        # print(f"
-form: {form.amount.data}
-")
+        # print(f"form: {form.amount.data}")
         return False
     
     return True
@@ -15,10 +13,7 @@ form: {form.amount.data}
 # Verifica se a data de devolução é maior que a data de empréstimo
 def v2(form):
     if form.returnDate.data > form.loanDate.data:
-        # print(f"
-form: {form.returnDate.data}
- form: {form.loanDate.data}
-")
+        # print(f"form: {form.returnDate.data} form: {form.loanDate.data}")
         return True
     
     return False
