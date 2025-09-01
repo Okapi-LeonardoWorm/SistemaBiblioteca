@@ -1,23 +1,27 @@
 from datetime import datetime
 
+from app.models import User # Importar o modelo User
 
 # verifica se a quantidade de livros solicitada é maior que 0
 def v1(form):
     if form.amount.data <= 0:
-        # print(f"\nform: {form.amount.data}\n")
+        # print(f"
+form: {form.amount.data}
+")
         return False
     
     return True
 
-
 # Verifica se a data de devolução é maior que a data de empréstimo
 def v2(form):
     if form.returnDate.data > form.loanDate.data:
-        # print(f"\nform: {form.returnDate.data}\n form: {form.loanDate.data}\n")
+        # print(f"
+form: {form.returnDate.data}
+ form: {form.loanDate.data}
+")
         return True
     
     return False
-
 
 # Verifica quantos livros estarão disponíveis na data do empréstimo
 def v3(form, activeBookLoans, book):
@@ -40,6 +44,10 @@ def v3(form, activeBookLoans, book):
 
     return False
 
+# Nova função de validação para verificar se o userId existe
+def v4(form):
+    user = User.query.get(form.userId.data)
+    return user is not None
 
 def validaEmprestimo(form, Loan, Book, StatusLoan):
     # Pega cadastro do livro
@@ -52,7 +60,8 @@ def validaEmprestimo(form, Loan, Book, StatusLoan):
         validacoes = [
             v1(form),
             v2(form),
-            v3(form, activeBookLoans, book)
+            v3(form, activeBookLoans, book),
+            v4(form) # Adicionar a nova validação de usuário
         ]
 
         # Se todos os testes passarem, retorna True, senão, retorna False 

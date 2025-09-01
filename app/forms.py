@@ -91,7 +91,7 @@ class LoanForm(FlaskForm):
     returnDate = DateField(
         'Data de Devolução',
         default=(datetime.today() + timedelta(days=7)), format='%Y-%m-%d', validators=[DataRequired()])
-    studentId = IntegerField('ID do Aluno', validators=[
+    userId = IntegerField('ID do Usuário', validators=[
         DataRequired(), NumberRange(min=1)])
     bookId = IntegerField('ID do Livro', validators=[
         DataRequired(), NumberRange(min=1)])

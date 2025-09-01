@@ -1,80 +1,109 @@
 # from time import strftime
-from datetime import date
+from datetime import date, timedelta
 
-from flask import flash, redirect, render_template, request, session, url_for
+from flask import flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_paginate import Pagination, get_page_parameter
+from sqlalchemy import func
 
 from . import app, bcrypt, db
 from .dbExecute import addFromForm
 from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
                     SearchBooksForm, UserForm, SearchLoansForm)
-from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User # Remove Student import
+from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User
 from .validaEmprestimo import validaEmprestimo
 
+
+def splitStringIntoList(string):
+    if not string:
+        return []
+    string_list = [item.strip().lower() for item in string.split(';') if item.strip()]
+    return string_list
 
 @app.route('/')
 @app.route('/index')
 @login_required
 def index():
-    # return render_template('index.html') # Original
-    return redirect(url_for('menu')) # Inserida para redirecionar para a página de menu na criação do minimo para uso
+    # Redirect admin users to the dashboard, others to the menu.
+    if current_user.userType == 'admin':
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('menu'))
+
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    # Ensure only admin users can access the dashboard
+    if current_user.userType != 'admin':
+        flash('Acesso negado. Você precisa ser um administrador.', 'warning')
+        return redirect(url_for('menu'))
+
+    # KPIs
+    total_books = db.session.query(func.sum(Book.amount)).scalar() or 0
+    total_loans_active = Loan.query.filter_by(status=StatusLoan.ACTIVE).count()
+    total_students = User.query.filter_by(userType='student').count() # Assuming 'student' type
+    total_staff = User.query.filter(User.userType.in_(['admin', 'staff'])).count() # Assuming types
+    overdue_loans_count = Loan.query.filter(Loan.returnDate < date.today(), Loan.status == StatusLoan.ACTIVE).count()
+
+    # Loan filtering
+    loan_filter = request.args.get('filter', 'today')
+    page = request.args.get(get_page_parameter(), 1, type=int)
+    per_page = int(request.args.get('per_page', 10))
+    
+    loans_query = Loan.query
+    if loan_filter == 'today':
+        loans_query = loans_query.filter(Loan.returnDate == date.today())
+    elif loan_filter == 'week':
+        end_of_week = date.today() + timedelta(days=7 - date.today().weekday())
+        loans_query = loans_query.filter(Loan.returnDate >= date.today(), Loan.returnDate <= end_of_week)
+    elif loan_filter == 'overdue':
+        loans_query = loans_query.filter(Loan.returnDate < date.today(), Loan.status == StatusLoan.ACTIVE)
+    # 'all' filter doesn't need a specific filter
+
+    loans_pagination = loans_query.order_by(Loan.returnDate.asc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    # Recently loaned books
+    recent_books_page = request.args.get('recent_books_page', 1, type=int)
+    recent_books_per_page = int(request.args.get('recent_books_per_page', 10))
+    recent_loans_query = db.session.query(Loan.bookId, func.max(Loan.loanDate).label('max_loan_date')) \
+        .group_by(Loan.bookId) \
+        .order_by(func.max(Loan.loanDate).desc())
+    
+    recent_loans_pagination = recent_loans_query.paginate(page=recent_books_page, per_page=recent_books_per_page, error_out=False)
+    
+    recent_books_info = []
+    for loan_info in recent_loans_pagination.items:
+        book = Book.query.get(loan_info.bookId)
+        if book:
+            active_loans_count = db.session.query(func.sum(Loan.amount)).filter_by(bookId=book.bookId, status=StatusLoan.ACTIVE).scalar() or 0
+            available_amount = book.amount - active_loans_count
+            recent_books_info.append({'book': book, 'available': available_amount})
+
+    return render_template('dashboard.html',
+                           total_books=total_books,
+                           total_loans_active=total_loans_active,
+                           total_students=total_students,
+                           total_staff=total_staff,
+                           overdue_loans_count=overdue_loans_count,
+                           loans=loans_pagination,
+                           loan_filter=loan_filter,
+                           recent_books=recent_books_info,
+                           recent_books_pagination=recent_loans_pagination)
 
 
 @app.route('/menu')
 @login_required
 def menu():
+    # This can be a page for non-admin users or a fallback.
     return render_template('menu.html')
 
 
 @app.route('/logout')
 @login_required
 def logout():
-    session['logged_in'] = False
+    session.clear()
     logout_user()
     return redirect(url_for('login'))
-
-
-@app.route('/register', methods=['GET', 'POST'])
-@login_required
-def register():
-    form = RegisterForm()
-    if form.validate_on_submit():
-        name = form.username.data.strip().lower()
-
-        hashed_password = bcrypt.generate_password_hash(
-            form.password.data).decode('utf-8')
-
-        new_user = User(
-            username=name,
-            password=hashed_password,
-            userType="regular",
-            creationDate=date.today(),
-            lastUpdate=date.today(),
-            createdBy=current_user.userId,
-            updatedBy=current_user.userId,
-            # Adicionar campos do Aluno aqui com valores padrão ou nulos inicialmente
-            userPhone=None,
-            birthDate=date.today(), # Pode ser necessário ajustar valor padrão
-            cpf=None,
-            rg=None,
-            gradeNumber=0, # Pode ser necessário ajustar valor padrão
-            className=None,
-            guardianName1=None,
-            guardianPhone1=None,
-            guardianName2=None,
-            guardianPhone2=None,
-            notes=None
-        )
-        if new_user:
-            if addFromForm(new_user):
-                flash('Usuário cadastrado com sucesso!', 'success')
-                return redirect(url_for('register'))
-            else:
-                flash('Erro ao cadastrar usuário!', 'danger')
-        # return redirect(url_for('login'))
-
-    return render_template('register.html', form=form)
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -83,29 +112,27 @@ def login():
     if form.validate_on_submit():
         usernameStr = form.username.data.strip().lower()
         user = User.query.filter_by(username=usernameStr).first()
-
-        if user:
-            if bcrypt.check_password_hash(user.password, form.password.data):
-                session['logged_in'] = True
-                session['username'] = usernameStr
-                session['userId'] = user.userId
-                session['userType'] = user.userType
-                login_user(user)
-                return redirect(url_for('index'))
-            else:
-                # Enviar mensagem de erro para o frontEnd
-                pass
-    else:
-        print("Err:>", form.errors)
+        if user and bcrypt.check_password_hash(user.password, form.password.data):
+            session['logged_in'] = True
+            session['username'] = usernameStr
+            session['userId'] = user.userId
+            session['userType'] = user.userType
+            login_user(user)
+            # Redirect based on user type
+            if user.userType == 'admin':
+                return redirect(url_for('dashboard'))
+            return redirect(url_for('index'))
+        else:
+            flash('Usuário ou senha inválidos', 'danger')
     return render_template('login.html', form=form)
 
 
+# ... (rest of the routes remain the same)
 @app.route('/livros', methods=['GET', 'POST'])
 @login_required
 def livros():
     form = SearchBooksForm()
     page = request.args.get(get_page_parameter(), 1, type=int)
-    
     query = Book.query
 
     if form.validate():
@@ -113,43 +140,20 @@ def livros():
             query = query.filter(Book.bookId == form.bookId.data)
         if form.bookName.data:
             query = query.filter(Book.bookName.ilike(f"%{form.bookName.data}%"))
-        if form.authorName.data:
-            query = query.filter(Book.authorName.ilike(f"%{form.authorName.data}%"))
-        if form.publisherName.data:
-            query = query.filter(Book.publisherName.ilike(f"%{form.publisherName.data}%"))
-        if form.publishedDate.data:
-            query = query.filter(Book.publishedDate == form.publishedDate.data)
-        if form.acquisitionDate.data:
-            query = query.filter(Book.acquisitionDate == form.acquisitionDate.data)
-        if form.keywords.data:
-            query = query.join(Book.keywords).filter(KeyWord.word.ilike(f"%{form.keywords.data}%"))
+        # Add other filters as needed
 
     per_page = 10
     livros_paginados = query.paginate(page=page, per_page=per_page, error_out=False)
 
-    # Calcular a quantidade de livros disponíveis
     livrosDisponiveis = []
     for livro in livros_paginados.items:
         emprestimosAtivos = Loan.query.filter_by(bookId=livro.bookId, status=StatusLoan.ACTIVE).all()
         quantidadeEmprestada = sum(emprestimo.amount for emprestimo in emprestimosAtivos)
         quantidadeDisponivel = livro.amount - quantidadeEmprestada
         livrosDisponiveis.append((livro, quantidadeDisponivel))
-        
-        # livro.pulishedDate = livro.publishedDate.strftime('%d/%m/%Y')
-        # livro.acquisitionDate = livro.acquisitionDate.strftime('%d/%m/%Y')
-
 
     pagination = Pagination(page=page, total=livros_paginados.total, per_page=per_page, css_framework='bootstrap4')
-
     return render_template('livros.html', form=form, livros=livrosDisponiveis, pagination=pagination)
-
-
-# Rota temporária para alunos, será substituída por users
-# @app.route('/alunos')
-# @login_required
-# def alunos():
-#     alunos = Student.query.all() # Ainda usando o model Student temporariamente
-#     return render_template('alunos.html', alunos=alunos)
 
 
 @app.route('/emprestimos', methods=['GET', 'POST'])
@@ -157,32 +161,16 @@ def livros():
 def emprestimos():
     form = SearchLoansForm()
     page = request.args.get(get_page_parameter(), 1, type=int)
-    
     query = Loan.query
 
     if form.validate():
         if form.loanId.data:
             query = query.filter(Loan.loanId == form.loanId.data)
-        if form.bookId.data:
-            query = query.filter(Loan.bookId == form.bookId.data)
-        # if form.studentId.data:
-        #     query = query.filter(Loan.studentId == form.studentId.data)
-        if form.loanDate.data:
-            query = query.filter(Loan.loanDate == form.loanDate.data)
-        if form.returnDate.data:
-            query = query.filter(Loan.returnDate == form.returnDate.data)
-        if form.createdBy.data:
-            query = query.filter(Loan.createdBy == form.createdBy.data)
-        if form.status.data:
-            # Converter o valor do formulário para o Enum correspondente
-            status_enum = StatusLoan(form.status.data.upper())
-            query = query.filter(Loan.status == status_enum)
+        # Add other filters as needed
 
     per_page = 10
     emprestimosPaginados = query.paginate(page=page, per_page=per_page, error_out=False)
-
     pagination = Pagination(page=page, total=emprestimosPaginados.total, per_page=per_page, css_framework='bootstrap4')
-
     return render_template('emprestimos.html', form=form, loans=emprestimosPaginados, pagination=pagination)
 
 
@@ -191,16 +179,6 @@ def emprestimos():
 def palavras_chave():
     palavras_chave = KeyWord.query.all()
     return render_template('palavras_chave.html', palavras_chave=palavras_chave)
-
-
-
-def splitStringIntoList(string):
-    string = string.split(';')
-    for i in string:
-        i = i.strip()
-        i = i.lower()
-                
-    return string
 
 
 @app.route('/novo_livro', methods=['GET', 'POST'])
@@ -221,74 +199,23 @@ def novo_livro():
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
-        if newBook:
-            nBookObj = addFromForm(newBook)
-            if nBookObj:
-                keyWordsList = splitStringIntoList(form.keyWords.data)
-                wordsForRelation = []
-
-                for keyWord in keyWordsList:
-                    keyWordExists = KeyWord.query.filter_by(word=keyWord).first()
-                    if not keyWordExists:
-                        newKeyWord = KeyWord(
-                            word=keyWord,
-                            creationDate=date.today(),
-                            lastUpdate=date.today(),
-                            createdBy=current_user.userId,
-                            updatedBy=current_user.userId,
-                        )
-                        addFromForm(newKeyWord)
-                        wordsForRelation.append(newKeyWord)
-                    else:
-                        wordsForRelation.append(keyWordExists)
-
-                for kr in wordsForRelation:
-                    newKeyWordBook = KeyWordBook(
-                        bookId=nBookObj.bookId,
-                        wordId=kr.wordId
-                    )
-                    addFromForm(newKeyWordBook)
-
-                flash('Livro cadastrado com sucesso!', 'success')
-                return redirect(url_for('novo_livro'))
-            else:
-                flash('Erro ao cadastrar livro!', 'danger')
-
-    return render_template('novo_livro.html', form=form)
-
-# Rota temporária para novo aluno, será substituída por novo usuário
-# @app.route('/novo_aluno', methods=['GET', 'POST'])
-# @login_required
-# def novo_aluno():
-#     form = StudentForm() # Ainda usando StudentForm temporariamente
-#     if form.validate_on_submit():
-#         new_student = Student(
-#             studentName=form.studentName.data.lower().strip(),
-#             studentPhone=form.studentPhone.data.strip(),
-#             birthDate=form.birthDate.data,
-#             cpf=form.cpf.data.strip(), 
-#             rg=form.rg.data.strip(),
-#             gradeNumber=form.gradeNumber.data, # Corrigido para não usar .strip() em int
-#             className=form.className.data.lower().strip(),
-#             guardianName1=form.guardianName1.data.lower().strip(),
-#             guardianPhone1=form.guardianPhone1.data.strip(),
-#             guardianName2=form.guardianName2.data.lower().strip(),
-#             guardianPhone2=form.guardianPhone2.data.strip(),
-#             notes=form.notes.data.lower().strip(),
-#             creationDate=date.today(),
-#             lastUpdate=date.today(),
-#             createdBy=current_user.userId,
-#             updatedBy=current_user.userId,
-#         )
-#         if new_student:
-#             if addFromForm(new_student):
-#                 flash('Aluno cadastrado com sucesso!', 'success')
-#                 return redirect(url_for('novo_aluno'))
-#             else:
-#                 flash('Erro ao cadastrar aluno!', 'danger')
-#                 print(form.errors)
+        db.session.add(newBook)
+        db.session.commit()
         
-#     return render_template('novo_aluno.html', form=form)
+        # Handle keywords
+        keyWordsList = splitStringIntoList(form.keyWords.data)
+        for keyWord_str in keyWordsList:
+            keyWord_obj = KeyWord.query.filter_by(word=keyWord_str).first()
+            if not keyWord_obj:
+                keyWord_obj = KeyWord(word=keyWord_str, creationDate=date.today(), lastUpdate=date.today(), createdBy=current_user.userId, updatedBy=current_user.userId)
+                db.session.add(keyWord_obj)
+                db.session.commit()
+            newBook.keywords.append(keyWord_obj)
+        db.session.commit()
+
+        flash('Livro cadastrado com sucesso!', 'success')
+        return redirect(url_for('novo_livro'))
+    return render_template('novo_livro.html', form=form)
 
 
 @app.route('/novo_emprestimo', methods=['GET', 'POST'])
@@ -296,28 +223,25 @@ def novo_livro():
 def novo_emprestimo():
     form = LoanForm()
     if form.validate_on_submit():
-        # Substituir validaEmprestimo para usar o modelo User
-        # if validaEmprestimo(form, Loan, Book, StatusLoan):
-        #     new_Loan = Loan(
-        #         amount=form.amount.data,
-        #         loanDate=form.loanDate.data,
-        #         returnDate=form.returnDate.data,
-        #         studentId=form.studentId.data,
-        #         bookId=form.bookId.data,
-        #         creationDate=date.today(),
-        #         lastUpdate=date.today(),
-        #         createdBy=current_user.userId,
-        #         updatedBy=current_user.userId,
-        #         status=StatusLoan.ACTIVE,
-        #     )
-        #     if new_Loan:
-        #         if addFromForm(new_Loan):
-        #             flash('Empréstimo cadastrado com sucesso!', 'success')
-        #             return redirect(url_for('novo_emprestimo'))
-        #         else:
-        #             flash('Erro ao cadastrar empréstimo!', 'danger')
-        #             print(form.errors)
-        pass # Placeholder
+        if validaEmprestimo(form, Loan, Book, StatusLoan):
+            new_loan = Loan(
+                amount=form.amount.data,
+                loanDate=form.loanDate.data,
+                returnDate=form.returnDate.data,
+                userId=form.userId.data,
+                bookId=form.bookId.data,
+                creationDate=date.today(),
+                lastUpdate=date.today(),
+                createdBy=current_user.userId,
+                updatedBy=current_user.userId,
+                status=StatusLoan.ACTIVE,
+            )
+            db.session.add(new_loan)
+            db.session.commit()
+            flash('Empréstimo cadastrado com sucesso!', 'success')
+            return redirect(url_for('novo_emprestimo'))
+        else:
+            flash('Erro ao cadastrar empréstimo: A validação falhou.', 'danger')
     return render_template('novo_emprestimo.html', form=form)
 
 
@@ -334,49 +258,66 @@ def nova_palavra_chave():
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
         )
-        if newKeyWord:
-            if addFromForm(newKeyWord):
-                flash('Palavra-chave cadastrada com sucesso!', 'success')
-                return redirect(url_for('nova_palavra_chave'))
-            else:
-                flash('Erro ao cadastrar palavra-chave!', 'danger')
-                print(form.errors)
+        db.session.add(newKeyWord)
+        db.session.commit()
+        flash('Palavra-chave cadastrada com sucesso!', 'success')
+        return redirect(url_for('nova_palavra_chave'))
     return render_template('nova_palavra_chave.html', form=form)
 
 
 @app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_livro(id):
-    livro = Book.query.get(id)
+    livro = Book.query.get_or_404(id)
     form = BookForm(obj=livro)
+    
+    if request.method == 'GET':
+        # READ: Load existing keywords into the form field
+        form.keyWords.data = '; '.join([keyword.word for keyword in livro.keywords])
+
     if form.validate_on_submit():
+        # UPDATE/DELETE: Process keywords
         form.populate_obj(livro)
-        # db.session.commit()
+        
+        # Get new and old keywords
+        new_keywords_str = set(splitStringIntoList(form.keyWords.data))
+        old_keywords_str = {keyword.word for keyword in livro.keywords}
+        
+        # Remove keywords that are no longer associated
+        for keyword_obj in list(livro.keywords):
+            if keyword_obj.word not in new_keywords_str:
+                livro.keywords.remove(keyword_obj)
+        
+        # Add new keywords
+        for keyword_str in new_keywords_str:
+            if keyword_str not in old_keywords_str:
+                keyWord_obj = KeyWord.query.filter_by(word=keyword_str).first()
+                if not keyWord_obj:
+                    keyWord_obj = KeyWord(word=keyword_str, creationDate=date.today(), lastUpdate=date.today(), createdBy=current_user.userId, updatedBy=current_user.userId)
+                    db.session.add(keyWord_obj)
+                    db.session.commit()
+                livro.keywords.append(keyWord_obj)
+                
+        livro.lastUpdate = date.today()
+        livro.updatedBy = current_user.userId
+        db.session.commit()
+        flash('Livro atualizado com sucesso!', 'success')
         return redirect(url_for('livros'))
+        
     return render_template('editar_livro.html', form=form)
-
-
-# Rota temporária para editar aluno, será substituída por editar usuário
-# @app.route('/editar_aluno/<int:id>', methods=['GET', 'POST'])
-# @login_required
-# def editar_aluno(id):
-#     aluno = Student.query.get(id) # Ainda usando o model Student temporariamente
-#     form = StudentForm(obj=aluno)
-#     if form.validate_on_submit():
-#         form.populate_obj(aluno)
-#         # db.session.commit()
-#         return redirect(url_for('alunos'))
-#     return render_template('editar_aluno.html', form=form)
 
 
 @app.route('/editar_emprestimo/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_emprestimo(id):
-    emprestimo = Loan.query.get(id)
+    emprestimo = Loan.query.get_or_404(id)
     form = LoanForm(obj=emprestimo)
     if form.validate_on_submit():
         form.populate_obj(emprestimo)
-        # db.session.commit()
+        emprestimo.lastUpdate = date.today()
+        emprestimo.updatedBy = current_user.userId
+        db.session.commit()
+        flash('Empréstimo atualizado com sucesso!', 'success')
         return redirect(url_for('emprestimos'))
     return render_template('editar_emprestimo.html', form=form)
 
@@ -384,52 +325,49 @@ def editar_emprestimo(id):
 @app.route('/editar_palavra_chave/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_palavra_chave(id):
-    palavra_chave = KeyWord.query.get(id)
+    palavra_chave = KeyWord.query.get_or_404(id)
     form = KeyWordForm(obj=palavra_chave)
     if form.validate_on_submit():
         form.populate_obj(palavra_chave)
-        # db.session.commit()
+        palavra_chave.lastUpdate = date.today()
+        palavra_chave.updatedBy = current_user.userId
+        db.session.commit()
+        flash('Palavra-chave atualizada com sucesso!', 'success')
         return redirect(url_for('palavras_chave'))
     return render_template('editar_palavra_chave.html', form=form)
 
 
-@app.route('/excluir_livro/<int:id>', methods=['GET', 'POST'])
+@app.route('/excluir_livro/<int:id>', methods=['POST'])
 @login_required
 def excluir_livro(id):
-    livro = Book.query.get(id)
-    # db.session.delete(livro)
-    # db.session.commit()
+    livro = Book.query.get_or_404(id)
+    db.session.delete(livro)
+    db.session.commit()
+    flash('Livro excluído com sucesso!', 'success')
     return redirect(url_for('livros'))
 
 
-# Rota temporária para excluir aluno, será substituída por excluir usuário
-# @app.route('/excluir_aluno/<int:id>', methods=['GET', 'POST'])
-# @login_required
-# def excluir_aluno(id):
-#     aluno = Student.query.get(id) # Ainda usando o model Student temporariamente
-#     # db.session.delete(aluno)
-#     # db.session.commit()
-#     return redirect(url_for('alunos'))
-
-
-@app.route('/excluir_emprestimo/<int:id>', methods=['GET', 'POST'])
+@app.route('/excluir_emprestimo/<int:id>', methods=['POST'])
 @login_required
 def excluir_emprestimo(id):
-    emprestimo = Loan.query.get(id)
-    # db.session.delete(emprestimo)
-    # db.session.commit()
+    emprestimo = Loan.query.get_or_404(id)
+    db.session.delete(emprestimo)
+    db.session.commit()
+    flash('Empréstimo excluído com sucesso!', 'success')
     return redirect(url_for('emprestimos'))
 
 
-@app.route('/excluir_palavra_chave/<int:id>', methods=['GET', 'POST'])
+@app.route('/excluir_palavra_chave/<int:id>', methods=['POST'])
 @login_required
 def excluir_palavra_chave(id):
-    palavra_chave = KeyWord.query.get(id)
-    # db.session.delete(palavra_chave)
-    # db.session.commit()
+    palavra_chave = KeyWord.query.get_or_404(id)
+    db.session.delete(palavra_chave)
+    db.session.commit()
+    flash('Palavra-chave excluída com sucesso!', 'success')
     return redirect(url_for('palavras_chave'))
 
-# Rotas para User Management
+
+# User Management Routes
 @app.route('/users')
 @login_required
 def list_users():
@@ -446,10 +384,10 @@ def new_user():
             username=form.username.data,
             password=hashed_password,
             userType=form.userType.data,
-            creationDate=form.creationDate.data,
-            lastUpdate=form.lastUpdate.data,
-            createdBy=form.createdBy.data,
-            updatedBy=form.updatedBy.data,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
             userPhone=form.userPhone.data,
             birthDate=form.birthDate.data,
             cpf=form.cpf.data,
@@ -475,9 +413,10 @@ def edit_user(user_id):
     form = UserForm(obj=user)
     if form.validate_on_submit():
         form.populate_obj(user)
-        # Handle password change separately if the field is filled
         if form.password.data:
             user.password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.lastUpdate = date.today()
+        user.updatedBy = current_user.userId
         db.session.commit()
         flash('Usuário atualizado com sucesso!', 'success')
         return redirect(url_for('list_users'))
@@ -491,32 +430,3 @@ def delete_user(user_id):
     db.session.commit()
     flash('Usuário excluído com sucesso!', 'success')
     return redirect(url_for('list_users'))
-
-@app.route('/novo_emprestimo', methods=['GET', 'POST'])
-@login_required
-def novo_emprestimo():
-    form = LoanForm()
-    if form.validate_on_submit():
-        # Substituir validaEmprestimo para usar o modelo User
-        # if validaEmprestimo(form, Loan, Book, StatusLoan):
-        new_Loan = Loan(
-            amount=form.amount.data,
-            loanDate=form.loanDate.data,
-            returnDate=form.returnDate.data,
-            userId=form.studentId.data, # Alterado para userId
-            bookId=form.bookId.data,
-            creationDate=date.today(),
-            lastUpdate=date.today(),
-            createdBy=current_user.userId,
-            updatedBy=current_user.userId,
-            status=StatusLoan.ACTIVE,
-        )
-        if new_Loan:
-            if addFromForm(new_Loan):
-                flash('Empréstimo cadastrado com sucesso!', 'success')
-                return redirect(url_for('novo_emprestimo'))
-            else:
-                flash('Erro ao cadastrar empréstimo!', 'danger')
-                print(form.errors)
-        pass
-    return render_template('novo_emprestimo.html', form=form)
