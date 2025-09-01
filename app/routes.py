@@ -1,6 +1,4 @@
-# from time import strftime
-from datetime import date, timedelta
-
+from datetime import date
 from flask import flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_paginate import Pagination, get_page_parameter
@@ -146,7 +144,7 @@ def livros():
     per_page = request.args.get('per_page', type=int, default=20)
     books_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('livros.html', books=books_pagination, search_term=search_term, per_page=per_page)
+    return render_template('main/livros.html', books=books_pagination, search_term=search_term, per_page=per_page)
 
 
 @bp.route('/livros/form', defaults={'book_id': None}, methods=['GET'])
@@ -159,7 +157,7 @@ def get_book_form(book_id):
         form.keyWords.data = '; '.join([kw.word for kw in book.keywords])
     else:
         form = BookForm()
-    return render_template('_book_form.html', form=form, book_id=book_id)
+    return render_template('main/_book_form.html', form=form, book_id=book_id)
 
 
 @bp.route('/livros/new', methods=['POST'])
@@ -183,7 +181,6 @@ def novo_livro():
         db.session.add(new_book)
         db.session.commit()
         
-        # Keyword handling
         keywords_list = splitStringIntoList(form.keyWords.data)
         for keyword_str in keywords_list:
             keyword_obj = KeyWord.query.filter_by(word=keyword_str).first()
@@ -206,7 +203,6 @@ def editar_livro(book_id):
     if form.validate():
         form.populate_obj(book)
         
-        # Keyword handling
         new_keywords_str = set(splitStringIntoList(form.keyWords.data))
         old_keywords_str = {kw.word for kw in book.keywords}
         
@@ -248,7 +244,7 @@ def emprestimos():
     per_page = request.args.get('per_page', type=int, default=20)
     loans_pagination = query.order_by(Loan.loanDate.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('emprestimos.html', loans=loans_pagination, search_term=search_term, per_page=per_page)
+    return render_template('main/emprestimos.html', loans=loans_pagination, search_term=search_term, per_page=per_page)
 
 @bp.route('/emprestimos/form', defaults={'loan_id': None}, methods=['GET'])
 @bp.route('/emprestimos/form/<int:loan_id>', methods=['GET'])
@@ -259,7 +255,7 @@ def get_loan_form(loan_id):
         form = LoanForm(obj=loan)
     else:
         form = LoanForm()
-    return render_template('_loan_form.html', form=form, loan_id=loan_id)
+    return render_template('main/_loan_form.html', form=form, loan_id=loan_id)
 
 @bp.route('/emprestimos/new', methods=['POST'])
 @login_required
@@ -317,7 +313,7 @@ def palavras_chave():
     per_page = request.args.get('per_page', type=int, default=20)
     keywords_pagination = query.order_by(KeyWord.word.asc()).paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('palavras_chave.html', keywords=keywords_pagination, search_term=search_term, per_page=per_page)
+    return render_template('main/palavras_chave.html', keywords=keywords_pagination, search_term=search_term, per_page=per_page)
 
 
 @bp.route('/palavras_chave/form', defaults={'keyword_id': None}, methods=['GET'])
@@ -329,7 +325,7 @@ def get_keyword_form(keyword_id):
         form = KeyWordForm(obj=keyword)
     else:
         form = KeyWordForm()
-    return render_template('_keyword_form.html', form=form, keyword_id=keyword_id)
+    return render_template('main/_keyword_form.html', form=form, keyword_id=keyword_id)
 
 
 @bp.route('/palavras_chave/new', methods=['POST'])
@@ -409,7 +405,7 @@ def list_users():
     per_page = request.args.get('per_page', type=int, default=20)
     users = query.paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('users.html', users=users, search_term=search_term, per_page=per_page)
+    return render_template('main/users.html', users=users, search_term=search_term, per_page=per_page)
 
 @bp.route('/users/form', defaults={'user_id': None}, methods=['GET'])
 @bp.route('/users/form/<int:user_id>', methods=['GET'])
@@ -420,7 +416,7 @@ def get_user_form(user_id):
         form = UserForm(obj=user)
     else:
         form = UserForm()
-    return render_template('_user_form.html', form=form, user_id=user_id)
+    return render_template('main/_user_form.html', form=form, user_id=user_id)
 
 @bp.route('/users/new', methods=['POST'])
 @login_required
