@@ -108,22 +108,44 @@ def logout():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    print("--- 1. Acessando a rota /login ---")
     form = LoginForm()
+    
     if form.validate_on_submit():
+        print("--- 2. Formulário validado ---")
         usernameStr = form.username.data.strip().lower()
+        print(f"--- 3. Tentando encontrar o usuário: {usernameStr} ---")
         user = User.query.filter_by(username=usernameStr).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
-            session['logged_in'] = True
-            session['username'] = usernameStr
-            session['userId'] = user.userId
-            session['userType'] = user.userType
-            login_user(user)
-            # Redirect based on user type
-            if user.userType == 'admin':
-                return redirect(url_for('dashboard'))
-            return redirect(url_for('index'))
+
+        if user:
+            print(f"--- 4. Usuário '{usernameStr}' encontrado no banco de dados. ---")
+            print("--- 5. Verificando a senha... ---")
+            if bcrypt.check_password_hash(user.password, form.password.data):
+                print("--- 6. Senha correta. ---")
+                session['logged_in'] = True
+                session['username'] = usernameStr
+                session['userId'] = user.userId
+                session['userType'] = user.userType
+                login_user(user)
+                print(f"--- 7. Usuário logado. Tipo: {user.userType}. Redirecionando... ---")
+                
+                if user.userType == 'admin':
+                    print("--- 8a. Redirecionando para /dashboard ---")
+                    return redirect(url_for('dashboard'))
+                
+                print("--- 8b. Redirecionando para /index ---")
+                return redirect(url_for('index'))
+            else:
+                print("--- 6. Senha incorreta. ---")
+                flash('Usuário ou senha inválidos', 'danger')
         else:
+            print(f"--- 4. Usuário '{usernameStr}' NÃO encontrado. ---")
             flash('Usuário ou senha inválidos', 'danger')
+    
+    elif request.method == 'POST':
+        print("--- 2. Formulário inválido. Erros:", form.errors)
+
+    print("--- Renderizando o template de login. ---")
     return render_template('login.html', form=form)
 
 
