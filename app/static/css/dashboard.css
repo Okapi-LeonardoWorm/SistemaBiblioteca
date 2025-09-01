@@ -1,0 +1,77 @@
+/* Mobile First Styles */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.dashboard-header {
+    background-color: #343a40;
+    color: white;
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+
+.kpi-card {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.kpi-card .kpi-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.kpi-card .kpi-label {
+    font-size: 1rem;
+    color: #6c757d;
+}
+
+.section-title {
+    margin-top: 2rem;
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+}
+
+.filter-buttons .btn {
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.overdue-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    height: 22px;
+    width: 22px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.list-group-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.list-group-item:hover {
+    background-color: #e9ecef;
+}
+
+/* Desktop Styles */
+@media (min-width: 768px) {
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
