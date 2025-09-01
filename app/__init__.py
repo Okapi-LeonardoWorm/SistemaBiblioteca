@@ -8,33 +8,30 @@ from flask_migrate import Migrate
 
 
 # Inicializando extensões fora do escopo da aplicação
-app = Flask(__name__)
+db = SQLAlchemy()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
-
-db = SQLAlchemy()
 migrate = Migrate()
 
 def createApp():
+    # Cria o app
+    app = Flask(__name__)
     app.config.from_object('config.Config')
 
+    # Inicializa as extensões
     db.init_app(app)
-    migrate.init_app(app, db)
-    
-
-    login_manager = LoginManager()
+    bcrypt.init_app(app)
     login_manager.init_app(app)
-    login_manager.login_view = 'login'
-    
+    migrate.init_app(app, db)
     CORS(app)
-    bcrypt = Bcrypt(app)
-
-
-    with app.app_context():
-        from . import forms, models, routes
-
-        # Cria as tabelas no banco de dados se elas não existirem
-        db.create_all()
+    
+    login_manager.login_view = 'main.login'
+    
+    # Importa as rotas
+    @login_manager.user_loader
+    def load_user(userId):
+        from app.models import User
+        return User.query.get(int(userId))
 
 
     @app.context_processor
@@ -43,14 +40,13 @@ def createApp():
             username=session.get('username'),
             userType=session.get('userType'),
             userId=session.get('userId'))
-
-
-    @login_manager.user_loader
-    def load_user(userId):
-        from app.models import User
-        
-        return User.query.get(int(userId))
     
     
+    with app.app_context():
+        from . import forms, models, routes
+        from .routes import bp as main_bp
+        app.register_blueprint(main_bp)
+        # Cria as tabelas no banco de dados se elas não existirem
+        db.create_all()
     return app
 

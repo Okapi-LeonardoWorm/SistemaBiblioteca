@@ -3,9 +3,9 @@ from wtforms import (DateField, IntegerField, PasswordField, StringField,
                      SubmitField, RadioField, SelectField, TextAreaField)
 from wtforms.validators import (DataRequired, InputRequired, Length,
                                 NumberRange, Optional, Regexp, ValidationError)
-from app.models import User
+from .models import User
 from datetime import datetime, timedelta
-from app.models import StatusLoan
+from .models import StatusLoan
 
 
 # Forms to create and validate the data that will be inserted in the database
@@ -17,11 +17,11 @@ class LoginForm(FlaskForm):
 
     submit = SubmitField("Login")
 
-    def validate_username(self, username):
-        existing_user_username = User.query.filter_by(
-            username=username.data).first()
-        if not existing_user_username:
-            raise ValidationError("Username does not exist!")
+    # def validate_username(self, username):
+    #     existing_user_username = User.query.filter_by(
+    #         username=username.data).first()
+    #     if not existing_user_username:
+    #         raise ValidationError("Username does not exist!")
 
 
 class RegisterForm(FlaskForm):

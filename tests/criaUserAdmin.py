@@ -24,9 +24,9 @@ def criaAdminUser():
         # Inserir o usuário admin
         try:
             cursor.execute('''
-                INSERT INTO users (userId, username, password, usertype, creationDate, lastUpdate, createdBy, updatedBy)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (1, "admin", hashed_password, "admin", strftime("%Y-%m-%d"), strftime("%Y-%m-%d"), 1, 1))
+                INSERT INTO users (userId, username, password, usertype, creationDate, lastUpdate, createdBy, updatedBy, birthDate, gradeNumber)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (1, "admin", hashed_password, "admin", strftime("%Y-%m-%d"), strftime("%Y-%m-%d"), 1, 1, '1998-07-06', 1))
 
             conn.commit()
         except Exception as e:
@@ -37,3 +37,7 @@ def criaAdminUser():
 
     # Fechar a conexão
     conn.close()
+
+
+if __name__ == "__main__":
+    criaAdminUser()

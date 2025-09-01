@@ -16,3 +16,5 @@ if __name__ == '__main__':
     
     # Executa o servidor WSGI
     http_server.serve_forever()
+    
+    print("Servidor iniciado na porta 5000")

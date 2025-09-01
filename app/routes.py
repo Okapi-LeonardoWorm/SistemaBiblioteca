@@ -5,13 +5,19 @@ from flask import flash, redirect, render_template, request, session, url_for, j
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_paginate import Pagination, get_page_parameter
 from sqlalchemy import func
+from flask import Blueprint
 
-from . import app, bcrypt, db
+from . import bcrypt, db
 from .dbExecute import addFromForm
 from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
                     SearchBooksForm, UserForm, SearchLoansForm)
+
+
 from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User
 from .validaEmprestimo import validaEmprestimo
+
+
+bp = Blueprint('main', __name__)
 
 
 def splitStringIntoList(string):
@@ -20,8 +26,8 @@ def splitStringIntoList(string):
     string_list = [item.strip().lower() for item in string.split(';') if item.strip()]
     return string_list
 
-@app.route('/')
-@app.route('/index')
+@bp.route('/')
+@bp.route('/index')
 @login_required
 def index():
     # Redirect admin users to the dashboard, others to the menu.
@@ -30,7 +36,7 @@ def index():
     return redirect(url_for('menu'))
 
 
-@app.route('/dashboard')
+@bp.route('/dashboard')
 @login_required
 def dashboard():
     # Ensure only admin users can access the dashboard
@@ -91,14 +97,14 @@ def dashboard():
                            recent_books_pagination=recent_loans_pagination)
 
 
-@app.route('/menu')
+@bp.route('/menu')
 @login_required
 def menu():
     # This can be a page for non-admin users or a fallback.
     return render_template('menu.html')
 
 
-@app.route('/logout')
+@bp.route('/logout')
 @login_required
 def logout():
     session.clear()
@@ -106,7 +112,7 @@ def logout():
     return redirect(url_for('login'))
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
     print("--- 1. Acessando a rota /login ---")
     form = LoginForm()
@@ -116,6 +122,7 @@ def login():
         usernameStr = form.username.data.strip().lower()
         print(f"--- 3. Tentando encontrar o usuário: {usernameStr} ---")
         user = User.query.filter_by(username=usernameStr).first()
+        print(f"--- Query executada para o usuário: {usernameStr} ---")
 
         if user:
             print(f"--- 4. Usuário '{usernameStr}' encontrado no banco de dados. ---")
@@ -131,7 +138,7 @@ def login():
                 
                 if user.userType == 'admin':
                     print("--- 8a. Redirecionando para /dashboard ---")
-                    return redirect(url_for('dashboard'))
+                    return redirect(url_for('main.dashboard'))
                 
                 print("--- 8b. Redirecionando para /index ---")
                 return redirect(url_for('index'))
@@ -150,7 +157,7 @@ def login():
 
 
 # ... (rest of the routes remain the same)
-@app.route('/livros', methods=['GET', 'POST'])
+@bp.route('/livros', methods=['GET', 'POST'])
 @login_required
 def livros():
     form = SearchBooksForm()
@@ -178,7 +185,7 @@ def livros():
     return render_template('livros.html', form=form, livros=livrosDisponiveis, pagination=pagination)
 
 
-@app.route('/emprestimos', methods=['GET', 'POST'])
+@bp.route('/emprestimos', methods=['GET', 'POST'])
 @login_required
 def emprestimos():
     form = SearchLoansForm()
@@ -196,14 +203,14 @@ def emprestimos():
     return render_template('emprestimos.html', form=form, loans=emprestimosPaginados, pagination=pagination)
 
 
-@app.route('/palavras_chave')
+@bp.route('/palavras_chave')
 @login_required
 def palavras_chave():
     palavras_chave = KeyWord.query.all()
     return render_template('palavras_chave.html', palavras_chave=palavras_chave)
 
 
-@app.route('/novo_livro', methods=['GET', 'POST'])
+@bp.route('/novo_livro', methods=['GET', 'POST'])
 @login_required
 def novo_livro():
     form = BookForm()
@@ -240,7 +247,7 @@ def novo_livro():
     return render_template('novo_livro.html', form=form)
 
 
-@app.route('/novo_emprestimo', methods=['GET', 'POST'])
+@bp.route('/novo_emprestimo', methods=['GET', 'POST'])
 @login_required
 def novo_emprestimo():
     form = LoanForm()
@@ -267,7 +274,7 @@ def novo_emprestimo():
     return render_template('novo_emprestimo.html', form=form)
 
 
-@app.route('/nova_palavra_chave', methods=['GET', 'POST'])
+@bp.route('/nova_palavra_chave', methods=['GET', 'POST'])
 @login_required
 def nova_palavra_chave():
     form = KeyWordForm()
@@ -287,7 +294,7 @@ def nova_palavra_chave():
     return render_template('nova_palavra_chave.html', form=form)
 
 
-@app.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
+@bp.route('/editar_livro/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_livro(id):
     livro = Book.query.get_or_404(id)
@@ -329,7 +336,7 @@ def editar_livro(id):
     return render_template('editar_livro.html', form=form)
 
 
-@app.route('/editar_emprestimo/<int:id>', methods=['GET', 'POST'])
+@bp.route('/editar_emprestimo/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_emprestimo(id):
     emprestimo = Loan.query.get_or_404(id)
@@ -344,7 +351,7 @@ def editar_emprestimo(id):
     return render_template('editar_emprestimo.html', form=form)
 
 
-@app.route('/editar_palavra_chave/<int:id>', methods=['GET', 'POST'])
+@bp.route('/editar_palavra_chave/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_palavra_chave(id):
     palavra_chave = KeyWord.query.get_or_404(id)
@@ -359,7 +366,7 @@ def editar_palavra_chave(id):
     return render_template('editar_palavra_chave.html', form=form)
 
 
-@app.route('/excluir_livro/<int:id>', methods=['POST'])
+@bp.route('/excluir_livro/<int:id>', methods=['POST'])
 @login_required
 def excluir_livro(id):
     livro = Book.query.get_or_404(id)
@@ -369,7 +376,7 @@ def excluir_livro(id):
     return redirect(url_for('livros'))
 
 
-@app.route('/excluir_emprestimo/<int:id>', methods=['POST'])
+@bp.route('/excluir_emprestimo/<int:id>', methods=['POST'])
 @login_required
 def excluir_emprestimo(id):
     emprestimo = Loan.query.get_or_404(id)
@@ -379,7 +386,7 @@ def excluir_emprestimo(id):
     return redirect(url_for('emprestimos'))
 
 
-@app.route('/excluir_palavra_chave/<int:id>', methods=['POST'])
+@bp.route('/excluir_palavra_chave/<int:id>', methods=['POST'])
 @login_required
 def excluir_palavra_chave(id):
     palavra_chave = KeyWord.query.get_or_404(id)
@@ -390,13 +397,13 @@ def excluir_palavra_chave(id):
 
 
 # User Management Routes
-@app.route('/users')
+@bp.route('/users')
 @login_required
 def list_users():
     users = User.query.all()
     return render_template('users.html', users=users)
 
-@app.route('/users/new', methods=['GET', 'POST'])
+@bp.route('/users/new', methods=['GET', 'POST'])
 @login_required
 def new_user():
     form = UserForm()
@@ -428,7 +435,7 @@ def new_user():
         return redirect(url_for('list_users'))
     return render_template('new_user.html', form=form)
 
-@app.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
+@bp.route('/users/edit/<int:user_id>', methods=['GET', 'POST'])
 @login_required
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
@@ -444,7 +451,7 @@ def edit_user(user_id):
         return redirect(url_for('list_users'))
     return render_template('edit_user.html', form=form, user=user)
 
-@app.route('/users/delete/<int:user_id>', methods=['POST'])
+@bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)

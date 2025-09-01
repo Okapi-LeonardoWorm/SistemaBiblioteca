@@ -23,7 +23,7 @@ class User(db.Model, UserMixin):
     birthDate = db.Column(db.Date, nullable=False)
     cpf = db.Column(db.String(11), nullable=True)
     rg = db.Column(db.String(10), nullable=True)
-    gradeNumber = db.Column(db.Integer, nullable=False)
+    gradeNumber = db.Column(db.Integer, nullable=True)
     className = db.Column(db.String, nullable=True)
     guardianName1 = db.Column(db.String, nullable=True)
     guardianPhone1 = db.Column(db.String, nullable=True)
@@ -80,21 +80,22 @@ class StatusLoan(enum.Enum):
 class Loan(db.Model):
     __tablename__ = 'loans'
 
-    LoanId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    loanId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     amount = db.Column(db.Integer, nullable=False)
     loanDate = db.Column(db.Date, nullable=False)
     returnDate = db.Column(db.Date, nullable=False)
-    # studentId = db.Column(db.Integer, db.ForeignKey('students.studentId'), nullable=False)
     userId = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False) # Alterado para userId
     bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), nullable=False)
-    # student = db.relationship('Student', backref=db.backref('loans', lazy=True))
-    user = db.relationship('User', backref=db.backref('loans', lazy=True)) # Alterado para user
-    book = db.relationship('Book', backref=db.backref('loans', lazy=True))
     creationDate = db.Column(db.Date, nullable=False)
     lastUpdate = db.Column(db.Date, nullable=False)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     status = db.Column(Enum(StatusLoan), nullable=False)
+    
+    user = db.relationship('User', foreign_keys=[userId], backref=db.backref('loans', lazy='dynamic')) 
+    created_user = db.relationship('User', foreign_keys=[createdBy], backref=db.backref('loans_created', lazy='dynamic'))
+    updated_user = db.relationship('User', foreign_keys=[updatedBy], backref=db.backref('loans_updated', lazy='dynamic'))
+    book = db.relationship('Book', foreign_keys=[bookId], backref=db.backref('loans', lazy='dynamic'))
 
 
 class KeyWordBook(db.Model):
