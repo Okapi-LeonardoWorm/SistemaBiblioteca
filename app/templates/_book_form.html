@@ -1,0 +1,37 @@
+<form id="bookModalForm" action="{{ url_for('main.novo_livro') if not book_id else url_for('main.editar_livro', book_id=book_id) }}" method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.bookName.label(class="form-label") }}
+        {{ form.bookName(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.authorName.label(class="form-label") }}
+        {{ form.authorName(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.publisherName.label(class="form-label") }}
+        {{ form.publisherName(class="form-control") }}
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            {{ form.publishedDate.label(class="form-label") }}
+            {{ form.publishedDate(class="form-control", type="date") }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form.acquisitionDate.label(class="form-label") }}
+            {{ form.acquisitionDate(class="form-control", type="date") }}
+        </div>
+    </div>
+    <div class="mb-3">
+        {{ form.amount.label(class="form-label") }}
+        {{ form.amount(class="form-control", type="number") }}
+    </div>
+    <div class="mb-3">
+        {{ form.keyWords.label(class="form-label") }}
+        {{ form.keyWords(class="form-control", placeholder="Separe as tags com ponto e vírgula (;)") }}
+    </div>
+    <div class="mb-3">
+        {{ form.description.label(class="form-label") }}
+        {{ form.description(class="form-control", rows=3) }}
+    </div>
+</form>

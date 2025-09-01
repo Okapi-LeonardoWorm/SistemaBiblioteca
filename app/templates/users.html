@@ -1,7 +1,7 @@
 {% extends 'main/base.html' %}
 {% from 'bootstrap5/pagination.html' import render_pagination %}
 
-{% block title %}Gerenciar Empréstimos{% endblock %}
+{% block title %}Gerenciar Usuários{% endblock %}
 
 {% block head_links %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}">
@@ -10,19 +10,20 @@
 {% block content %}
 <div class="container py-4">
     <header class="management-header">
-        <h1 class="h3">Gerenciar Empréstimos</h1>
-        <form class="search-form" method="GET" action="{{ url_for('main.emprestimos') }}">
-            <input type="text" name="search" class="form-control" placeholder="Buscar por livro ou usuário..." value="{{ search_term or '' }}">
+        <h1 class="h3">Gerenciar Usuários</h1>
+        <form class="search-form" method="GET" action="{{ url_for('main.list_users') }}">
+            <input type="text" name="search" class="form-control" placeholder="Buscar por nome..." value="{{ search_term or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
     </header>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="">
-            <i class="fas fa-plus"></i> Novo Empréstimo
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="">
+            <i class="fas fa-plus"></i> Novo Usuário
         </button>
         
-        <form method="GET" action="{{ url_for('main.emprestimos') }}" class="d-flex align-items-center">
+        <!-- Items per page selector -->
+        <form method="GET" action="{{ url_for('main.list_users') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
@@ -37,24 +38,22 @@
         <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>Livro</th>
-                    <th>Usuário</th>
-                    <th>Data Empréstimo</th>
-                    <th>Data Devolução</th>
-                    <th>Status</th>
+                    <th>Username</th>
+                    <th>Tipo</th>
+                    <th>Telefone</th>
+                    <th>Data de Nascimento</th>
                     <th>Ações</th>
                 </tr>
             </thead>
             <tbody>
-                {% for loan in loans.items %}
-                <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.LoanId }}">
-                    <td>{{ loan.book.bookName }}</td>
-                    <td>{{ loan.user.username }}</td>
-                    <td>{{ loan.loanDate.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ loan.returnDate.strftime('%d/%m/%Y') }}</td>
-                    <td><span class="badge bg-{% if loan.status.name == 'ACTIVE' %}success{% elif loan.status.name == 'OVERDUE' %}danger{% else %}secondary{% endif %}">{{ loan.status.value }}</span></td>
+                {% for user in users.items %}
+                <tr data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="{{ user.userId }}">
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.userType }}</td>
+                    <td>{{ user.userPhone or 'N/A' }}</td>
+                    <td>{{ user.birthDate.strftime('%d/%m/%Y') if user.birthDate else 'N/A' }}</td>
                     <td>
-                        <form action="{{ url_for('main.excluir_emprestimo', id=loan.LoanId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este empréstimo?');">
+                        <form action="{{ url_for('main.delete_user', user_id=user.userId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
                         </form>
@@ -62,7 +61,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center">Nenhum empréstimo encontrado.</td>
+                    <td colspan="5" class="text-center">Nenhum usuário encontrado.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -71,15 +70,15 @@
 
     <!-- Pagination -->
     <div class="mt-3">
-        {{ render_pagination(loans, search=search_term, per_page=per_page) }}
+        {{ render_pagination(users, search=search_term, per_page=per_page) }}
     </div>
 
-    <!-- Loan Modal -->
-    <div class="modal fade" id="loanModal" tabindex="-1" aria-labelledby="loanModalLabel" aria-hidden="true">
+    <!-- User Modal -->
+    <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="loanModalLabel">Carregando...</h5>
+                    <h5 class="modal-title" id="userModalLabel">Carregando...</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -87,7 +86,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="saveLoanBtn">Salvar</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">Salvar</button>
                 </div>
             </div>
         </div>
@@ -98,33 +97,36 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const loanModal = document.getElementById('loanModal');
-    const saveLoanBtn = document.getElementById('saveLoanBtn');
+    const userModal = document.getElementById('userModal');
+    const saveUserBtn = document.getElementById('saveUserBtn');
 
-    loanModal.addEventListener('show.bs.modal', function (event) {
+    userModal.addEventListener('show.bs.modal', function (event) {
         const trigger = event.relatedTarget;
-        const loanId = trigger.getAttribute('data-loan-id');
-        const modalTitle = loanModal.querySelector('.modal-title');
-        const modalBody = loanModal.querySelector('.modal-body');
+        // For table rows, the trigger is the <tr> itself. For the "New User" button, it's the button.
+        const userId = trigger.getAttribute('data-user-id');
+        const modalTitle = userModal.querySelector('.modal-title');
+        const modalBody = userModal.querySelector('.modal-body');
         
+        // Reset modal
         modalTitle.textContent = 'Carregando...';
         modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
-        const formUrl = loanId ? `/emprestimos/form/${loanId}` : '/emprestimos/form';
+        const formUrl = userId ? `/users/form/${userId}` : '/users/form';
 
         fetch(formUrl)
             .then(response => response.text())
             .then(html => {
-                modalTitle.textContent = loanId ? 'Editar Empréstimo' : 'Novo Empréstimo';
+                modalTitle.textContent = userId ? 'Editar Usuário' : 'Novo Usuário';
                 modalBody.innerHTML = html;
             })
             .catch(err => {
                 modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
+                console.error('Fetch Error:', err);
             });
     });
 
-    saveLoanBtn.addEventListener('click', function() {
-        const form = document.getElementById('loanModalForm');
+    saveUserBtn.addEventListener('click', function() {
+        const form = document.getElementById('userModalForm');
         if (form) {
             const formData = new FormData(form);
             const actionUrl = form.getAttribute('action');
@@ -132,16 +134,21 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(actionUrl, {
                 method: 'POST',
                 body: formData,
+                headers: {
+                    'X-CSRF-Token': formData.get('csrf_token') // For frameworks that need it
+                }
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     window.location.reload();
                 } else {
+                    // Handle errors - for now, just an alert
                     alert('Erro de validação: ' + JSON.stringify(data.errors));
                 }
             })
             .catch(err => {
+                console.error('Submit Error:', err);
                 alert('Ocorreu um erro ao salvar.');
             });
         }

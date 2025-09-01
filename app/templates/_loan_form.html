@@ -1,0 +1,27 @@
+<form id="loanModalForm" action="{{ url_for('main.novo_emprestimo') if not loan_id else url_for('main.editar_emprestimo', loan_id=loan_id) }}" method="POST">
+    {{ form.hidden_tag() }}
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            {{ form.userId.label(class="form-label") }}
+            {{ form.userId(class="form-control", type="number") }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form.bookId.label(class="form-label") }}
+            {{ form.bookId(class="form-control", type="number") }}
+        </div>
+    </div>
+    <div class="mb-3">
+        {{ form.amount.label(class="form-label") }}
+        {{ form.amount(class="form-control", type="number") }}
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            {{ form.loanDate.label(class="form-label") }}
+            {{ form.loanDate(class="form-control", type="date") }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form.returnDate.label(class="form-label") }}
+            {{ form.returnDate(class="form-control", type="date") }}
+        </div>
+    </div>
+</form>

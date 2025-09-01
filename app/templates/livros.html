@@ -1,112 +1,149 @@
-{% extends 'base.html' %}
-{% block cssstyle %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/searchPages.css') }}">
+{% extends 'main/base.html' %}
+{% from 'bootstrap5/pagination.html' import render_pagination %}
+
+{% block title %}Gerenciar Livros{% endblock %}
+
+{% block head_links %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}">
 {% endblock %}
-{% block pagetitle %}Livros{% endblock %}
+
 {% block content %}
-<div class="content">
-  <div class="container form">
-    <form class="searchBooksForm" method="post" action="">
-      {{ form.hidden_tag() }}
-      <div class="form-group">
-        {{ form.bookId.label(class="form-label") }}
-        {{ form.bookId(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.bookName.label(class="form-label") }}
-        {{ form.bookName(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.authorName.label(class="form-label") }}
-        {{ form.authorName(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.publisherName.label(class="form-label") }}
-        {{ form.publisherName(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.publishedDate.label(class="form-label") }}
-        {{ form.publishedDate(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.acquisitionDate.label(class="form-label") }}
-        {{ form.acquisitionDate(class="form-control", size=32) }}
-      </div>
-      <div class="form-group">
-        {{ form.keywords.label(class="form-label") }}
-        {{ form.keywords(class="form-control", size=32) }}
-      </div>
-      <div class="form-group submit">
-        {{ form.submit(class="btn btn-primary", type="submit") }}
-      </div>
-    </form>
-  </div>
-  <div class="tables table-responsive-sm">
-    <table class="table bookTable table-bordered table-sm table-striped">
-      <thead class="head mainHead thead-light">
-        <tr>
-          <th scope="col">ID</th>
-          <th scope="col">Nome</th>
-          <th scope="col">Disponíveis</th>
-          <th scope="col">Autor</th>
-          <th scope="col">Editora</th>
-          <th scope="col">Publicação</th>
-          <th scope="col">Aquisição</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for livro, quantidadeDisponivel in livros %}
-        <tr>
-          <td>{{ livro.bookId }}</td>
-          <td>{{ livro.bookName }}</td>
-          <td>{{ quantidadeDisponivel }} de {{ livro.amount }}</td>
-          <td>{{ livro.authorName }}</td>
-          <td>{{ livro.publisherName }}</td>
-          <td>{{ livro.publishedDate }}</td>
-          <td>{{ livro.acquisitionDate }}</td>
-        </tr>
-        <tr>
-          <td colspan="7">
-            <button class="toggleSeeMore book-{{ livro.bookId }} btn btn-outline-info" onclick="toggleSeeMore(this)">ver
-              mais</button>
-          </td>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }} table-active" style="display: none;">
-          <th colspan="7" scope="col">Descrição</th>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
-          <td colspan="7">{{ livro.description }}</td>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
-          <th class="table-active" colspan="7" scope="col">Palavras Chave</th>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
-          <td class="keywordsTd" colspan="7">
-            <ul>
-              {% for kword in livro.keywords %}
-              <li>{{ kword.word }}</li>
-              {% endfor %}
-            </ul>
-          </td>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
-          <td colspan="7">Criado em: {{ livro.creationDate }}</td>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
-          <td colspan="7">Última modificação: {{ livro.lastUpdate }}</td>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
-          <td colspan="7">Última modificação: {{ livro.lastUpdate }}</td>
-        </tr>
-        <tr class="seeMore book-{{ livro.bookId }}" style="display: none;">
-          <td colspan="7">Criado por: {{ livro.createdBy }}:{{ livro.createdBy.username }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+<div class="container py-4">
+    <header class="management-header">
+        <h1 class="h3">Gerenciar Livros</h1>
+        <form class="search-form" method="GET" action="{{ url_for('main.livros') }}">
+            <input type="text" name="search" class="form-control" placeholder="Buscar por título ou autor..." value="{{ search_term or '' }}">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
+    </header>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="">
+            <i class="fas fa-plus"></i> Novo Livro
+        </button>
+        
+        <form method="GET" action="{{ url_for('main.livros') }}" class="d-flex align-items-center">
+            <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
+            <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Autor</th>
+                    <th>Editora</th>
+                    <th>Quantidade</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for book in books.items %}
+                <tr data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
+                    <td>{{ book.bookName }}</td>
+                    <td>{{ book.authorName or 'N/A' }}</td>
+                    <td>{{ book.publisherName or 'N/A' }}</td>
+                    <td>{{ book.amount }}</td>
+                    <td>
+                        <form action="{{ url_for('main.excluir_livro', id=book.bookId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este livro?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center">Nenhum livro encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-3">
+        {{ render_pagination(books, search=search_term, per_page=per_page) }}
+    </div>
+
+    <!-- Book Modal -->
+    <div class="modal fade" id="bookModal" tabindex="-1" aria-labelledby="bookModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookModalLabel">Carregando...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveBookBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="pagination-container">
-  {{ pagination.links }}
-</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bookModal = document.getElementById('bookModal');
+    const saveBookBtn = document.getElementById('saveBookBtn');
+
+    bookModal.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        const bookId = trigger.getAttribute('data-book-id');
+        const modalTitle = bookModal.querySelector('.modal-title');
+        const modalBody = bookModal.querySelector('.modal-body');
+        
+        modalTitle.textContent = 'Carregando...';
+        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        const formUrl = bookId ? `/livros/form/${bookId}` : '/livros/form';
+
+        fetch(formUrl)
+            .then(response => response.text())
+            .then(html => {
+                modalTitle.textContent = bookId ? 'Editar Livro' : 'Novo Livro';
+                modalBody.innerHTML = html;
+            })
+            .catch(err => {
+                modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
+            });
+    });
+
+    saveBookBtn.addEventListener('click', function() {
+        const form = document.getElementById('bookModalForm');
+        if (form) {
+            const formData = new FormData(form);
+            const actionUrl = form.getAttribute('action');
+
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Erro de validação: ' + JSON.stringify(data.errors));
+                }
+            })
+            .catch(err => {
+                alert('Ocorreu um erro ao salvar.');
+            });
+        }
+    });
+});
+</script>
 {% endblock %}

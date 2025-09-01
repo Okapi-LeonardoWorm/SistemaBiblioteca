@@ -1,1 +1,143 @@
-Palavras chave
+{% extends 'main/base.html' %}
+{% from 'bootstrap5/pagination.html' import render_pagination %}
+
+{% block title %}Gerenciar Tags{% endblock %}
+
+{% block head_links %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <header class="management-header">
+        <h1 class="h3">Gerenciar Tags (Palavras-chave)</h1>
+        <form class="search-form" method="GET" action="{{ url_for('main.palavras_chave') }}">
+            <input type="text" name="search" class="form-control" placeholder="Buscar por tag..." value="{{ search_term or '' }}">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
+    </header>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#keywordModal" data-keyword-id="">
+            <i class="fas fa-plus"></i> Nova Tag
+        </button>
+        
+        <form method="GET" action="{{ url_for('main.palavras_chave') }}" class="d-flex align-items-center">
+            <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
+            <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Palavra-chave</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for keyword in keywords.items %}
+                <tr data-bs-toggle="modal" data-bs-target="#keywordModal" data-keyword-id="{{ keyword.wordId }}">
+                    <td>{{ keyword.word }}</td>
+                    <td>
+                        <form action="{{ url_for('main.excluir_palavra_chave', id=keyword.wordId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir esta tag?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="text-center">Nenhuma tag encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="mt-3">
+        {{ render_pagination(keywords, search=search_term, per_page=per_page) }}
+    </div>
+
+    <!-- Keyword Modal -->
+    <div class="modal fade" id="keywordModal" tabindex="-1" aria-labelledby="keywordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="keywordModalLabel">Carregando...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveKeywordBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const keywordModal = document.getElementById('keywordModal');
+    const saveKeywordBtn = document.getElementById('saveKeywordBtn');
+
+    keywordModal.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        const keywordId = trigger.getAttribute('data-keyword-id');
+        const modalTitle = keywordModal.querySelector('.modal-title');
+        const modalBody = keywordModal.querySelector('.modal-body');
+        
+        modalTitle.textContent = 'Carregando...';
+        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        const formUrl = keywordId ? `/palavras_chave/form/${keywordId}` : '/palavras_chave/form';
+
+        fetch(formUrl)
+            .then(response => response.text())
+            .then(html => {
+                modalTitle.textContent = keywordId ? 'Editar Tag' : 'Nova Tag';
+                modalBody.innerHTML = html;
+            })
+            .catch(err => {
+                modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
+            });
+    });
+
+    saveKeywordBtn.addEventListener('click', function() {
+        const form = document.getElementById('keywordModalForm');
+        if (form) {
+            const formData = new FormData(form);
+            const actionUrl = form.getAttribute('action');
+
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Erro de validação: ' + JSON.stringify(data.errors));
+                }
+            })
+            .catch(err => {
+                alert('Ocorreu um erro ao salvar.');
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,59 @@
+<form id="userModalForm" action="{{ url_for('main.new_user') if not user_id else url_for('main.edit_user', user_id=user_id) }}" method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-3">
+        {{ form.username.label(class="form-label") }}
+        {{ form.username(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.password.label(class="form-label") }}
+        {{ form.password(class="form-control", placeholder="Deixe em branco para não alterar") }}
+    </div>
+    <div class="mb-3">
+        {{ form.userType.label(class="form-label") }}
+        {{ form.userType(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.userPhone.label(class="form-label") }}
+        {{ form.userPhone(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.birthDate.label(class="form-label") }}
+        {{ form.birthDate(class="form-control", type="date") }}
+    </div>
+    <div class="mb-3">
+        {{ form.cpf.label(class="form-label") }}
+        {{ form.cpf(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.rg.label(class="form-label") }}
+        {{ form.rg(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.gradeNumber.label(class="form-label") }}
+        {{ form.gradeNumber(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.className.label(class="form-label") }}
+        {{ form.className(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.guardianName1.label(class="form-label") }}
+        {{ form.guardianName1(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.guardianPhone1.label(class="form-label") }}
+        {{ form.guardianPhone1(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.guardianName2.label(class="form-label") }}
+        {{ form.guardianName2(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.guardianPhone2.label(class="form-label") }}
+        {{ form.guardianPhone2(class="form-control") }}
+    </div>
+    <div class="mb-3">
+        {{ form.notes.label(class="form-label") }}
+        {{ form.notes(class="form-control") }}
+    </div>
+</form>
