@@ -1,5 +1,7 @@
 from flask_login import UserMixin
 from sqlalchemy import Enum 
+from sqlalchemy.orm import validates
+from datetime import date, datetime
 import enum
 
 from app import db
@@ -13,10 +15,10 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(80), nullable=False)
     userType = db.Column(db.String(80), nullable=False)
     # Time format: dd/mm/yyyy|hh:mm:ss
-    creationDate = db.Column(db.Date, nullable=False)
-    lastUpdate = db.Column(db.Date, nullable=False)
-    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
-    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    creationDate = db.Column(db.Date, nullable=False, default=date.today)
+    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
 
     # Novos campos para unificar com Alunos
     userPhone = db.Column(db.String, nullable=True)
@@ -34,6 +36,18 @@ class User(db.Model, UserMixin):
     def get_id(self):
         return self.userId
 
+    @validates('birthDate', 'creationDate', 'lastUpdate')
+    def _convert_dates(self, key, value):
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, '%Y-%m-%d').date()
+            except ValueError:
+                # Tenta outros formatos se necessário, mas mantém valor se falhar
+                return value
+        if isinstance(value, datetime):
+            return value.date()
+        return value
+
 
 
 class Book(db.Model):
@@ -47,13 +61,24 @@ class Book(db.Model):
     publishedDate = db.Column(db.Date, nullable=True)
     acquisitionDate = db.Column(db.Date, nullable=True)
     description = db.Column(db.Text, nullable=True)
-    creationDate = db.Column(db.Date, nullable=False)
-    lastUpdate = db.Column(db.Date, nullable=False)
+    creationDate = db.Column(db.Date, nullable=False, default=date.today)
+    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     
     # Relacionamento com keywords
     keywords = db.relationship('KeyWord', secondary='KeyWordBooks', backref='books')
+
+    @validates('publishedDate', 'acquisitionDate', 'creationDate', 'lastUpdate')
+    def _convert_dates(self, key, value):
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, '%Y-%m-%d').date()
+            except ValueError:
+                return value
+        if isinstance(value, datetime):
+            return value.date()
+        return value
 
 
 
@@ -62,8 +87,8 @@ class KeyWord(db.Model):
 
     wordId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     word = db.Column(db.String, unique=True, nullable=False)
-    creationDate = db.Column(db.Date, nullable=False)
-    lastUpdate = db.Column(db.Date, nullable=False)
+    creationDate = db.Column(db.Date, nullable=False, default=date.today)
+    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
 
@@ -86,8 +111,8 @@ class Loan(db.Model):
     returnDate = db.Column(db.Date, nullable=False)
     userId = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False) # Alterado para userId
     bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), nullable=False)
-    creationDate = db.Column(db.Date, nullable=False)
-    lastUpdate = db.Column(db.Date, nullable=False)
+    creationDate = db.Column(db.Date, nullable=False, default=date.today)
+    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     status = db.Column(Enum(StatusLoan), nullable=False)
@@ -96,6 +121,17 @@ class Loan(db.Model):
     created_user = db.relationship('User', foreign_keys=[createdBy], backref=db.backref('loans_created', lazy='dynamic'))
     updated_user = db.relationship('User', foreign_keys=[updatedBy], backref=db.backref('loans_updated', lazy='dynamic'))
     book = db.relationship('Book', foreign_keys=[bookId], backref=db.backref('loans', lazy='dynamic'))
+
+    @validates('loanDate', 'returnDate', 'creationDate', 'lastUpdate')
+    def _convert_dates(self, key, value):
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, '%Y-%m-%d').date()
+            except ValueError:
+                return value
+        if isinstance(value, datetime):
+            return value.date()
+        return value
 
 
 class KeyWordBook(db.Model):

@@ -1,29 +1,31 @@
-{% extends 'main/base.html' %}
+{% extends 'base.html' %}
 
-{% block title %}Menu Principal{% endblock %}
+{% block title %}
+  Menu Principal
+{% endblock %}
 
 {% block head_links %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}" />
 {% endblock %}
 
 {% block content %}
-<div class="container menu-container">
+  <div class="container menu-container">
     <h1 class="menu-title">Olá, {{ current_user.username }}! O que você gostaria de fazer?</h1>
 
     <div class="menu-grid">
-        <a href="{{ url_for('main.livros') }}" class="menu-button">
-            <i class="fas fa-book"></i>
-            <span>Buscar Livros</span>
-        </a>
-        <a href="#" class="menu-button">
-            <i class="fas fa-history"></i>
-            <span>Meus Empréstimos</span>
-        </a>
-        <a href="#" class="menu-button">
-            <i class="fas fa-user-circle"></i>
-            <span>Minha Conta</span>
-        </a>
-        <!-- Adicione mais botões conforme necessário -->
+      <a href="{{ url_for('main.livros') }}" class="menu-button">
+        <i class="fas fa-book"></i>
+        <span>Buscar Livros</span>
+      </a>
+      <a href="#" class="menu-button">
+        <i class="fas fa-history"></i>
+        <span>Meus Empréstimos</span>
+      </a>
+      <a href="#" class="menu-button">
+        <i class="fas fa-user-circle"></i>
+        <span>Minha Conta</span>
+      </a>
+      <!-- Adicione mais botões conforme necessário -->
     </div>
-</div>
+  </div>
 {% endblock %}
