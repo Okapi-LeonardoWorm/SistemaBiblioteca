@@ -1,22 +1,29 @@
-{% extends 'base.html' %}
-{% block pagetitle %}Menu{% endblock %}
+{% extends 'main/base.html' %}
+
+{% block title %}Menu Principal{% endblock %}
+
+{% block head_links %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/menu.css') }}">
+{% endblock %}
+
 {% block content %}
-    <div class="container">
-        <div class="row">
-            <h1 class="col-lg-6 menuTitle">Menu</h1>
-        </div>
-        <div class="row menuOptions">
-            <a href="{{ url_for('login') }}" class="col-sm btn btn-primary">login</a>
-            <a href="{{ url_for('register') }}" class="col-sm btn btn-primary">Registrar novo usuário</a>
-            <a href="{{ url_for('alunos') }}" class="col-sm btn btn-primary">Alunos</a>
-            <a href="{{ url_for('livros') }}" class="col-sm btn btn-primary">Livros</a>
-            <a href="{{ url_for('palavras_chave') }}" class="col-sm btn btn-primary">palavras_chave</a>
-            <a href="{{ url_for('emprestimos') }}" class="col-sm btn btn-primary">Emprestimos</a>
-            <a href="{{ url_for('novo_livro') }}" class="col-sm btn btn-primary">novo_livro</a>
-            <a href="{{ url_for('novo_aluno') }}" class="col-sm btn btn-primary">novo_aluno</a>
-            <a href="{{ url_for('novo_emprestimo') }}" class="col-sm btn btn-primary">novo_emprestimo</a>
-            <a href="{{ url_for('nova_palavra_chave') }}" class="col-sm btn btn-primary">nova_palavra_chave</a>
-            <a href="{{ url_for('logout') }}" class="col-sm btn btn-primary">logout</a>
-        </div>
+<div class="container menu-container">
+    <h1 class="menu-title">Olá, {{ current_user.username }}! O que você gostaria de fazer?</h1>
+
+    <div class="menu-grid">
+        <a href="{{ url_for('main.livros') }}" class="menu-button">
+            <i class="fas fa-book"></i>
+            <span>Buscar Livros</span>
+        </a>
+        <a href="#" class="menu-button">
+            <i class="fas fa-history"></i>
+            <span>Meus Empréstimos</span>
+        </a>
+        <a href="#" class="menu-button">
+            <i class="fas fa-user-circle"></i>
+            <span>Minha Conta</span>
+        </a>
+        <!-- Adicione mais botões conforme necessário -->
     </div>
+</div>
 {% endblock %}

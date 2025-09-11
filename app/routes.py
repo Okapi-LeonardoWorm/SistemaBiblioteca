@@ -1,6 +1,6 @@
 from datetime import date
 from flask import flash, redirect, render_template, request, session, url_for, jsonify
-from flask_login import current_user, login_required, login_user, logout_user
+from flask_login import current_user, login_required, login_user, logout_user, AnonymousUserMixin
 from flask_paginate import Pagination, get_page_parameter
 from sqlalchemy import func, or_
 from flask import Blueprint
@@ -124,6 +124,58 @@ def login():
         else:
             flash('Usuário ou senha inválidos', 'danger')
     return render_template('login.html', form=form)
+
+
+@bp.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RegisterForm()
+    
+    # Dynamically set choices for userType
+    if isinstance(current_user, AnonymousUserMixin) or not current_user.is_authenticated:
+        # Not logged in
+        form.userType.choices = [('student', 'Estudante'), ('visitor', 'Visitante')]
+    elif current_user.userType == 'admin':
+        # Logged in as admin
+        form.userType.choices = [('student', 'Estudante'), ('visitor', 'Visitante'), ('staff', 'Funcionário'), ('admin', 'Administrador')]
+    else:
+        # Logged in as non-admin (e.g., staff)
+        form.userType.choices = [('student', 'Estudante'), ('visitor', 'Visitante'), ('staff', 'Funcionário')]
+
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        
+        # Determine createdBy and updatedBy
+        creator_id = 1  # Default to system admin or a predefined ID
+        if current_user.is_authenticated:
+            creator_id = current_user.userId
+
+        new_user = User(
+            username=form.username.data.strip().lower(),
+            password=hashed_password,
+            userType=form.userType.data,
+            userPhone=form.userPhone.data,
+            birthDate=form.birthDate.data,
+            cpf=form.cpf.data,
+            rg=form.rg.data,
+            gradeNumber=form.gradeNumber.data,
+            className=form.className.data,
+            guardianName1=form.guardianName1.data,
+            guardianPhone1=form.guardianPhone1.data,
+            guardianName2=form.guardianName2.data,
+            guardianPhone2=form.guardianPhone2.data,
+            notes=form.notes.data,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+            createdBy=creator_id,
+            updatedBy=creator_id
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Usuário registrado com sucesso!', 'success')
+        return redirect(url_for('main.login'))
+
+    return render_template('main/register.html', form=form)
 
 
 # Book Management Routes

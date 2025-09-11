@@ -17,26 +17,28 @@ class LoginForm(FlaskForm):
 
     submit = SubmitField("Login")
 
-    # def validate_username(self, username):
-    #     existing_user_username = User.query.filter_by(
-    #         username=username.data).first()
-    #     if not existing_user_username:
-    #         raise ValidationError("Username does not exist!")
-
-
 class RegisterForm(FlaskForm):
-    username = StringField(validators=[InputRequired(), Length(min=3, max=20), Regexp(
-        "^[a-z]+$", message="Username must contain only lowercase letters")], render_kw={"placeholder": "Username"})
-    password = PasswordField(validators=[InputRequired(), Length(
-        min=4, max=20)], render_kw={"placeholder": "Password"})
-    submit = SubmitField("Register")
+    username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=3, max=20)])
+    password = PasswordField('Senha', validators=[DataRequired(), Length(min=4, max=80)])
+    userType = SelectField('Tipo de Cadastro', validators=[DataRequired()])
+    userPhone = StringField('Telefone', validators=[Optional()])
+    birthDate = DateField('Data de Nascimento', format='%Y-%m-%d', validators=[DataRequired()])
+    cpf = StringField('CPF', validators=[Optional()])
+    rg = StringField('RG', validators=[Optional()])
+    # Student specific
+    gradeNumber = IntegerField('Série/Ano', validators=[Optional()])
+    className = StringField('Turma', validators=[Optional()])
+    guardianName1 = StringField('Nome do Responsável 1', validators=[Optional()])
+    guardianPhone1 = StringField('Telefone do Responsável 1', validators=[Optional()])
+    guardianName2 = StringField('Nome do Responsável 2', validators=[Optional()])
+    guardianPhone2 = StringField('Telefone do Responsável 2', validators=[Optional()])
+    notes = TextAreaField('Observações', validators=[Optional()])
+    submit = SubmitField("Registrar")
 
     def validate_username(self, username):
-        existing_user_username = User.query.filter_by(
-            username=username.data).first()
+        existing_user_username = User.query.filter_by(username=username.data).first()
         if existing_user_username:
-            raise ValidationError(
-                "Username already exists! Please try another one.")
+            raise ValidationError('Este nome de usuário já está em uso. Por favor, escolha outro.')
 
 
 class BookForm(FlaskForm):
@@ -51,30 +53,6 @@ class BookForm(FlaskForm):
                                 format='%Y-%m-%d', validators=[Optional()])
     description = TextAreaField('Descrição', validators=[Optional()])
     keyWords = StringField('Palavras-chave', validators=[Optional()])
-    submit = SubmitField('Cadastrar')
-
-
-class StudentForm(FlaskForm):
-    studentName = StringField('Nome do Aluno', validators=[DataRequired()])
-    studentPhone = StringField('Telefone do Aluno', validators=[Optional(), Length(
-        max=12), Regexp(r'^d+$', message="Telefone deve conter apenas números")])
-    birthDate = DateField('Data de Nascimento',
-                          format='%Y-%m-%d', validators=[DataRequired()])
-    cpf = StringField('CPF', validators=[Optional(), Length(
-        min=11, max=11), Regexp(r'^d+$', message="CPF deve conter apenas números")])
-    rg = StringField('RG', validators=[Optional(), Length(min=9, max=10), Regexp(
-        r'^d+$', message="RG deve conter apenas números")])
-    gradeNumber = StringField('Série', validators=[DataRequired()])
-    className = StringField('Turma', validators=[Optional()])
-    guardianName1 = StringField(
-        'Nome do Responsável 1', validators=[Optional()])
-    guardianPhone1 = StringField(
-        'Telefone do Responsável 1', validators=[Optional()])
-    guardianName2 = StringField(
-        'Nome do Responsável 2', validators=[Optional()])
-    guardianPhone2 = StringField(
-        'Telefone do Responsável 2', validators=[Optional()])
-    notes = TextAreaField('Observação', validators=[Optional()])
     submit = SubmitField('Cadastrar')
 
 
@@ -143,15 +121,15 @@ class UserForm(FlaskForm):
     username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=3, max=20)])
     password = PasswordField('Senha', validators=[DataRequired(), Length(min=4, max=80)])
     userType = StringField('Tipo de Usuário', validators=[DataRequired(), Length(max=80)])
-    creationDate = DateField('Data de Criação', format='%Y-%m-%d', validators=[DataRequired()])
-    lastUpdate = DateField('Última Atualização', format='%Y-%m-%d', validators=[DataRequired()])
-    createdBy = IntegerField('Criado Por', validators=[DataRequired()])
-    updatedBy = IntegerField('Atualizado Por', validators=[DataRequired()])
+    creationDate = DateField('Data de Criação', format='%Y-%m-%d', validators=[Optional()])
+    lastUpdate = DateField('Última Atualização', format='%Y-%m-%d', validators=[Optional()])
+    createdBy = IntegerField('Criado Por', validators=[Optional()])
+    updatedBy = IntegerField('Atualizado Por', validators=[Optional()])
     userPhone = StringField('Telefone do Usuário', validators=[Optional()])
-    birthDate = DateField('Data de Nascimento', format='%Y-%m-%d', validators=[DataRequired()])
+    birthDate = DateField('Data de Nascimento', format='%Y-%m-%d', validators=[Optional()])
     cpf = StringField('CPF', validators=[Optional()])
     rg = StringField('RG', validators=[Optional()])
-    gradeNumber = IntegerField('Número da Série', validators=[DataRequired()])
+    gradeNumber = IntegerField('Número da Série', validators=[Optional()])
     className = StringField('Nome da Turma', validators=[Optional()])
     guardianName1 = StringField('Nome do Responsável 1', validators=[Optional()])
     guardianPhone1 = StringField('Telefone do Responsável 1', validators=[Optional()])
@@ -161,6 +139,10 @@ class UserForm(FlaskForm):
     submit = SubmitField('Salvar Usuário')
 
     def validate_username(self, username):
+        # On edit, this check is not necessary
+        if self.createdBy.data:
+            return
+        
         existing_user_username = User.query.filter_by(username=username.data).first()
         if existing_user_username:
             raise ValidationError('Nome de usuário já existe. Por favor, escolha um nome diferente.')
