@@ -24,7 +24,7 @@ class TestAuth(BaseTestCase):
         """Test that the login page loads correctly."""
         response = self.client.get(url_for('main.login'))
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Login', response.data)
+        self.assertIn('Login', response.get_data(as_text=True))
 
     def test_successful_login(self):
         """Test that a user can log in successfully."""
@@ -33,7 +33,7 @@ class TestAuth(BaseTestCase):
             'password': 'testpassword'
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Olá, testuser!', response.data) # Check for welcome message on menu
+        self.assertIn('Olá, testuser!', response.get_data(as_text=True))
 
     def test_failed_login_wrong_password(self):
         """Test that login fails with an incorrect password."""
@@ -42,7 +42,7 @@ class TestAuth(BaseTestCase):
             'password': 'wrongpassword'
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Usuário ou senha inválidos', response.data)
+        self.assertIn('Usuário ou senha inválidos', response.get_data(as_text=True))
 
     def test_failed_login_wrong_username(self):
         """Test that login fails with a non-existent username."""
@@ -51,7 +51,7 @@ class TestAuth(BaseTestCase):
             'password': 'testpassword'
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Usuário ou senha inválidos', response.data)
+        self.assertIn('Usuário ou senha inválidos', response.get_data(as_text=True))
 
     def test_logout(self):
         """Test that a user can log out."""
@@ -64,10 +64,10 @@ class TestAuth(BaseTestCase):
         # Then, log out
         response = self.client.get(url_for('main.logout'), follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Login', response.data) # Should be redirected to the login page
+        self.assertIn('Login', response.get_data(as_text=True))
 
     def test_access_protected_route_without_login(self):
         """Test that protected routes redirect to login when not authenticated."""
         response = self.client.get(url_for('main.dashboard'), follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Login', response.data)
+        self.assertIn('Login', response.get_data(as_text=True))

@@ -25,13 +25,11 @@ class TestCreationRoutes(BaseTestCase):
             'publishedDate': '2024-01-01',
             'acquisitionDate': '2024-01-01',
             'keyWords': 'test; python; flask'
-        }, follow_redirects=True)
+        })
         
-        # Check if the response is a success JSON
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json['success'])
 
-        # Check if the book was actually created in the database
         book = Book.query.filter_by(bookName='New Test Book').first()
         self.assertIsNotNone(book)
         self.assertEqual(book.amount, 10)
@@ -46,7 +44,7 @@ class TestCreationRoutes(BaseTestCase):
             'birthDate': '1995-05-05'
         }, follow_redirects=True)
         self.assertEqual(response_staff.status_code, 200)
-        self.assertIn(b'Usuário registrado com sucesso!', response_staff.data)
+        self.assertIn('Usuário registrado com sucesso!', response_staff.get_data(as_text=True))
         staff_user = User.query.filter_by(username='staffuser').first()
         self.assertIsNotNone(staff_user)
         self.assertEqual(staff_user.userType, 'staff')
@@ -59,15 +57,14 @@ class TestCreationRoutes(BaseTestCase):
             'birthDate': '1990-01-01'
         }, follow_redirects=True)
         self.assertEqual(response_admin.status_code, 200)
-        self.assertIn(b'Usuário registrado com sucesso!', response_admin.data)
+        self.assertIn('Usuário registrado com sucesso!', response_admin.get_data(as_text=True))
         new_admin_user = User.query.filter_by(username='newadmin').first()
         self.assertIsNotNone(new_admin_user)
         self.assertEqual(new_admin_user.userType, 'admin')
 
     def test_create_loan(self):
         """Test loan creation via the /emprestimos/new endpoint."""
-        # First, create a student and a book to be loaned
-        student = User(username='teststudent', password='password', userType='student', birthDate=date(2005, 5, 5))
+        student = User(username='teststudent', password='password', userType='student', birthDate=date(2005, 5, 5), createdBy=self.admin_user.userId, updatedBy=self.admin_user.userId)
         book = Book(bookName='Loanable Book', amount=1, createdBy=self.admin_user.userId, updatedBy=self.admin_user.userId, creationDate=date.today(), lastUpdate=date.today())
         db.session.add_all([student, book])
         db.session.commit()
@@ -78,12 +75,11 @@ class TestCreationRoutes(BaseTestCase):
             'amount': 1,
             'loanDate': date.today().strftime('%Y-%m-%d'),
             'returnDate': (date.today() + timedelta(days=7)).strftime('%Y-%m-%d')
-        }, follow_redirects=True)
+        })
         
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json['success'])
 
-        # Check if the loan was created in the database
         loan = Loan.query.filter_by(userId=student.userId, bookId=book.bookId).first()
         self.assertIsNotNone(loan)
         self.assertEqual(loan.status, StatusLoan.ACTIVE)

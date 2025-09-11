@@ -1,5 +1,5 @@
 import unittest
-from app import create_app, db
+from app import createApp, db
 from app.models import User, Book, Loan, KeyWord, StatusLoan
 
 class BaseTestCase(unittest.TestCase):
@@ -8,7 +8,7 @@ class BaseTestCase(unittest.TestCase):
         Called before each test. Sets up a test client, a test database,
         and the application context.
         """
-        self.app = create_app(config_name="testing")
+        self.app = createApp(config_name="testing")
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
         self.app_context.push()
