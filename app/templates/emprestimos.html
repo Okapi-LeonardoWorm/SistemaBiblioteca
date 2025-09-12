@@ -128,6 +128,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (form) {
             const formData = new FormData(form);
             const actionUrl = form.getAttribute('action');
+            // valida seleção via autocomplete
+            const uid = form.querySelector('#selectedUserId');
+            const bid = form.querySelector('#selectedBookId');
+            if (uid && !uid.value) {
+                alert('Selecione um usuário válido.');
+                return;
+            }
+            if (bid && !bid.value) {
+                alert('Selecione um livro válido.');
+                return;
+            }
 
             fetch(actionUrl, {
                 method: 'POST',

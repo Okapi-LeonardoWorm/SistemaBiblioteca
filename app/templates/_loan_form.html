@@ -2,12 +2,31 @@
     {{ form.hidden_tag() }}
     <div class="row">
         <div class="col-md-6 mb-3">
-            {{ form.userId.label(class="form-label") }}
-            {{ form.userId(class="form-control", type="number") }}
+            <label class="form-label">Usuário (buscar por nome ou código)</label>
+            <input type="text" id="userSearch" class="form-control" placeholder="Digite ao menos 2 letras" autocomplete="off">
+            {{ form.userId(type="hidden", id="selectedUserId") }}
+            <div id="userSuggestions" class="list-group mt-1"></div>
+            <div id="selectedUserInfo" class="small text-muted mt-2" style="display:none">
+                <div><strong>Código:</strong> <span data-field="identificationCode"></span></div>
+                <div><strong>Nome:</strong> <span data-field="name"></span></div>
+                <div><strong>Idade:</strong> <span data-field="age"></span></div>
+                <div><strong>Data Nasc.:</strong> <span data-field="birthDate"></span></div>
+                <div><strong>Série/Turma:</strong> <span data-field="gradeNumber"></span> / <span data-field="className"></span></div>
+                <div><strong>CPF/RG:</strong> <span data-field="cpf"></span> / <span data-field="rg"></span></div>
+            </div>
         </div>
         <div class="col-md-6 mb-3">
-            {{ form.bookId.label(class="form-label") }}
-            {{ form.bookId(class="form-control", type="number") }}
+            <label class="form-label">Livro (buscar por nome/autor/editora)</label>
+            <input type="text" id="bookSearch" class="form-control" placeholder="Digite ao menos 2 letras" autocomplete="off">
+            {{ form.bookId(type="hidden", id="selectedBookId") }}
+            <div id="bookSuggestions" class="list-group mt-1"></div>
+            <div id="selectedBookInfo" class="small text-muted mt-2" style="display:none">
+                <div><strong>Nome:</strong> <span data-field="bookName"></span></div>
+                <div><strong>Autor/Editora:</strong> <span data-field="authorName"></span> / <span data-field="publisherName"></span></div>
+                <div><strong>Publicado:</strong> <span data-field="publishedDate"></span></div>
+                <div><strong>Disponíveis no período:</strong> <span data-field="available"></span> / <span data-field="amount"></span></div>
+                <div><strong>Palavras-chave:</strong> <span data-field="keywords"></span></div>
+            </div>
         </div>
     </div>
     <div class="mb-3">
@@ -24,4 +43,83 @@
             {{ form.returnDate(class="form-control", type="date") }}
         </div>
     </div>
+        <div class="alert alert-danger d-none" id="loanFormError"></div>
 </form>
+<script>
+(function() {
+    const userSearch = document.getElementById('userSearch');
+    const userSug = document.getElementById('userSuggestions');
+    const userInfo = document.getElementById('selectedUserInfo');
+    const hiddenUserId = document.getElementById('selectedUserId');
+
+    const bookSearch = document.getElementById('bookSearch');
+    const bookSug = document.getElementById('bookSuggestions');
+    const bookInfo = document.getElementById('selectedBookInfo');
+    const hiddenBookId = document.getElementById('selectedBookId');
+
+    const loanDate = document.getElementById('loanDate') || document.querySelector('input[name="loanDate"]');
+    const returnDate = document.getElementById('returnDate') || document.querySelector('input[name="returnDate"]');
+    const errBox = document.getElementById('loanFormError');
+
+    function setInfo(container, data) {
+        if (!container) return;
+        container.style.display = '';
+        for (const [k, v] of Object.entries(data)) {
+            const el = container.querySelector(`[data-field="${k}"]`);
+            if (el) el.textContent = Array.isArray(v) ? v.join(', ') : (v ?? '');
+        }
+    }
+
+    async function fetchJSON(url) {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('Erro ao buscar dados');
+        return await r.json();
+    }
+
+    async function searchUsers(q) {
+        if (!q || q.length < 2) { userSug.innerHTML = ''; return; }
+        const data = await fetchJSON(`/api/users/search?q=${encodeURIComponent(q)}&limit=8`);
+        userSug.innerHTML = '';
+        (data.results || []).forEach(u => {
+            const a = document.createElement('a');
+            a.href = '#'; a.className = 'list-group-item list-group-item-action';
+            a.textContent = `${u.identificationCode || ''} - ${u.name || ''}`.trim();
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                hiddenUserId.value = u.userId;
+                setInfo(userInfo, u);
+                userSug.innerHTML = '';
+                userSearch.value = `${u.identificationCode || ''} - ${u.name || ''}`.trim();
+            });
+            userSug.appendChild(a);
+        });
+    }
+
+    async function searchBooks(q) {
+        if (!q || q.length < 2) { bookSug.innerHTML = ''; return; }
+        const params = new URLSearchParams({ q, limit: '8' });
+        if (loanDate?.value) params.append('loanDate', loanDate.value);
+        if (returnDate?.value) params.append('returnDate', returnDate.value);
+        const data = await fetchJSON(`/api/books/search?${params.toString()}`);
+        bookSug.innerHTML = '';
+        (data.results || []).forEach(b => {
+            const a = document.createElement('a');
+            a.href = '#'; a.className = 'list-group-item list-group-item-action';
+            a.textContent = `${b.bookName} — ${b.authorName || ''}`.trim();
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                hiddenBookId.value = b.bookId;
+                setInfo(bookInfo, b);
+                bookSug.innerHTML = '';
+                bookSearch.value = `${b.bookName}`;
+            });
+            bookSug.appendChild(a);
+        });
+    }
+
+    userSearch?.addEventListener('input', (e) => searchUsers(e.target.value));
+    bookSearch?.addEventListener('input', (e) => searchBooks(e.target.value));
+    loanDate?.addEventListener('change', () => bookSearch?.value && searchBooks(bookSearch.value));
+    returnDate?.addEventListener('change', () => bookSearch?.value && searchBooks(bookSearch.value));
+})();
+</script>
