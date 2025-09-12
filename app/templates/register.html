@@ -1,188 +1,166 @@
 {% extends 'main/base.html' %}
 
-{% block title %}Registrar Novo Usuário{% endblock %}
+{% block title %}
+  Registrar Novo Usuário
+{% endblock %}
 
 {% block content %}
-<div class="container my-5">
+  <div class="container my-5">
     <div class="row justify-content-center">
-        <div class="col-lg-8 col-md-10">
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <h1 class="card-title text-center mb-4">Registrar Novo Usuário</h1>
-                    <form method="POST" action="{{ url_for('main.register') }}" novalidate>
-                        {{ form.hidden_tag() }}
+      <div class="col-lg-8 col-md-10">
+        <div class="card shadow-sm">
+          <div class="card-body p-4">
+            <h1 class="card-title text-center mb-4">Registrar Novo Usuário</h1>
+            <form method="POST" action="{{ url_for('main.register') }}" novalidate>
+              {{ form.hidden_tag() }}
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.username.label(class="form-label") }}
-                                {{ form.username(class="form-control") }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.password.label(class="form-label") }}
-                                {{ form.password(class="form-control") }}
-                            </div>
-                        </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">{{ form.username.label(class='form-label') }}
+                  {{ form.username(class='form-control') }}</div>
+                <div class="col-md-6 mb-3">{{ form.password.label(class='form-label') }}
+                  {{ form.password(class='form-control') }}</div>
+              </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.userType.label(class="form-label") }}
-                                {{ form.userType(class="form-select") }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.birthDate.label(class="form-label") }}
-                                {{ form.birthDate(class="form-control", type="date") }}
-                            </div>
-                        </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">{{ form.userType.label(class='form-label') }}
+                  {{ form.userType(class='form-select') }}</div>
+                <div class="col-md-6 mb-3">{{ form.birthDate.label(class='form-label') }}
+                  {{ form.birthDate(class='form-control', type='date') }}</div>
+              </div>
 
-                        <div class="mb-3">
-                            {{ form.userPhone.label(class="form-label") }}
-                            {{ form.userPhone(class="form-control", id="regUserPhone", placeholder="(11) 91234-5678", inputmode="numeric") }}
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.cpf.label(class="form-label") }}
-                                {{ form.cpf(class="form-control", id="regCPF", placeholder="000.000.000-00", inputmode="numeric") }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.rg.label(class="form-label") }}
-                                {{ form.rg(class="form-control", id="regRG", placeholder="00.000.000-0", inputmode="numeric") }}
-                            </div>
-                        </div>
+              <div class="mb-3">{{ form.userPhone.label(class='form-label') }}
+                {{ form.userPhone(class='form-control', id='regUserPhone', placeholder='(11) 91234-5678', inputmode='numeric') }}</div>
 
-                        <!-- Student-specific fields -->
-                        <div id="studentFields" class="d-none">
-                            <hr>
-                            <h5 class="mb-3">Informações do Estudante</h5>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    {{ form.gradeNumber.label(class="form-label") }}
-                                    {{ form.gradeNumber(class="form-control") }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.className.label(class="form-label") }}
-                                    {{ form.className(class="form-control") }}
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    {{ form.guardianName1.label(class="form-label") }}
-                                    {{ form.guardianName1(class="form-control") }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.guardianPhone1.label(class="form-label") }}
-                                    {{ form.guardianPhone1(class="form-control", id="regGuardianPhone1", placeholder="(11) 4002-8922", inputmode="numeric") }}
-                                </div>
-                            </div>
-                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    {{ form.guardianName2.label(class="form-label") }}
-                                    {{ form.guardianName2(class="form-control") }}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    {{ form.guardianPhone2.label(class="form-label") }}
-                                    {{ form.guardianPhone2(class="form-control", id="regGuardianPhone2", placeholder="(11) 4002-8922", inputmode="numeric") }}
-                                </div>
-                            </div>
-                        </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">{{ form.cpf.label(class='form-label') }}
+                  {{ form.cpf(class='form-control', id='regCPF', placeholder='000.000.000-00', inputmode='numeric') }}</div>
+                <div class="col-md-6 mb-3">{{ form.rg.label(class='form-label') }}
+                  {{ form.rg(class='form-control', id='regRG', placeholder='00.000.000-0', inputmode='numeric') }}</div>
+              </div>
 
-                        <div class="mb-3">
-                            {{ form.notes.label(class="form-label") }}
-                            {{ form.notes(class="form-control", rows=3) }}
-                        </div>
-
-                        {{ form.submit(class="btn btn-primary w-100") }}
-                    </form>
+              <!-- Student-specific fields -->
+              <div id="studentFields" class="d-none">
+                <hr />
+                <h5 class="mb-3">Informações do Estudante</h5>
+                <div class="row">
+                  <div class="col-md-6 mb-3">{{ form.gradeNumber.label(class='form-label') }}
+                    {{ form.gradeNumber(class='form-control') }}</div>
+                  <div class="col-md-6 mb-3">{{ form.className.label(class='form-label') }}
+                    {{ form.className(class='form-control') }}</div>
                 </div>
-            </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">{{ form.guardianName1.label(class='form-label') }}
+                    {{ form.guardianName1(class='form-control') }}</div>
+                  <div class="col-md-6 mb-3">{{ form.guardianPhone1.label(class='form-label') }}
+                    {{ form.guardianPhone1(class='form-control', id='regGuardianPhone1', placeholder='(11) 4002-8922', inputmode='numeric') }}</div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">{{ form.guardianName2.label(class='form-label') }}
+                    {{ form.guardianName2(class='form-control') }}</div>
+                  <div class="col-md-6 mb-3">{{ form.guardianPhone2.label(class='form-label') }}
+                    {{ form.guardianPhone2(class='form-control', id='regGuardianPhone2', placeholder='(11) 4002-8922', inputmode='numeric') }}</div>
+                </div>
+              </div>
+
+              <div class="mb-3">{{ form.notes.label(class='form-label') }}
+                {{ form.notes(class='form-control', rows=3) }}</div>
+
+              {{ form.submit(class='btn btn-primary w-100') }}
+            </form>
+          </div>
         </div>
+      </div>
     </div>
-</div>
+  </div>
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    function onlyDigits(s) { return (s||'').replace(/\D+/g, ''); }
-    function maskPhone(v) {
-        const d = onlyDigits(v).slice(0, 11);
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      function onlyDigits(s) {
+        return (s || '').replace(/\D+/g, '')
+      }
+      function maskPhone(v) {
+        const d = onlyDigits(v).slice(0, 11)
         if (d.length <= 10) {
-            return d.replace(/(\d{0,2})(\d{0,4})(\d{0,4})/, function(_, a,b,c){
-                let out = '';
-                if (a) out += '('+a;
-                if (a && a.length===2) out += ') ';
-                if (b) out += b;
-                if (c) out += '-' + c;
-                return out;
-            });
+          return d.replace(/(\d{0,2})(\d{0,4})(\d{0,4})/, function (_, a, b, c) {
+            let out = ''
+            if (a) out += '(' + a
+            if (a && a.length === 2) out += ') '
+            if (b) out += b
+            if (c) out += '-' + c
+            return out
+          })
         }
-        return d.replace(/(\d{0,2})(\d{0,5})(\d{0,4})/, function(_, a,b,c){
-            let out = '';
-            if (a) out += '('+a;
-            if (a && a.length===2) out += ') ';
-            if (b) out += b;
-            if (c) out += '-' + c;
-            return out;
-        });
-    }
-    function maskCPF(v) {
-        const d = onlyDigits(v).slice(0, 11);
-        return d.replace(/(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/, function(_, a,b,c,d){
-            let out = '';
-            if (a) out += a;
-            if (b) out += (a?'.':'') + b;
-            if (c) out += (b?'.':'') + c;
-            if (d) out += (c?'-':'') + d;
-            return out;
-        });
-    }
-    function maskRG(v) {
-        const d = onlyDigits(v).slice(0, 14);
-        return d.replace(/(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,1})/, function(_, a,b,c,d){
-            let out='';
-            if (a) out += a;
-            if (b) out += (a?'.':'') + b;
-            if (c) out += (b?'.':'') + c;
-            if (d) out += (c?'-':'') + d;
-            return out;
-        });
-    }
-
-    function attachMask(id, masker) {
-        const el = document.getElementById(id);
-        if (!el) return;
+        return d.replace(/(\d{0,2})(\d{0,5})(\d{0,4})/, function (_, a, b, c) {
+          let out = ''
+          if (a) out += '(' + a
+          if (a && a.length === 2) out += ') '
+          if (b) out += b
+          if (c) out += '-' + c
+          return out
+        })
+      }
+      function maskCPF(v) {
+        const d = onlyDigits(v).slice(0, 11)
+        return d.replace(/(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/, function (_, a, b, c, d) {
+          let out = ''
+          if (a) out += a
+          if (b) out += (a ? '.' : '') + b
+          if (c) out += (b ? '.' : '') + c
+          if (d) out += (c ? '-' : '') + d
+          return out
+        })
+      }
+      function maskRG(v) {
+        const d = onlyDigits(v).slice(0, 14)
+        return d.replace(/(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,1})/, function (_, a, b, c, d) {
+          let out = ''
+          if (a) out += a
+          if (b) out += (a ? '.' : '') + b
+          if (c) out += (b ? '.' : '') + c
+          if (d) out += (c ? '-' : '') + d
+          return out
+        })
+      }
+    
+      function attachMask(id, masker) {
+        const el = document.getElementById(id)
+        if (!el) return
         el.addEventListener('input', () => {
-            const start = el.selectionStart;
-            const end = el.selectionEnd;
-            el.value = masker(el.value);
-            try { el.setSelectionRange(start, end); } catch(e) {}
-        });
-        el.value = masker(el.value);
-    }
-
-    const userTypeSelect = document.getElementById('userType');
-    const studentFields = document.getElementById('studentFields');
-
-    function toggleStudentFields() {
+          const start = el.selectionStart
+          const end = el.selectionEnd
+          el.value = masker(el.value)
+          try {
+            el.setSelectionRange(start, end)
+          } catch (e) {}
+        })
+        el.value = masker(el.value)
+      }
+    
+      const userTypeSelect = document.getElementById('userType')
+      const studentFields = document.getElementById('studentFields')
+    
+      function toggleStudentFields() {
         if (userTypeSelect.value === 'student') {
-            studentFields.classList.remove('d-none');
+          studentFields.classList.remove('d-none')
         } else {
-            studentFields.classList.add('d-none');
+          studentFields.classList.add('d-none')
         }
-    }
-
-    // Initial check
-    toggleStudentFields();
-
-    // Add event listener
-    userTypeSelect.addEventListener('change', toggleStudentFields);
-
-    // Máscaras
-    attachMask('regUserPhone', maskPhone);
-    attachMask('regGuardianPhone1', maskPhone);
-    attachMask('regGuardianPhone2', maskPhone);
-    attachMask('regCPF', maskCPF);
-    attachMask('regRG', maskRG);
-});
-</script>
+      }
+    
+      // Initial check
+      toggleStudentFields()
+    
+      // Add event listener
+      userTypeSelect.addEventListener('change', toggleStudentFields)
+    
+      // Máscaras
+      attachMask('regUserPhone', maskPhone)
+      attachMask('regGuardianPhone1', maskPhone)
+      attachMask('regGuardianPhone2', maskPhone)
+      attachMask('regCPF', maskCPF)
+      attachMask('regRG', maskRG)
+    })
+  </script>
 {% endblock %}
