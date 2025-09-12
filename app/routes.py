@@ -12,6 +12,7 @@ from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
 
 
 from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User
+import unicodedata
 from .validaEmprestimo import validaEmprestimo
 
 
@@ -23,6 +24,62 @@ def splitStringIntoList(string):
         return []
     string_list = [item.strip().lower() for item in string.split(';') if item.strip()]
     return string_list
+
+def _normalize_tag(token: str) -> str:
+    if not token:
+        return ''
+    # remove leading/trailing spaces
+    token = token.strip()
+    # remove accents
+    nfkd = unicodedata.normalize('NFKD', token)
+    ascii_only = ''.join([c for c in nfkd if not unicodedata.combining(c)])
+    # uppercase
+    up = ascii_only.upper()
+    # keep only allowed chars: A-Z, 0-9, space, hyphen
+    allowed = []
+    for ch in up:
+        if ('A' <= ch <= 'Z') or ('0' <= ch <= '9') or ch in [' ', '-']:
+            allowed.append(ch)
+    cleaned = ''.join(allowed)
+    # collapse multiple spaces
+    cleaned = ' '.join(cleaned.split())
+    return cleaned.strip()
+
+def _calc_age(birth_date):
+    if not birth_date:
+        return None
+    try:
+        today = date.today()
+        return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+    except Exception:
+        return None
+
+def _parse_date(value: str):
+    if not value:
+        return None
+    try:
+        # espera AAAA-MM-DD
+        return date.fromisoformat(value)
+    except Exception:
+        return None
+
+def _available_copies_for_range(book, start_date, end_date):
+    if not book:
+        return 0
+    q = db.session.query(func.coalesce(func.sum(Loan.amount), 0)).filter(
+        Loan.bookId == book.bookId,
+        Loan.status == StatusLoan.ACTIVE
+    )
+    if start_date and end_date:
+        # empréstimos que se sobrepõem ao intervalo
+        q = q.filter(Loan.loanDate <= end_date, Loan.returnDate >= start_date)
+    else:
+        # disponibilidade hoje
+        today = date.today()
+        q = q.filter(Loan.loanDate <= today, Loan.returnDate >= today)
+    used = q.scalar() or 0
+    available = book.amount - used
+    return max(available, 0)
 
 @bp.route('/')
 @bp.route('/index')
@@ -111,7 +168,8 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         usernameStr = form.username.data.strip().lower()
-        user = User.query.filter_by(username=usernameStr).first()
+        # Agora o login utiliza o identificationCode no lugar de username
+        user = User.query.filter_by(identificationCode=usernameStr).first()
         valid_password = False
         if user:
             try:
@@ -157,7 +215,8 @@ def register():
             creator_id = current_user.userId
 
         new_user = User(
-            username=form.username.data.strip().lower(),
+            identificationCode=form.username.data.strip().lower(),
+            userCompleteName=form.username.data.strip(),
             password=hashed_password,
             userType=form.userType.data,
             userPhone=form.userPhone.data,
@@ -294,7 +353,7 @@ def emprestimos():
     if search_term:
         query = query.join(User).join(Book).filter(
             or_(
-                User.username.ilike(f'%{search_term}%'),
+        User.userCompleteName.ilike(f'%{search_term}%'),
                 Book.bookName.ilike(f'%{search_term}%')
             )
         )
@@ -392,17 +451,45 @@ def get_keyword_form(keyword_id):
 def nova_palavra_chave():
     form = KeyWordForm()
     if form.validate_on_submit():
-        new_keyword = KeyWord(
-            word=form.word.data.strip().lower(),
-            creationDate=date.today(),
-            lastUpdate=date.today(),
-            createdBy=current_user.userId,
-            updatedBy=current_user.userId
-        )
-        db.session.add(new_keyword)
-        db.session.commit()
-        flash('Tag cadastrada com sucesso!', 'success')
-        return jsonify({'success': True})
+        raw = form.word.data or ''
+        # split por vírgula ou ponto e vírgula
+        parts = []
+        seen = set()
+        for token in raw.replace(';', ',').split(','):
+            normalized = _normalize_tag(token)
+            if normalized and normalized not in seen:
+                parts.append(normalized)
+                seen.add(normalized)
+
+        if not parts:
+            return jsonify({'success': False, 'errors': {'word': ['Informe ao menos uma tag válida.']}})
+
+        # buscar existentes
+        existing = {kw.word for kw in KeyWord.query.filter(KeyWord.word.in_(parts)).all()}
+        to_create = [p for p in parts if p not in existing]
+
+        created = 0
+        for w in to_create:
+            kw = KeyWord(
+                word=w,
+                creationDate=date.today(),
+                lastUpdate=date.today(),
+                createdBy=current_user.userId,
+                updatedBy=current_user.userId
+            )
+            db.session.add(kw)
+            created += 1
+        if created:
+            db.session.commit()
+        msg = 'Tags processadas com sucesso.'
+        if created and existing:
+            msg = f'{created} nova(s) tag(s) criada(s); {len(existing)} já existia(m) e foram ignoradas.'
+        elif created and not existing:
+            msg = f'{created} nova(s) tag(s) criada(s).'
+        elif not created and existing:
+            msg = 'Todas as tags já existiam; nada foi criado.'
+        flash(msg, 'success')
+        return jsonify({'success': True, 'created': created, 'ignored': len(existing)})
     return jsonify({'success': False, 'errors': form.errors})
 
 
@@ -412,7 +499,15 @@ def editar_palavra_chave(keyword_id):
     keyword = KeyWord.query.get_or_404(keyword_id)
     form = KeyWordForm(request.form)
     if form.validate():
-        form.populate_obj(keyword)
+        normalized = _normalize_tag(form.word.data or '')
+        if not normalized:
+            return jsonify({'success': False, 'errors': {'word': ['Informe uma tag válida.']}})
+        # verificar duplicidade com outras tags
+        existing = KeyWord.query.filter_by(word=normalized).first()
+        if existing and existing.word != keyword.word:
+            return jsonify({'success': False, 'errors': {'word': ['Esta tag já existe.']}})
+
+        keyword.word = normalized
         keyword.lastUpdate = date.today()
         keyword.updatedBy = current_user.userId
         db.session.commit()
@@ -458,7 +553,7 @@ def list_users():
     query = User.query
     search_term = request.args.get('search')
     if search_term:
-        query = query.filter(User.username.ilike(f'%{search_term}%'))
+        query = query.filter(User.userCompleteName.ilike(f"%{search_term}%"))
 
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
@@ -472,26 +567,37 @@ def list_users():
 def get_user_form(user_id):
     if user_id:
         user = User.query.get_or_404(user_id)
-        form = UserForm(obj=user)
+        form = UserForm(obj=user, mode='edit', instance_id=user.userId)
     else:
-        form = UserForm()
+        form = UserForm(mode='create')
     return render_template('_user_form.html', form=form, user_id=user_id)
 
 @bp.route('/users/new', methods=['POST'])
 @login_required
 def new_user():
-    form = UserForm()
+    form = UserForm(mode='create')
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8') if form.password.data else bcrypt.generate_password_hash('123456').decode('utf-8')
         new_user = User(
-            username=form.username.data,
+            identificationCode=form.identificationCode.data.strip(),
+            userCompleteName=form.userCompleteName.data.strip(),
             password=hashed_password,
             userType=form.userType.data,
             creationDate=date.today(),
             lastUpdate=date.today(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
-            # ... add all other fields from form
+            userPhone=form.userPhone.data,
+            birthDate=form.birthDate.data,
+            cpf=form.cpf.data,
+            rg=form.rg.data,
+            gradeNumber=form.gradeNumber.data,
+            className=form.className.data,
+            guardianName1=form.guardianName1.data,
+            guardianPhone1=form.guardianPhone1.data,
+            guardianName2=form.guardianName2.data,
+            guardianPhone2=form.guardianPhone2.data,
+            notes=form.notes.data,
         )
         db.session.add(new_user)
         db.session.commit()
@@ -503,9 +609,23 @@ def new_user():
 @login_required
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
-    form = UserForm(request.form, obj=user)
+    form = UserForm(request.form, obj=user, mode='edit', instance_id=user.userId)
     if form.validate():
-        form.populate_obj(user)
+        # manual populate to avoid overwriting id fields
+        user.userType = form.userType.data
+        user.identificationCode = form.identificationCode.data.strip()
+        user.userCompleteName = form.userCompleteName.data.strip()
+        user.userPhone = form.userPhone.data
+        user.birthDate = form.birthDate.data
+        user.cpf = form.cpf.data
+        user.rg = form.rg.data
+        user.gradeNumber = form.gradeNumber.data
+        user.className = form.className.data
+        user.guardianName1 = form.guardianName1.data
+        user.guardianPhone1 = form.guardianPhone1.data
+        user.guardianName2 = form.guardianName2.data
+        user.guardianPhone2 = form.guardianPhone2.data
+        user.notes = form.notes.data
         if form.password.data:
             user.password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user.lastUpdate = date.today()
@@ -515,6 +635,15 @@ def edit_user(user_id):
         return jsonify({'success': True})
     return jsonify({'success': False, 'errors': form.errors})
 
+@bp.route('/users/check-identification', methods=['GET'])
+@login_required
+def check_identification_code():
+    code = (request.args.get('code') or '').strip()
+    exists = False
+    if code:
+        exists = db.session.query(User.userId).filter_by(identificationCode=code).first() is not None
+    return jsonify({'exists': exists})
+
 @bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
@@ -523,3 +652,73 @@ def delete_user(user_id):
     db.session.commit()
     flash('Usuário excluído com sucesso!', 'success')
     return redirect(url_for('main.list_users'))
+
+
+# JSON APIs para autocomplete no modal de novo empréstimo
+@bp.route('/api/users/search')
+@login_required
+def api_search_users():
+    q = (request.args.get('q') or '').strip()
+    try:
+        limit = int(request.args.get('limit', 10))
+    except Exception:
+        limit = 10
+    if not q:
+        return jsonify({'results': []})
+    users = (User.query
+             .filter(or_(
+                 User.identificationCode.ilike(f"%{q}%"),
+                 User.userCompleteName.ilike(f"%{q}%")
+             ))
+             .order_by(User.userCompleteName.asc())
+             .limit(limit).all())
+    results = []
+    for u in users:
+        results.append({
+            'userId': u.userId,
+            'identificationCode': u.identificationCode,
+            'name': u.userCompleteName,
+            'age': _calc_age(u.birthDate),
+            'birthDate': u.birthDate.isoformat() if u.birthDate else None,
+            'gradeNumber': u.gradeNumber,
+            'className': u.className,
+            'cpf': u.cpf,
+            'rg': u.rg,
+        })
+    return jsonify({'results': results})
+
+
+@bp.route('/api/books/search')
+@login_required
+def api_search_books():
+    q = (request.args.get('q') or '').strip()
+    try:
+        limit = int(request.args.get('limit', 10))
+    except Exception:
+        limit = 10
+    loan_date = _parse_date(request.args.get('loanDate'))
+    return_date = _parse_date(request.args.get('returnDate'))
+    if not q:
+        return jsonify({'results': []})
+    books = (Book.query
+             .filter(or_(
+                 Book.bookName.ilike(f"%{q}%"),
+                 Book.authorName.ilike(f"%{q}%"),
+                 Book.publisherName.ilike(f"%{q}%")
+             ))
+             .order_by(Book.bookName.asc())
+             .limit(limit).all())
+    results = []
+    for b in books:
+        available = _available_copies_for_range(b, loan_date, return_date)
+        results.append({
+            'bookId': b.bookId,
+            'bookName': b.bookName,
+            'authorName': b.authorName,
+            'publisherName': b.publisherName,
+            'publishedDate': b.publishedDate.isoformat() if b.publishedDate else None,
+            'amount': b.amount,
+            'available': available,
+            'keywords': [kw.word for kw in getattr(b, 'keywords', [])]
+        })
+    return jsonify({'results': results})
