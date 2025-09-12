@@ -47,14 +47,14 @@
             </thead>
             <tbody>
                 {% for loan in loans.items %}
-                <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.LoanId }}">
+                <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}">
                     <td>{{ loan.book.bookName }}</td>
                     <td>{{ loan.user.username }}</td>
                     <td>{{ loan.loanDate.strftime('%d/%m/%Y') }}</td>
                     <td>{{ loan.returnDate.strftime('%d/%m/%Y') }}</td>
                     <td><span class="badge bg-{% if loan.status.name == 'ACTIVE' %}success{% elif loan.status.name == 'OVERDUE' %}danger{% else %}secondary{% endif %}">{{ loan.status.value }}</span></td>
                     <td>
-                        <form action="{{ url_for('main.excluir_emprestimo', id=loan.LoanId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este empréstimo?');">
+                        <form action="{{ url_for('main.excluir_emprestimo', id=loan.loanId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este empréstimo?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
                         </form>
