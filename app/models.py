@@ -1,6 +1,6 @@
 from flask_login import UserMixin
-from sqlalchemy import Enum 
-from sqlalchemy.orm import validates
+from sqlalchemy import Enum, UniqueConstraint
+from sqlalchemy.orm import validates, synonym
 from datetime import date, datetime
 import enum
 
@@ -11,8 +11,9 @@ class User(db.Model, UserMixin):
     __tablename__ = "users"
 
     userId = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    username = db.Column(db.String(20), nullable=False, unique=True)
+    identificationCode = db.Column(db.String(150), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
+    userCompleteName = db.Column(db.String(100), nullable=True)
     userType = db.Column(db.String(80), nullable=False)
     # Time format: dd/mm/yyyy|hh:mm:ss
     creationDate = db.Column(db.Date, nullable=False, default=date.today)
@@ -32,6 +33,9 @@ class User(db.Model, UserMixin):
     guardianName2 = db.Column(db.String, nullable=True)
     guardianPhone2 = db.Column(db.String, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+
+    # Backward-compat attribute so code/tests using `username` still work
+    username = synonym('identificationCode')
 
     def get_id(self):
         return self.userId
@@ -143,3 +147,31 @@ class KeyWordBook(db.Model):
     def __init__(self, bookId, wordId):
         self.bookId = bookId
         self.wordId = wordId
+
+
+# New RBAC models for detailed permissions
+class Permission(db.Model):
+    __tablename__ = 'permissions'
+
+    permissionId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    code = db.Column(db.String(100), unique=True, nullable=False)  # e.g., 'books.view'
+    description = db.Column(db.String(255), nullable=False)
+
+
+class Role(db.Model):
+    __tablename__ = 'roles'
+
+    roleId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)  # e.g., 'aluno', 'colaborador', 'bibliotecario', 'admin'
+    description = db.Column(db.String(255), nullable=True)
+
+
+class RolePermission(db.Model):
+    __tablename__ = 'role_permissions'
+    __table_args__ = (
+        UniqueConstraint('roleId', 'permissionId', name='uq_role_permission'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    roleId = db.Column(db.Integer, db.ForeignKey('roles.roleId'), nullable=False)
+    permissionId = db.Column(db.Integer, db.ForeignKey('permissions.permissionId'), nullable=False)
