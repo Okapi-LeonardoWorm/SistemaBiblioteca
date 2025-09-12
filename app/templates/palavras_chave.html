@@ -92,6 +92,29 @@
 document.addEventListener('DOMContentLoaded', function() {
     const keywordModal = document.getElementById('keywordModal');
     const saveKeywordBtn = document.getElementById('saveKeywordBtn');
+    
+    function saveKeyword() {
+        const form = document.getElementById('keywordModalForm');
+        if (!form) return;
+        const formData = new FormData(form);
+        const actionUrl = form.getAttribute('action');
+
+        fetch(actionUrl, {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert('Erro de validação: ' + JSON.stringify(data.errors));
+            }
+        })
+        .catch(err => {
+            alert('Ocorreu um erro ao salvar.');
+        });
+    }
 
     keywordModal.addEventListener('show.bs.modal', function (event) {
         const trigger = event.relatedTarget;
@@ -109,6 +132,20 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(html => {
                 modalTitle.textContent = keywordId ? 'Editar Tag' : 'Nova Tag';
                 modalBody.innerHTML = html;
+                // Prevenir submit padrão e Enter para evitar navegação para JSON
+                const formEl = document.getElementById('keywordModalForm');
+                if (formEl) {
+                    formEl.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        saveKeyword();
+                    });
+                    formEl.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            saveKeyword();
+                        }
+                    });
+                }
             })
             .catch(err => {
                 modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
@@ -116,27 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     saveKeywordBtn.addEventListener('click', function() {
-        const form = document.getElementById('keywordModalForm');
-        if (form) {
-            const formData = new FormData(form);
-            const actionUrl = form.getAttribute('action');
-
-            fetch(actionUrl, {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Erro de validação: ' + JSON.stringify(data.errors));
-                }
-            })
-            .catch(err => {
-                alert('Ocorreu um erro ao salvar.');
-            });
-        }
+        saveKeyword();
     });
 });
 </script>
