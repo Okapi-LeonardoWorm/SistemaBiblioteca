@@ -9,6 +9,11 @@ from .models import StatusLoan
 
 
 # Forms to create and validate the data that will be inserted in the database
+def _digits_only(val: str) -> str:
+    if not val:
+        return ''
+    return ''.join(ch for ch in str(val) if ch.isdigit())
+
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
         min=3, max=20, message="Seu nome de usuário deve conter entre 3 e 20 caracteres"),  Regexp(r'^[a-z_]+$', message="O nome de usuário pode conter apenas letras minúsculas e sublinhados(Underline), não pode conter espaços.")], render_kw={"placeholder": "Username"})
@@ -21,7 +26,7 @@ class RegisterForm(FlaskForm):
     username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=3, max=20)])
     password = PasswordField('Senha', validators=[DataRequired(), Length(min=4, max=80)])
     userType = SelectField('Tipo de Cadastro', validators=[DataRequired()])
-    userPhone = StringField('Telefone', validators=[Optional()])
+    userPhone = StringField('Telefone', validators=[Optional()], render_kw={"placeholder": "(11) 91234-5678", "inputmode": "numeric"})
     birthDate = DateField('Data de Nascimento', format='%Y-%m-%d', validators=[DataRequired()])
     cpf = StringField('CPF', validators=[Optional()])
     rg = StringField('RG', validators=[Optional()])
@@ -29,9 +34,9 @@ class RegisterForm(FlaskForm):
     gradeNumber = IntegerField('Série/Ano', validators=[Optional()])
     className = StringField('Turma', validators=[Optional()])
     guardianName1 = StringField('Nome do Responsável 1', validators=[Optional()])
-    guardianPhone1 = StringField('Telefone do Responsável 1', validators=[Optional()])
+    guardianPhone1 = StringField('Telefone do Responsável 1', validators=[Optional()], render_kw={"placeholder": "(11) 4002-8922", "inputmode": "numeric"})
     guardianName2 = StringField('Nome do Responsável 2', validators=[Optional()])
-    guardianPhone2 = StringField('Telefone do Responsável 2', validators=[Optional()])
+    guardianPhone2 = StringField('Telefone do Responsável 2', validators=[Optional()], render_kw={"placeholder": "(11) 4002-8922", "inputmode": "numeric"})
     notes = TextAreaField('Observações', validators=[Optional()])
     submit = SubmitField("Registrar")
 
@@ -39,6 +44,46 @@ class RegisterForm(FlaskForm):
         existing_user_username = User.query.filter_by(username=username.data).first()
         if existing_user_username:
             raise ValidationError('Este nome de usuário já está em uso. Por favor, escolha outro.')
+
+    def validate_userPhone(self, userPhone):
+        if not userPhone.data:
+            return
+        digits = _digits_only(userPhone.data)
+        if len(digits) not in (10, 11):
+            raise ValidationError('Telefone deve conter 10 ou 11 dígitos (DDD + número).')
+        userPhone.data = digits
+
+    def validate_guardianPhone1(self, guardianPhone1):
+        if not guardianPhone1.data:
+            return
+        digits = _digits_only(guardianPhone1.data)
+        if len(digits) not in (10, 11):
+            raise ValidationError('Telefone do responsável deve conter 10 ou 11 dígitos.')
+        guardianPhone1.data = digits
+
+    def validate_guardianPhone2(self, guardianPhone2):
+        if not guardianPhone2.data:
+            return
+        digits = _digits_only(guardianPhone2.data)
+        if len(digits) not in (10, 11):
+            raise ValidationError('Telefone do responsável deve conter 10 ou 11 dígitos.')
+        guardianPhone2.data = digits
+
+    def validate_cpf(self, cpf):
+        if not cpf.data:
+            return
+        digits = _digits_only(cpf.data)
+        if len(digits) != 11:
+            raise ValidationError('CPF deve conter 11 dígitos.')
+        cpf.data = digits
+
+    def validate_rg(self, rg):
+        if not rg.data:
+            return
+        digits = _digits_only(rg.data)
+        if not (7 <= len(digits) <= 14):
+            raise ValidationError('RG deve conter entre 7 e 14 dígitos.')
+        rg.data = digits
 
 
 class BookForm(FlaskForm):
@@ -131,16 +176,16 @@ class UserForm(FlaskForm):
     lastUpdate = DateField('Última Atualização', format='%Y-%m-%d', validators=[Optional()])
     createdBy = IntegerField('Criado Por', validators=[Optional()])
     updatedBy = IntegerField('Atualizado Por', validators=[Optional()])
-    userPhone = StringField('Telefone do Usuário', validators=[Optional()])
+    userPhone = StringField('Telefone do Usuário', validators=[Optional()], render_kw={"placeholder": "(11) 91234-5678", "inputmode": "numeric"})
     birthDate = DateField('Data de Nascimento', format='%Y-%m-%d', validators=[Optional()])
     cpf = StringField('CPF', validators=[Optional()])
     rg = StringField('RG', validators=[Optional()])
     gradeNumber = IntegerField('Número da Série', validators=[Optional()])
     className = StringField('Nome da Turma', validators=[Optional()])
     guardianName1 = StringField('Nome do Responsável 1', validators=[Optional()])
-    guardianPhone1 = StringField('Telefone do Responsável 1', validators=[Optional()])
+    guardianPhone1 = StringField('Telefone do Responsável 1', validators=[Optional()], render_kw={"placeholder": "(11) 4002-8922", "inputmode": "numeric"})
     guardianName2 = StringField('Nome do Responsável 2', validators=[Optional()])
-    guardianPhone2 = StringField('Telefone do Responsável 2', validators=[Optional()])
+    guardianPhone2 = StringField('Telefone do Responsável 2', validators=[Optional()], render_kw={"placeholder": "(11) 4002-8922", "inputmode": "numeric"})
     notes = TextAreaField('Observações', validators=[Optional()])
     submit = SubmitField('Salvar Usuário')
 
@@ -163,3 +208,44 @@ class UserForm(FlaskForm):
             self.birthDate.validators = [DataRequired(message='Data de Nascimento é obrigatória')]
         else:
             self.birthDate.validators = [Optional()]
+
+    # Validações específicas do UserForm
+    def validate_userPhone(self, userPhone):
+        if not userPhone.data:
+            return
+        digits = _digits_only(userPhone.data)
+        if len(digits) not in (10, 11):
+            raise ValidationError('Telefone deve conter 10 ou 11 dígitos (DDD + número).')
+        userPhone.data = digits
+
+    def validate_guardianPhone1(self, guardianPhone1):
+        if not guardianPhone1.data:
+            return
+        digits = _digits_only(guardianPhone1.data)
+        if len(digits) not in (10, 11):
+            raise ValidationError('Telefone do responsável deve conter 10 ou 11 dígitos.')
+        guardianPhone1.data = digits
+
+    def validate_guardianPhone2(self, guardianPhone2):
+        if not guardianPhone2.data:
+            return
+        digits = _digits_only(guardianPhone2.data)
+        if len(digits) not in (10, 11):
+            raise ValidationError('Telefone do responsável deve conter 10 ou 11 dígitos.')
+        guardianPhone2.data = digits
+
+    def validate_cpf(self, cpf):
+        if not cpf.data:
+            return
+        digits = _digits_only(cpf.data)
+        if len(digits) != 11:
+            raise ValidationError('CPF deve conter 11 dígitos.')
+        cpf.data = digits
+
+    def validate_rg(self, rg):
+        if not rg.data:
+            return
+        digits = _digits_only(rg.data)
+        if not (7 <= len(digits) <= 14):
+            raise ValidationError('RG deve conter entre 7 e 14 dígitos.')
+        rg.data = digits
