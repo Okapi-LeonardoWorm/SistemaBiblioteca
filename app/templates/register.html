@@ -36,17 +36,17 @@
 
                         <div class="mb-3">
                             {{ form.userPhone.label(class="form-label") }}
-                            {{ form.userPhone(class="form-control") }}
+                            {{ form.userPhone(class="form-control", id="regUserPhone", placeholder="(11) 91234-5678", inputmode="numeric") }}
                         </div>
                         
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 {{ form.cpf.label(class="form-label") }}
-                                {{ form.cpf(class="form-control") }}
+                                {{ form.cpf(class="form-control", id="regCPF", placeholder="000.000.000-00", inputmode="numeric") }}
                             </div>
                             <div class="col-md-6 mb-3">
                                 {{ form.rg.label(class="form-label") }}
-                                {{ form.rg(class="form-control") }}
+                                {{ form.rg(class="form-control", id="regRG", placeholder="00.000.000-0", inputmode="numeric") }}
                             </div>
                         </div>
 
@@ -71,7 +71,7 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     {{ form.guardianPhone1.label(class="form-label") }}
-                                    {{ form.guardianPhone1(class="form-control") }}
+                                    {{ form.guardianPhone1(class="form-control", id="regGuardianPhone1", placeholder="(11) 4002-8922", inputmode="numeric") }}
                                 </div>
                             </div>
                              <div class="row">
@@ -81,7 +81,7 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     {{ form.guardianPhone2.label(class="form-label") }}
-                                    {{ form.guardianPhone2(class="form-control") }}
+                                    {{ form.guardianPhone2(class="form-control", id="regGuardianPhone2", placeholder="(11) 4002-8922", inputmode="numeric") }}
                                 </div>
                             </div>
                         </div>
@@ -103,6 +103,63 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    function onlyDigits(s) { return (s||'').replace(/\D+/g, ''); }
+    function maskPhone(v) {
+        const d = onlyDigits(v).slice(0, 11);
+        if (d.length <= 10) {
+            return d.replace(/(\d{0,2})(\d{0,4})(\d{0,4})/, function(_, a,b,c){
+                let out = '';
+                if (a) out += '('+a;
+                if (a && a.length===2) out += ') ';
+                if (b) out += b;
+                if (c) out += '-' + c;
+                return out;
+            });
+        }
+        return d.replace(/(\d{0,2})(\d{0,5})(\d{0,4})/, function(_, a,b,c){
+            let out = '';
+            if (a) out += '('+a;
+            if (a && a.length===2) out += ') ';
+            if (b) out += b;
+            if (c) out += '-' + c;
+            return out;
+        });
+    }
+    function maskCPF(v) {
+        const d = onlyDigits(v).slice(0, 11);
+        return d.replace(/(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/, function(_, a,b,c,d){
+            let out = '';
+            if (a) out += a;
+            if (b) out += (a?'.':'') + b;
+            if (c) out += (b?'.':'') + c;
+            if (d) out += (c?'-':'') + d;
+            return out;
+        });
+    }
+    function maskRG(v) {
+        const d = onlyDigits(v).slice(0, 14);
+        return d.replace(/(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,1})/, function(_, a,b,c,d){
+            let out='';
+            if (a) out += a;
+            if (b) out += (a?'.':'') + b;
+            if (c) out += (b?'.':'') + c;
+            if (d) out += (c?'-':'') + d;
+            return out;
+        });
+    }
+
+    function attachMask(id, masker) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', () => {
+            const start = el.selectionStart;
+            const end = el.selectionEnd;
+            el.value = masker(el.value);
+            try { el.setSelectionRange(start, end); } catch(e) {}
+        });
+        el.value = masker(el.value);
+    }
+
     const userTypeSelect = document.getElementById('userType');
     const studentFields = document.getElementById('studentFields');
 
@@ -119,6 +176,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add event listener
     userTypeSelect.addEventListener('change', toggleStudentFields);
+
+    // Máscaras
+    attachMask('regUserPhone', maskPhone);
+    attachMask('regGuardianPhone1', maskPhone);
+    attachMask('regGuardianPhone2', maskPhone);
+    attachMask('regCPF', maskCPF);
+    attachMask('regRG', maskRG);
 });
 </script>
 {% endblock %}
