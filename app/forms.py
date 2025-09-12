@@ -118,9 +118,15 @@ class SearchLoansForm(FlaskForm):
     
 
 class UserForm(FlaskForm):
-    username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=3, max=20)])
-    password = PasswordField('Senha', validators=[DataRequired(), Length(min=4, max=80)])
-    userType = StringField('Tipo de Usuário', validators=[DataRequired(), Length(max=80)])
+    userType = SelectField('Tipo de Usuário', choices=[
+        ('aluno', 'Aluno'),
+        ('colaborador', 'Colaborador'),
+        ('bibliotecario', 'Bibliotecário'),
+        ('admin', 'Admin')
+    ], validators=[DataRequired()])
+    identificationCode = StringField('Código de Identificação', validators=[DataRequired(), Length(min=3, max=150)])
+    userCompleteName = StringField('Nome completo', validators=[DataRequired(), Length(min=3, max=100)])
+    password = PasswordField('Senha', validators=[Optional(), Length(min=4, max=80)])
     creationDate = DateField('Data de Criação', format='%Y-%m-%d', validators=[Optional()])
     lastUpdate = DateField('Última Atualização', format='%Y-%m-%d', validators=[Optional()])
     createdBy = IntegerField('Criado Por', validators=[Optional()])
@@ -138,11 +144,22 @@ class UserForm(FlaskForm):
     notes = TextAreaField('Observações', validators=[Optional()])
     submit = SubmitField('Salvar Usuário')
 
-    def validate_username(self, username):
-        # On edit, this check is not necessary
-        if self.createdBy.data:
-            return
-        
-        existing_user_username = User.query.filter_by(username=username.data).first()
-        if existing_user_username:
-            raise ValidationError('Nome de usuário já existe. Por favor, escolha um nome diferente.')
+    def validate_identificationCode(self, identificationCode):
+        existing = User.query.filter_by(identificationCode=identificationCode.data).first()
+        # Permite manter o mesmo código ao editar o próprio registro
+        if existing:
+            current_id = getattr(self, 'instance_id', None)
+            if not current_id or existing.userId != current_id:
+                raise ValidationError('Código de identificação já existe. Por favor, escolha outro.')
+
+    def __init__(self, *args, **kwargs):
+        # Permite passar mode='create'|'edit' para ajustar validações dinâmicas
+        self.mode = kwargs.pop('mode', 'create')
+        # Permite passar o id da instância para validações (edição)
+        self.instance_id = kwargs.pop('instance_id', None)
+        super().__init__(*args, **kwargs)
+        # birthDate obrigatório na criação, opcional na edição
+        if self.mode == 'create':
+            self.birthDate.validators = [DataRequired(message='Data de Nascimento é obrigatória')]
+        else:
+            self.birthDate.validators = [Optional()]
