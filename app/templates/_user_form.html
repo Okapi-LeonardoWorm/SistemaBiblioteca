@@ -1,24 +1,29 @@
 <form id="userModalForm" action="{{ url_for('main.new_user') if not user_id else url_for('main.edit_user', user_id=user_id) }}" method="POST">
     {{ form.hidden_tag() }}
     <div class="mb-3">
-        {{ form.username.label(class="form-label") }}
-        {{ form.username(class="form-control") }}
+        <label class="form-label">{{ form.userType.label.text }} <span style="color:#d00">*</span></label>
+        {{ form.userType(class="form-select", id="userTypeSelect", required=True) }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ form.identificationCode.label.text }} <span style="color:#d00">*</span></label>
+        {{ form.identificationCode(class="form-control", id="identificationCodeInput", required=True, minlength=3, maxlength=150) }}
+        <div id="identificationCodeHelp" class="form-text"></div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">{{ form.userCompleteName.label.text }} <span style="color:#d00">*</span></label>
+        {{ form.userCompleteName(class="form-control", required=True, minlength=3, maxlength=100) }}
     </div>
     <div class="mb-3">
         {{ form.password.label(class="form-label") }}
         {{ form.password(class="form-control", placeholder="Deixe em branco para não alterar") }}
     </div>
     <div class="mb-3">
-        {{ form.userType.label(class="form-label") }}
-        {{ form.userType(class="form-control") }}
-    </div>
-    <div class="mb-3">
         {{ form.userPhone.label(class="form-label") }}
         {{ form.userPhone(class="form-control") }}
     </div>
     <div class="mb-3">
-        {{ form.birthDate.label(class="form-label") }}
-        {{ form.birthDate(class="form-control", type="date") }}
+        <label class="form-label">{{ form.birthDate.label.text }} <span id="birthDateRequiredMark" style="color:#d00; display:none">*</span></label>
+        {{ form.birthDate(class="form-control", type="date", id="birthDateInput") }}
     </div>
     <div class="mb-3">
         {{ form.cpf.label(class="form-label") }}
@@ -56,4 +61,74 @@
         {{ form.notes.label(class="form-label") }}
         {{ form.notes(class="form-control") }}
     </div>
+    <script>
+    (function() {
+        const input = document.getElementById('identificationCodeInput');
+        const help = document.getElementById('identificationCodeHelp');
+        if (input) {
+            input.addEventListener('change', async () => {
+                const val = input.value.trim();
+                if (!val) { return; }
+                try {
+                    const resp = await fetch(`{{ url_for('main.check_identification_code') }}?code=${encodeURIComponent(val)}`);
+                    const data = await resp.json();
+                    if (data.exists) {
+                        input.classList.add('is-invalid');
+                        input.style.color = '#7a0000';
+                        help.textContent = 'Código já existente. Escolha outro.';
+                        help.style.color = '#7a0000';
+                    } else {
+                        input.classList.remove('is-invalid');
+                        input.style.color = '';
+                        help.textContent = '';
+                    }
+                } catch (e) {
+                    // silencioso
+                }
+            });
+        }
+        const userType = document.getElementById('userTypeSelect');
+        const studentFields = ['gradeNumber','className','guardianName1','guardianPhone1','guardianName2','guardianPhone2'];
+        const allStudentEls = studentFields.map(name => document.getElementById(`userModalForm`).querySelector(`[name="${name}"]`)?.closest('.mb-3')).filter(Boolean);
+        function updateVisibility() {
+            const t = userType?.value;
+            const showStudent = (t === 'aluno');
+            allStudentEls.forEach(el => el.style.display = showStudent ? '' : 'none');
+        }
+        if (userType) {
+            userType.addEventListener('change', updateVisibility);
+            updateVisibility();
+        }
+
+        // birthDate obrigatório apenas na criação
+        const birthDate = document.getElementById('birthDateInput');
+        const birthMark = document.getElementById('birthDateRequiredMark');
+        const isEdit = {{ 'true' if user_id else 'false' }};
+        function setBirthDateRequirement() {
+            if (!isEdit) {
+                birthMark.style.display = '';
+                birthDate?.setAttribute('required', 'required');
+            } else {
+                birthMark.style.display = 'none';
+                birthDate?.removeAttribute('required');
+            }
+        }
+        setBirthDateRequirement();
+
+        // Validação básica antes de enviar
+        const formEl = document.getElementById('userModalForm');
+        formEl?.addEventListener('submit', (e) => {
+            // Se for criação, garantir birthDate preenchido
+            if (!isEdit) {
+                if (birthDate && !birthDate.value) {
+                    e.preventDefault();
+                    birthDate.classList.add('is-invalid');
+                    alert('Preencha a Data de Nascimento.');
+                    return false;
+                }
+            }
+            return true;
+        });
+    })();
+    </script>
 </form>
