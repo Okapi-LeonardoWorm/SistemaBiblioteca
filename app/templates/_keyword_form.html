@@ -1,7 +1,8 @@
 <form id="keywordModalForm" action="{{ url_for('main.nova_palavra_chave') if not keyword_id else url_for('main.editar_palavra_chave', keyword_id=keyword_id) }}" method="POST">
     {{ form.hidden_tag() }}
     <div class="mb-3">
-        {{ form.word.label(class="form-label") }}
-        {{ form.word(class="form-control") }}
+        <label class="form-label">{{ form.word.label.text }} <small class="text-muted">(separe por vírgula ou ponto e vírgula; múltiplas tags de uma vez)</small></label>
+        {{ form.word(class="form-control", placeholder="Ex.: Ficção, Aventura; Clássico") }}
+        <div class="form-text">Você pode informar várias tags separadas por vírgula (,) ou ponto e vírgula (;).</div>
     </div>
 </form>
