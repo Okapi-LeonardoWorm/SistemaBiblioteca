@@ -9,5 +9,9 @@
         "minimo",
         "pagetitle",
         "validacoes"
-    ]
+    ],
+    "chat.tools.terminal.autoApprove": {
+        "git add": true,
+        "git commit": true
+    }
 }
