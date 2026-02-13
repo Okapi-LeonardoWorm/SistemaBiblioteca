@@ -61,7 +61,11 @@
 
         <div class="list-group">
           {% for loan in loans.items %}
-            <a href="/emprestimos/form/{{ loan.loanId }}" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}"><strong>Livro:</strong> {{ loan.book.bookName }} | <strong>Usuário:</strong> {{ loan.user.username }} | <strong>Devolução:</strong> {{ loan.returnDate.strftime('%d/%m/%Y') }}</a>
+            <a href="#" class="list-group-item list-group-item-action" data-bs-toggle="modal" data-bs-target="#loanDetailsModal" data-loan-id="{{ loan.loanId }}" data-book-name="{{ loan.book.bookName }}" data-user-name="{{ loan.user.userCompleteName or loan.user.username }}" data-user-code="{{ loan.user.username }}" data-loan-date="{{ loan.loanDate.isoformat() }}" data-return-date="{{ loan.returnDate.isoformat() }}" data-amount="{{ loan.amount }}" data-status="{{ loan.status.name }}">
+              <strong>Livro:</strong> {{ loan.book.bookName }} |
+              <strong>Usuário:</strong> {{ loan.user.username }} |
+              <strong>Devolução:</strong> {{ loan.returnDate.strftime('%d/%m/%Y') }}
+            </a>
           {% else %}
             <div class="list-group-item">Nenhum empréstimo encontrado para este filtro.</div>
           {% endfor %}
@@ -73,7 +77,7 @@
 
       <!-- Recently Loaned Books -->
       <div class="col-lg-4">
-        <h3 class="section-title">Últimos Livros Emprestados</h3>
+        <h3 class="section-title">Últimos Livros Retirados</h3>
         <div class="list-group">
           {% for info in recent_books %}
             <div class="list-group-item">
@@ -88,5 +92,163 @@
         <div class="mt-3">{{ render_pagination(recent_books_pagination, page_parameter='recent_books_page') }}</div>
       </div>
     </div>
+
+    <!-- Modal: detalhes do empréstimo -->
+    <div class="modal fade" id="loanDetailsModal" tabindex="-1" aria-labelledby="loanDetailsModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="loanDetailsModalLabel">Detalhes do Empréstimo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p>
+              <strong>Livro:</strong> <span id="detailBookName"></span>
+            </p>
+            <p>
+              <strong>Usuário:</strong> <span id="detailUserName"></span> (<span id="detailUserCode"></span>)
+            </p>
+            <p>
+              <strong>Quantidade:</strong> <span id="detailAmount"></span>
+            </p>
+            <p>
+              <strong>Data Empréstimo:</strong> <span id="detailLoanDate"></span>
+            </p>
+            <p>
+              <strong>Data Prevista Retorno:</strong> <span id="detailReturnDate"></span>
+            </p>
+            <p>
+              <strong>Status:</strong> <span id="detailStatus"></span>
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            <button type="button" class="btn btn-primary" id="openReturnModalBtn">Informar retorno</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: informar retorno -->
+    <div class="modal fade" id="loanReturnModal" tabindex="-1" aria-labelledby="loanReturnModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="loanReturnModalLabel">Informar Retorno</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="loanReturnForm">
+            <div class="modal-body">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <input type="hidden" id="returnLoanId" name="loanId" />
+
+              <div class="mb-3">
+                <label for="returnDateInput" class="form-label">Data de retorno</label>
+                <input type="date" class="form-control" id="returnDateInput" name="returnDate" required />
+              </div>
+
+              <div class="mb-3">
+                <label for="returnStatusInput" class="form-label">Situação do empréstimo</label>
+                <select class="form-select" id="returnStatusInput" name="status" required>
+                  <option value="COMPLETED">Concluído</option>
+                  <option value="LOST">Livro Perdido</option>
+                </select>
+              </div>
+
+              <div class="alert alert-danger d-none" id="loanReturnError"></div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-success">Confirmar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const detailsModalEl = document.getElementById('loanDetailsModal')
+      const returnModalEl = document.getElementById('loanReturnModal')
+      const openReturnBtn = document.getElementById('openReturnModalBtn')
+      const returnForm = document.getElementById('loanReturnForm')
+      const returnError = document.getElementById('loanReturnError')
+    
+      function formatDateBR(isoDate) {
+        if (!isoDate) return ''
+        const [y, m, d] = isoDate.split('-')
+        if (!y || !m || !d) return isoDate
+        return `${d}/${m}/${y}`
+      }
+    
+      function statusLabel(status) {
+        if (status === 'ACTIVE') return 'Ativo'
+        if (status === 'OVERDUE') return 'Atrasado'
+        if (status === 'COMPLETED') return 'Concluído'
+        if (status === 'LOST') return 'Perdido'
+        return status || ''
+      }
+    
+      detailsModalEl?.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget
+        if (!trigger) return
+    
+        const data = trigger.dataset
+        document.getElementById('detailBookName').textContent = data.bookName || ''
+        document.getElementById('detailUserName').textContent = data.userName || ''
+        document.getElementById('detailUserCode').textContent = data.userCode || ''
+        document.getElementById('detailAmount').textContent = data.amount || ''
+        document.getElementById('detailLoanDate').textContent = formatDateBR(data.loanDate)
+        document.getElementById('detailReturnDate').textContent = formatDateBR(data.returnDate)
+        document.getElementById('detailStatus').textContent = statusLabel(data.status)
+    
+        openReturnBtn.dataset.loanId = data.loanId || ''
+      })
+    
+      openReturnBtn?.addEventListener('click', function () {
+        const loanId = openReturnBtn.dataset.loanId
+        document.getElementById('returnLoanId').value = loanId || ''
+        document.getElementById('returnDateInput').valueAsDate = new Date()
+        document.getElementById('returnStatusInput').value = 'COMPLETED'
+    
+        const detailsModal = bootstrap.Modal.getInstance(detailsModalEl)
+        detailsModal?.hide()
+    
+        const returnModal = new bootstrap.Modal(returnModalEl)
+        returnModal.show()
+      })
+    
+      returnForm?.addEventListener('submit', async function (e) {
+        e.preventDefault()
+        returnError.classList.add('d-none')
+        returnError.textContent = ''
+    
+        const loanId = document.getElementById('returnLoanId').value
+        const formData = new FormData(returnForm)
+    
+        try {
+          const resp = await fetch(`/emprestimos/return/${loanId}`, {
+            method: 'POST',
+            body: formData
+          })
+          const data = await resp.json()
+    
+          if (!resp.ok || !data.success) {
+            const msg = data?.errors ? JSON.stringify(data.errors) : 'Erro ao registrar retorno.'
+            returnError.textContent = msg
+            returnError.classList.remove('d-none')
+            return
+          }
+    
+          window.location.reload()
+        } catch (err) {
+          returnError.textContent = 'Falha de comunicação ao registrar retorno.'
+          returnError.classList.remove('d-none')
+        }
+      })
+    })
+  </script>
 {% endblock %}
