@@ -752,6 +752,7 @@ def api_search_users():
             'userId': u.userId,
             'identificationCode': u.identificationCode,
             'name': u.userCompleteName,
+            'userType': u.userType,
             'age': _calc_age(u.birthDate),
             'birthDate': u.birthDate.isoformat() if u.birthDate else None,
             'gradeNumber': u.gradeNumber,
