@@ -58,6 +58,23 @@
                         </form>
                     </td>
                 </tr>
+                <tr class="book-keywords-row" data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
+                    <td colspan="5">
+                        <div class="book-keywords-line">
+                            {% if book.keywords %}
+                                {% set visible_limit = 4 %}
+                                {% for keyword in book.keywords[:visible_limit] %}
+                                    <span class="badge text-bg-light border keyword-chip">{{ keyword.word }}</span>
+                                {% endfor %}
+                                {% if book.keywords|length > visible_limit %}
+                                    <span class="badge text-bg-light border keyword-chip keyword-chip-more">+{{ book.keywords|length }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted small">Sem palavras-chave</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
                 {% else %}
                 <tr>
                     <td colspan="5" class="text-center">Nenhum livro encontrado.</td>

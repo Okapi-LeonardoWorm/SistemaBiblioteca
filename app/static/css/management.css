@@ -26,6 +26,32 @@
     cursor: pointer;
 }
 
+.book-keywords-row td {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.book-keywords-line {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: nowrap;
+    overflow: hidden;
+    white-space: nowrap;
+    min-height: 1.75rem;
+}
+
+.keyword-chip {
+    flex: 0 0 auto;
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.keyword-chip-more {
+    font-weight: 600;
+}
+
 .modal-body {
     max-height: 70vh;
     overflow-y: auto;
