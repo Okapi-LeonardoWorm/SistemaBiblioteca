@@ -109,7 +109,7 @@ def dashboard():
     page = request.args.get(get_page_parameter(), 1, type=int)
     per_page = int(request.args.get('per_page', 10))
     
-    loans_query = Loan.query
+    loans_query = Loan.query.filter(Loan.status == StatusLoan.ACTIVE)
     if loan_filter == 'today':
         loans_query = loans_query.filter(Loan.returnDate == date.today())
     elif loan_filter == 'week':
@@ -349,14 +349,15 @@ def editar_livro(book_id):
 @login_required
 def emprestimos():
     query = Loan.query
-    search_term = request.args.get('search', '')
+    search_term = (request.args.get('search') or '').strip()
     if search_term:
-        query = query.join(User).join(Book).filter(
+        query = query.join(Loan.user).join(Loan.book).filter(
             or_(
-        User.userCompleteName.ilike(f'%{search_term}%'),
+                User.userCompleteName.ilike(f'%{search_term}%'),
+                User.identificationCode.ilike(f'%{search_term}%'),
                 Book.bookName.ilike(f'%{search_term}%')
             )
-        )
+        ).distinct()
 
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
@@ -416,6 +417,79 @@ def editar_emprestimo(loan_id):
         flash('Empréstimo atualizado com sucesso!', 'success')
         return jsonify({'success': True})
     return jsonify({'success': False, 'errors': form.errors})
+
+
+@bp.route('/emprestimos/return/<int:loan_id>', methods=['POST'])
+@login_required
+def informar_retorno_emprestimo(loan_id):
+    """
+    Finaliza um empréstimo mantendo registro histórico.
+    Regras:
+    - status permitido apenas: COMPLETED ou LOST
+    - returnDate deve ser informada pelo usuário (YYYY-MM-DD)
+    - empréstimo já finalizado (COMPLETED/LOST) não pode ser finalizado novamente
+    """
+    loan = Loan.query.get_or_404(loan_id)
+
+    # Aceita tanto form-data quanto JSON
+    raw_status = (request.form.get('status') or (request.get_json(silent=True) or {}).get('status') or '').strip().upper()
+    raw_return_date = (request.form.get('returnDate') or (request.get_json(silent=True) or {}).get('returnDate') or '').strip()
+
+    allowed = {'COMPLETED', 'LOST'}
+    if raw_status not in allowed:
+        return jsonify({
+            'success': False,
+            'errors': {'status': ['Status inválido. Use LOST ou COMPLETED.']}
+        }), 400
+
+    informed_return_date = _parse_date(raw_return_date)
+    if not informed_return_date:
+        return jsonify({
+            'success': False,
+            'errors': {'returnDate': ['Informe uma data de devolução válida no formato YYYY-MM-DD.']}
+        }), 400
+
+    if informed_return_date < loan.loanDate:
+        return jsonify({
+            'success': False,
+            'errors': {'returnDate': ['A data de devolução não pode ser anterior à data de empréstimo.']}
+        }), 400
+
+    if loan.status in (StatusLoan.COMPLETED, StatusLoan.LOST):
+        return jsonify({
+            'success': False,
+            'errors': {'status': [f'Este empréstimo já foi finalizado como {loan.status.name}.']}
+        }), 409
+
+    # Se o livro foi perdido, remover a quantidade do estoque físico
+    if raw_status == 'LOST':
+        if not loan.book:
+            return jsonify({
+                'success': False,
+                'errors': {'book': ['Livro do empréstimo não encontrado.']}
+            }), 404
+        if loan.book.amount < loan.amount:
+            return jsonify({
+                'success': False,
+                'errors': {'amount': ['Estoque insuficiente para registrar perda desse empréstimo.']}
+            }), 409
+        loan.book.amount -= loan.amount
+        loan.book.lastUpdate = date.today()
+        loan.book.updatedBy = current_user.userId
+
+    loan.returnDate = informed_return_date
+    loan.status = StatusLoan[raw_status]
+    loan.lastUpdate = date.today()
+    loan.updatedBy = current_user.userId
+
+    db.session.commit()
+    flash('Retorno do empréstimo registrado com sucesso!', 'success')
+    return jsonify({
+        'success': True,
+        'loanId': loan.loanId,
+        'status': loan.status.name,
+        'returnDate': loan.returnDate.isoformat()
+    })
 
 
 # Keyword Management Routes
