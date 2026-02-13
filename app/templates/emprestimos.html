@@ -202,10 +202,34 @@ document.addEventListener('DOMContentLoaded', function() {
                         const data = await fetchJSON(`/api/users/search?q=${encodeURIComponent(q)}&limit=8`);
                         if (!userSug) return;
                         userSug.innerHTML = '';
+
+                        function userTypeLabel(t) {
+                            const map = {
+                                student: 'Aluno',
+                                visitor: 'Visitante',
+                                staff: 'Funcionário',
+                                admin: 'Administrador',
+                                aluno: 'Aluno',
+                                colaborador: 'Colaborador',
+                                bibliotecario: 'Bibliotecário'
+                            };
+                            return map[t] || (t || '—');
+                        }
+
                         (data.results || []).forEach(u => {
                             const a = document.createElement('a');
                             a.href = '#'; a.className = 'list-group-item list-group-item-action';
-                            a.textContent = `${u.identificationCode || ''} - ${u.name || ''}`.trim();
+                            a.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>${u.name || 'Sem nome'}</strong>
+                                    <span class="badge text-bg-light border">${u.identificationCode || '—'}</span>
+                                </div>
+                                <div class="small text-muted mt-1 d-flex flex-wrap gap-3">
+                                    <span><strong>Tipo:</strong> ${userTypeLabel(u.userType)}</span>
+                                    <span><strong>Idade:</strong> ${u.age ?? '—'}</span>
+                                    <span><strong>Série/Turma:</strong> ${(u.gradeNumber ?? '—')} / ${(u.className ?? '—')}</span>
+                                </div>
+                            `;
                             a.addEventListener('click', (e) => {
                                 e.preventDefault();
                                 if (hiddenUserId) hiddenUserId.value = u.userId;
@@ -225,10 +249,27 @@ document.addEventListener('DOMContentLoaded', function() {
                         const data = await fetchJSON(`/api/books/search?${params.toString()}`);
                         if (!bookSug) return;
                         bookSug.innerHTML = '';
+
+                        function formatDateBR(isoDate) {
+                            if (!isoDate) return '—';
+                            const [y, m, d] = isoDate.split('-');
+                            if (!y || !m || !d) return isoDate;
+                            return `${d}/${m}/${y}`;
+                        }
+
                         (data.results || []).forEach(b => {
                             const a = document.createElement('a');
                             a.href = '#'; a.className = 'list-group-item list-group-item-action';
-                            a.textContent = `${b.bookName} — ${b.authorName || ''}`.trim();
+                            a.innerHTML = `
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>${b.bookName || 'Sem título'}</strong>
+                                    <span class="badge text-bg-light border">Disponíveis: ${b.available ?? '—'} / ${b.amount ?? '—'}</span>
+                                </div>
+                                <div class="small text-muted mt-1 d-flex flex-wrap gap-3">
+                                    <span><strong>Autor:</strong> ${b.authorName || '—'}</span>
+                                    <span><strong>Publicação:</strong> ${formatDateBR(b.publishedDate)}</span>
+                                </div>
+                            `;
                             a.addEventListener('click', (e) => {
                                 e.preventDefault();
                                 if (hiddenBookId) hiddenBookId.value = b.bookId;
