@@ -54,7 +54,17 @@
                     <td>{{ loan.returnDate.strftime('%d/%m/%Y') }}</td>
                     <td><span class="badge bg-{% if loan.status.name == 'ACTIVE' %}success{% elif loan.status.name == 'OVERDUE' %}danger{% else %}secondary{% endif %}">{{ loan.status.value }}</span></td>
                     <td>
-                        <form action="{{ url_for('main.excluir_emprestimo', id=loan.loanId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este empréstimo?');">
+                        {% if loan.status.name in ['ACTIVE', 'OVERDUE'] %}
+                        <button type="button"
+                                class="btn btn-sm btn-warning btn-return-loan mb-1"
+                                data-loan-id="{{ loan.loanId }}"
+                                data-loan-return-date="{{ loan.returnDate.isoformat() }}"
+                                onclick="event.stopPropagation();"
+                                title="Informar retorno">
+                            <i class="fas fa-undo"></i> Retornar
+                        </button>
+                        {% endif %}
+                        <form action="{{ url_for('main.excluir_emprestimo', id=loan.loanId) }}" method="POST" onsubmit="event.stopPropagation(); return confirm('Tem certeza que deseja excluir este empréstimo?');" onclick="event.stopPropagation();">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
                         </form>
@@ -92,6 +102,43 @@
             </div>
         </div>
     </div>
+
+    <!-- Return Loan Modal -->
+    <div class="modal fade" id="loanReturnModal" tabindex="-1" aria-labelledby="loanReturnModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loanReturnModalLabel">Informar retorno do empréstimo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="loanReturnForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" id="returnLoanId" name="loanId">
+
+                        <div class="mb-3">
+                            <label for="returnDateInput" class="form-label">Data de retorno</label>
+                            <input type="date" class="form-control" id="returnDateInput" name="returnDate" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="returnStatusInput" class="form-label">Situação do empréstimo</label>
+                            <select class="form-select" id="returnStatusInput" name="status" required>
+                                <option value="COMPLETED">Concluído</option>
+                                <option value="LOST">Livro Perdido</option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-danger d-none" id="loanReturnError"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Confirmar retorno</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -100,6 +147,9 @@
 document.addEventListener('DOMContentLoaded', function() {
     const loanModal = document.getElementById('loanModal');
     const saveLoanBtn = document.getElementById('saveLoanBtn');
+    const loanReturnModalEl = document.getElementById('loanReturnModal');
+    const loanReturnForm = document.getElementById('loanReturnForm');
+    const loanReturnError = document.getElementById('loanReturnError');
 
     loanModal.addEventListener('show.bs.modal', function (event) {
         const trigger = event.relatedTarget;
@@ -233,6 +283,66 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(err => {
                 alert('Ocorreu um erro ao salvar.');
             });
+        }
+    });
+
+    // Impede que clicar nas ações abra o modal de edição da linha
+    document.querySelectorAll('td form, .btn-return-loan').forEach((el) => {
+        el.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+
+    // Abrir modal de retorno
+    document.querySelectorAll('.btn-return-loan').forEach((btn) => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const loanId = btn.getAttribute('data-loan-id');
+            const previousReturnDate = btn.getAttribute('data-loan-return-date');
+            document.getElementById('returnLoanId').value = loanId || '';
+            // padrão: hoje
+            document.getElementById('returnDateInput').valueAsDate = new Date();
+            // fallback para data previamente cadastrada
+            if (!document.getElementById('returnDateInput').value && previousReturnDate) {
+                document.getElementById('returnDateInput').value = previousReturnDate;
+            }
+            document.getElementById('returnStatusInput').value = 'COMPLETED';
+            loanReturnError.classList.add('d-none');
+            loanReturnError.textContent = '';
+
+            const returnModal = new bootstrap.Modal(loanReturnModalEl);
+            returnModal.show();
+        });
+    });
+
+    // Submeter retorno
+    loanReturnForm?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        loanReturnError.classList.add('d-none');
+        loanReturnError.textContent = '';
+
+        const loanId = document.getElementById('returnLoanId').value;
+        const formData = new FormData(loanReturnForm);
+
+        try {
+            const resp = await fetch(`/emprestimos/return/${loanId}`, {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await resp.json();
+
+            if (!resp.ok || !data.success) {
+                const msg = data?.errors ? JSON.stringify(data.errors) : 'Erro ao registrar retorno.';
+                loanReturnError.textContent = msg;
+                loanReturnError.classList.remove('d-none');
+                return;
+            }
+
+            window.location.reload();
+        } catch (err) {
+            loanReturnError.textContent = 'Falha de comunicação ao registrar retorno.';
+            loanReturnError.classList.remove('d-none');
         }
     });
 });
