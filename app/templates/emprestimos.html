@@ -252,13 +252,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const loanDate = modalBody.querySelector('input[name="loanDate"]');
                     const returnDate = modalBody.querySelector('input[name="returnDate"]');
+                    const amountInput = modalBody.querySelector('input[name="amount"]');
 
                     const isEditMode = !!loanId;
+                    function datesReady() {
+                        return Boolean(loanDate?.value && returnDate?.value);
+                    }
+
+                    function toggleDependentFields() {
+                        if (isEditMode) return;
+                        const enabled = datesReady();
+                        if (userSearch) userSearch.disabled = !enabled;
+                        if (bookSearch) bookSearch.disabled = !enabled;
+                        if (amountInput) amountInput.disabled = !enabled;
+                        if (!enabled) {
+                            if (userSug) userSug.innerHTML = '';
+                            if (bookSug) bookSug.innerHTML = '';
+                        }
+                    }
+
                     if (isEditMode) {
                         userSearch?.setAttribute('readonly', 'readonly');
                         bookSearch?.setAttribute('readonly', 'readonly');
                         loanDate?.setAttribute('readonly', 'readonly');
-                        const amountInput = modalBody.querySelector('input[name="amount"]');
                         amountInput?.setAttribute('readonly', 'readonly');
                     }
 
@@ -278,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
                     async function searchUsers(q) {
+                        if (!datesReady()) { if (userSug) userSug.innerHTML = ''; return; }
                         if (!q || q.length < 2) { if (userSug) userSug.innerHTML = ''; return; }
                         const data = await fetchJSON(`/api/users/search?q=${encodeURIComponent(q)}&limit=8`);
                         if (!userSug) return;
@@ -322,6 +339,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
                     async function searchBooks(q) {
+                        if (!datesReady()) { if (bookSug) bookSug.innerHTML = ''; return; }
                         if (!q || q.length < 2) { if (bookSug) bookSug.innerHTML = ''; return; }
                         const params = new URLSearchParams({ q, limit: '8' });
                         if (loanDate?.value) params.append('loanDate', loanDate.value);
@@ -365,8 +383,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         userSearch?.addEventListener('input', (e) => searchUsers(e.target.value));
                         bookSearch?.addEventListener('input', (e) => searchBooks(e.target.value));
                     }
-                    loanDate?.addEventListener('change', () => bookSearch?.value && searchBooks(bookSearch.value));
-                    returnDate?.addEventListener('change', () => bookSearch?.value && searchBooks(bookSearch.value));
+                    loanDate?.addEventListener('change', () => { toggleDependentFields(); bookSearch?.value && searchBooks(bookSearch.value); });
+                    returnDate?.addEventListener('change', () => { toggleDependentFields(); bookSearch?.value && searchBooks(bookSearch.value); });
+
+                    toggleDependentFields();
                 })();
             })
             .catch(err => {
