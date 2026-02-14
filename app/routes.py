@@ -100,8 +100,10 @@ def dashboard():
     # KPIs
     total_books = db.session.query(func.sum(Book.amount)).scalar() or 0
     total_loans_active = Loan.query.filter_by(status=StatusLoan.ACTIVE).count()
-    total_students = User.query.filter_by(userType='student').count()
-    total_staff = User.query.filter(User.userType.in_(['admin', 'staff'])).count()
+    total_students = User.query.filter(func.lower(User.userType).in_(['aluno', 'student'])).count()
+    total_staff = User.query.filter(
+        func.lower(User.userType).in_(['colaborador', 'bibliotecario', 'bibliotecário', 'staff'])
+    ).count()
     overdue_loans_count = Loan.query.filter(Loan.returnDate < date.today(), Loan.status == StatusLoan.ACTIVE).count()
 
     # Loan filtering
