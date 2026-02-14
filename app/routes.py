@@ -122,22 +122,37 @@ def dashboard():
     
     loans_pagination = loans_query.order_by(Loan.returnDate.asc()).paginate(page=page, per_page=per_page, error_out=False)
 
-    # Recently loaned books
+    # Últimos empréstimos (para exibir quantidade retirada em cada empréstimo)
     recent_books_page = request.args.get('recent_books_page', 1, type=int)
     recent_books_per_page = int(request.args.get('recent_books_per_page', 10))
-    recent_loans_query = db.session.query(Loan.bookId, func.max(Loan.loanDate).label('max_loan_date')) \
-        .group_by(Loan.bookId) \
-        .order_by(func.max(Loan.loanDate).desc())
-    
+    recent_loans_query = Loan.query.order_by(Loan.loanDate.desc(), Loan.loanId.desc())
+
     recent_loans_pagination = recent_loans_query.paginate(page=recent_books_page, per_page=recent_books_per_page, error_out=False)
-    
+
     recent_books_info = []
-    for loan_info in recent_loans_pagination.items:
-        book = Book.query.get(loan_info.bookId)
-        if book:
-            active_loans_count = db.session.query(func.sum(Loan.amount)).filter_by(bookId=book.bookId, status=StatusLoan.ACTIVE).scalar() or 0
-            available_amount = book.amount - active_loans_count
-            recent_books_info.append({'book': book, 'available': available_amount})
+    for loan in recent_loans_pagination.items:
+        if loan.book:
+            recent_books_info.append({'book': loan.book, 'amount': loan.amount})
+
+    # Distribuição de palavras-chave por ocorrências na tabela de relacionamento KeyWordBooks
+    keyword_rows = db.session.query(
+        KeyWord.word,
+        func.count(KeyWordBook.wordId).label('usage_count')
+    ).join(
+        KeyWordBook, KeyWord.wordId == KeyWordBook.wordId
+    ).group_by(
+        KeyWord.wordId, KeyWord.word
+    ).order_by(
+        func.count(KeyWordBook.wordId).desc(), KeyWord.word.asc()
+    ).all()
+
+    keyword_top10 = [
+        {
+            'word': row.word,
+            'count': row.usage_count,
+        }
+        for row in keyword_rows[:10]
+    ]
 
     return render_template('dashboard.html',
                            total_books=total_books,
@@ -148,7 +163,8 @@ def dashboard():
                            loans=loans_pagination,
                            loan_filter=loan_filter,
                            recent_books=recent_books_info,
-                           recent_books_pagination=recent_loans_pagination)
+                           recent_books_pagination=recent_loans_pagination,
+                           keyword_top10=keyword_top10)
 
 
 @bp.route('/menu')
