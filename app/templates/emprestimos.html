@@ -38,6 +38,8 @@
             <thead>
                 <tr>
                     <th>Livro</th>
+                    <th>Autor</th>
+                    <th>Data Publicação</th>
                     <th>Usuário</th>
                     <th>Data Empréstimo</th>
                     <th>Data Devolução</th>
@@ -47,8 +49,14 @@
             </thead>
             <tbody>
                 {% for loan in loans.items %}
-                <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}">
-                    <td>{{ loan.book.bookName }}</td>
+                <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}" data-loan-status="{{ loan.status.name }}">
+                    <td>
+                        <span class="fade-hover-text" data-full="{{ loan.book.bookName }}">{{ loan.book.bookName }}</span>
+                    </td>
+                    <td>
+                        <span class="fade-hover-text" data-full="{{ loan.book.authorName or 'N/A' }}">{{ loan.book.authorName or 'N/A' }}</span>
+                    </td>
+                    <td>{{ loan.book.publishedDate.strftime('%d/%m/%Y') if loan.book.publishedDate else 'N/A' }}</td>
                     <td>{{ loan.user.username }}</td>
                     <td>{{ loan.loanDate.strftime('%d/%m/%Y') }}</td>
                     <td>{{ loan.returnDate.strftime('%d/%m/%Y') }}</td>
@@ -61,18 +69,14 @@
                                 data-loan-return-date="{{ loan.returnDate.isoformat() }}"
                                 onclick="event.stopPropagation();"
                                 title="Informar retorno">
-                            <i class="fas fa-undo"></i> Retornar
+                            <i class="fas fa-undo"></i> Informar retorno
                         </button>
                         {% endif %}
-                        <form action="{{ url_for('main.excluir_emprestimo', id=loan.loanId) }}" method="POST" onsubmit="event.stopPropagation(); return confirm('Tem certeza que deseja excluir este empréstimo?');" onclick="event.stopPropagation();">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
-                        </form>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="text-center">Nenhum empréstimo encontrado.</td>
+                    <td colspan="8" class="text-center">Nenhum empréstimo encontrado.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -97,6 +101,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-warning d-none" id="returnLoanFromEditBtn">
+                        <i class="fas fa-undo"></i> Informar retorno
+                    </button>
                     <button type="button" class="btn btn-primary" id="saveLoanBtn">Salvar</button>
                 </div>
             </div>
@@ -147,15 +154,79 @@
 document.addEventListener('DOMContentLoaded', function() {
     const loanModal = document.getElementById('loanModal');
     const saveLoanBtn = document.getElementById('saveLoanBtn');
+    const returnLoanFromEditBtn = document.getElementById('returnLoanFromEditBtn');
     const loanReturnModalEl = document.getElementById('loanReturnModal');
     const loanReturnForm = document.getElementById('loanReturnForm');
     const loanReturnError = document.getElementById('loanReturnError');
 
+    // Tooltip com atraso para campos truncados (Livro/Autor)
+    let hoverTimer = null;
+    let hoverTooltipEl = null;
+    let hoverTargetEl = null;
+
+    function clearDelayedTooltip() {
+        if (hoverTimer) {
+            clearTimeout(hoverTimer);
+            hoverTimer = null;
+        }
+        if (hoverTooltipEl) {
+            hoverTooltipEl.remove();
+            hoverTooltipEl = null;
+        }
+        hoverTargetEl = null;
+    }
+
+    function showDelayedTooltip(targetEl) {
+        const fullText = (targetEl?.getAttribute('data-full') || targetEl?.textContent || '').trim();
+        if (!fullText) return;
+
+        const rect = targetEl.getBoundingClientRect();
+        const tooltip = document.createElement('div');
+        tooltip.className = 'delayed-hover-tooltip';
+        tooltip.textContent = fullText;
+        tooltip.style.left = `${window.scrollX + rect.left}px`;
+        tooltip.style.top = `${window.scrollY + rect.top}px`;
+        document.body.appendChild(tooltip);
+        hoverTooltipEl = tooltip;
+    }
+
+    document.querySelectorAll('.fade-hover-text').forEach((el) => {
+        el.addEventListener('mouseenter', function() {
+            clearDelayedTooltip();
+            hoverTargetEl = el;
+            hoverTimer = setTimeout(() => {
+                if (hoverTargetEl === el) {
+                    showDelayedTooltip(el);
+                }
+            }, 1000);
+        });
+
+        el.addEventListener('mouseleave', function() {
+            if (hoverTargetEl === el) {
+                clearDelayedTooltip();
+            }
+        });
+    });
+
+    // Evita tooltip "solta" em mudanças de contexto
+    document.addEventListener('scroll', clearDelayedTooltip, true);
+    loanModal?.addEventListener('show.bs.modal', clearDelayedTooltip);
+
     loanModal.addEventListener('show.bs.modal', function (event) {
         const trigger = event.relatedTarget;
         const loanId = trigger.getAttribute('data-loan-id');
+        const loanStatus = trigger.getAttribute('data-loan-status');
         const modalTitle = loanModal.querySelector('.modal-title');
         const modalBody = loanModal.querySelector('.modal-body');
+
+        // botão de retorno no modal de edição (somente empréstimos ativos/atrasados)
+        if (loanId && ['ACTIVE', 'OVERDUE'].includes(loanStatus)) {
+            returnLoanFromEditBtn.classList.remove('d-none');
+            returnLoanFromEditBtn.setAttribute('data-loan-id', loanId);
+        } else {
+            returnLoanFromEditBtn.classList.add('d-none');
+            returnLoanFromEditBtn.removeAttribute('data-loan-id');
+        }
         
         modalTitle.textContent = 'Carregando...';
         modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
@@ -181,6 +252,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     const loanDate = modalBody.querySelector('input[name="loanDate"]');
                     const returnDate = modalBody.querySelector('input[name="returnDate"]');
+
+                    const isEditMode = !!loanId;
+                    if (isEditMode) {
+                        userSearch?.setAttribute('readonly', 'readonly');
+                        bookSearch?.setAttribute('readonly', 'readonly');
+                        loanDate?.setAttribute('readonly', 'readonly');
+                        const amountInput = modalBody.querySelector('input[name="amount"]');
+                        amountInput?.setAttribute('readonly', 'readonly');
+                    }
 
                     function setInfo(container, data) {
                         if (!container) return;
@@ -281,8 +361,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
 
-                    userSearch?.addEventListener('input', (e) => searchUsers(e.target.value));
-                    bookSearch?.addEventListener('input', (e) => searchBooks(e.target.value));
+                    if (!isEditMode) {
+                        userSearch?.addEventListener('input', (e) => searchUsers(e.target.value));
+                        bookSearch?.addEventListener('input', (e) => searchBooks(e.target.value));
+                    }
                     loanDate?.addEventListener('change', () => bookSearch?.value && searchBooks(bookSearch.value));
                     returnDate?.addEventListener('change', () => bookSearch?.value && searchBooks(bookSearch.value));
                 })();
@@ -328,33 +410,44 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Impede que clicar nas ações abra o modal de edição da linha
-    document.querySelectorAll('td form, .btn-return-loan').forEach((el) => {
+    document.querySelectorAll('.btn-return-loan').forEach((el) => {
         el.addEventListener('click', function(e) {
             e.stopPropagation();
         });
     });
 
     // Abrir modal de retorno
+    function openReturnModalForLoan(loanId, previousReturnDate) {
+        document.getElementById('returnLoanId').value = loanId || '';
+        document.getElementById('returnDateInput').valueAsDate = new Date();
+        if (!document.getElementById('returnDateInput').value && previousReturnDate) {
+            document.getElementById('returnDateInput').value = previousReturnDate;
+        }
+        document.getElementById('returnStatusInput').value = 'COMPLETED';
+        loanReturnError.classList.add('d-none');
+        loanReturnError.textContent = '';
+
+        const returnModal = new bootstrap.Modal(loanReturnModalEl);
+        returnModal.show();
+    }
+
     document.querySelectorAll('.btn-return-loan').forEach((btn) => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             const loanId = btn.getAttribute('data-loan-id');
             const previousReturnDate = btn.getAttribute('data-loan-return-date');
-            document.getElementById('returnLoanId').value = loanId || '';
-            // padrão: hoje
-            document.getElementById('returnDateInput').valueAsDate = new Date();
-            // fallback para data previamente cadastrada
-            if (!document.getElementById('returnDateInput').value && previousReturnDate) {
-                document.getElementById('returnDateInput').value = previousReturnDate;
-            }
-            document.getElementById('returnStatusInput').value = 'COMPLETED';
-            loanReturnError.classList.add('d-none');
-            loanReturnError.textContent = '';
-
-            const returnModal = new bootstrap.Modal(loanReturnModalEl);
-            returnModal.show();
+            openReturnModalForLoan(loanId, previousReturnDate);
         });
+    });
+
+    returnLoanFromEditBtn?.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const loanId = returnLoanFromEditBtn.getAttribute('data-loan-id');
+        const loanModalInstance = bootstrap.Modal.getInstance(loanModal);
+        loanModalInstance?.hide();
+        openReturnModalForLoan(loanId, null);
     });
 
     // Submeter retorno
