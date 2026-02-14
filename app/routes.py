@@ -410,7 +410,10 @@ def editar_emprestimo(loan_id):
     loan = Loan.query.get_or_404(loan_id)
     form = LoanForm(request.form)
     if form.validate():
-        form.populate_obj(loan)
+        # Regras de imutabilidade na edição:
+        # não permitir alterar livro, usuário, quantidade e data de início.
+        # apenas a data de devolução pode ser atualizada por esta rota.
+        loan.returnDate = form.returnDate.data
         loan.lastUpdate = date.today()
         loan.updatedBy = current_user.userId
         db.session.commit()
@@ -603,12 +606,17 @@ def excluir_livro(id):
 @bp.route('/excluir_emprestimo/<int:id>', methods=['POST'])
 @login_required
 def excluir_emprestimo(id):
+    return jsonify({
+        'success': False,
+        'errors': {'delete': ['A exclusão de empréstimos está desativada no sistema.']}
+    }), 403
+    """
     emprestimo = Loan.query.get_or_404(id)
     db.session.delete(emprestimo)
     db.session.commit()
     flash('Empréstimo excluído com sucesso!', 'success')
     return redirect(url_for('main.emprestimos'))
-
+    """
 
 @bp.route('/excluir_palavra_chave/<int:id>', methods=['POST'])
 @login_required
