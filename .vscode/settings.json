@@ -14,6 +14,7 @@
         "git add": true,
         "git commit": true,
         "c:\\Users\\praus\\OneDrive\\Documentos\\Trabalhos\\Programação\\SistemaBiblioteca\\venv\\Scripts\\python.exe": true,
-        ".vscode/settings.json": true
+        ".vscode/settings.json": true,
+        ".\\venv\\Scripts\\python.exe": true
     }
 }
