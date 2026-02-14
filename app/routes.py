@@ -374,9 +374,41 @@ def get_loan_form(loan_id):
     if loan_id:
         loan = Loan.query.get_or_404(loan_id)
         form = LoanForm(obj=loan)
+        user = loan.user
+        book = loan.book
+
+        loan_user_info = {
+            'identificationCode': getattr(user, 'identificationCode', None) or '—',
+            'name': getattr(user, 'userCompleteName', None) or getattr(user, 'username', None) or '—',
+            'age': _calc_age(getattr(user, 'birthDate', None)) if user else None,
+            'birthDate': user.birthDate.strftime('%d/%m/%Y') if user and user.birthDate else '—',
+            'gradeNumber': getattr(user, 'gradeNumber', None) or '—',
+            'className': getattr(user, 'className', None) or '—',
+            'cpf': getattr(user, 'cpf', None) or '—',
+            'rg': getattr(user, 'rg', None) or '—',
+        }
+
+        loan_book_info = {
+            'bookName': getattr(book, 'bookName', None) or '—',
+            'authorName': getattr(book, 'authorName', None) or '—',
+            'publisherName': getattr(book, 'publisherName', None) or '—',
+            'publishedDate': book.publishedDate.strftime('%d/%m/%Y') if book and book.publishedDate else '—',
+            'loanedAmount': loan.amount,
+            'keywords': ', '.join([kw.word for kw in book.keywords]) if book and getattr(book, 'keywords', None) else '—',
+        }
     else:
+        loan = None
         form = LoanForm()
-    return render_template('_loan_form.html', form=form, loan_id=loan_id)
+        loan_user_info = None
+        loan_book_info = None
+    return render_template(
+        '_loan_form.html',
+        form=form,
+        loan_id=loan_id,
+        loan=loan,
+        loan_user_info=loan_user_info,
+        loan_book_info=loan_book_info,
+    )
 
 @bp.route('/emprestimos/new', methods=['POST'])
 @login_required
@@ -410,18 +442,24 @@ def novo_emprestimo():
 @login_required
 def editar_emprestimo(loan_id):
     loan = Loan.query.get_or_404(loan_id)
-    form = LoanForm(request.form)
-    if form.validate():
-        # Regras de imutabilidade na edição:
-        # não permitir alterar livro, usuário, quantidade e data de início.
-        # apenas a data de devolução pode ser atualizada por esta rota.
-        loan.returnDate = form.returnDate.data
-        loan.lastUpdate = date.today()
-        loan.updatedBy = current_user.userId
-        db.session.commit()
-        flash('Empréstimo atualizado com sucesso!', 'success')
-        return jsonify({'success': True})
-    return jsonify({'success': False, 'errors': form.errors})
+    raw_return_date = (request.form.get('returnDate') or '').strip()
+    informed_return_date = _parse_date(raw_return_date)
+
+    if not informed_return_date:
+        return jsonify({'success': False, 'errors': {'returnDate': ['Informe uma data de devolução válida no formato YYYY-MM-DD.']}})
+
+    if informed_return_date < loan.loanDate:
+        return jsonify({'success': False, 'errors': {'returnDate': ['A data de devolução não pode ser anterior à data de empréstimo.']}})
+
+    # Regras de imutabilidade na edição:
+    # não permitir alterar livro, usuário, quantidade e data de início.
+    # apenas a data de devolução pode ser atualizada por esta rota.
+    loan.returnDate = informed_return_date
+    loan.lastUpdate = date.today()
+    loan.updatedBy = current_user.userId
+    db.session.commit()
+    flash('Empréstimo atualizado com sucesso!', 'success')
+    return jsonify({'success': True})
 
 
 @bp.route('/emprestimos/return/<int:loan_id>', methods=['POST'])

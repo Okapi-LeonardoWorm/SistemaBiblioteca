@@ -3,13 +3,19 @@
     <div class="row">
         <div class="col-md-6 mb-3">
             {{ form.loanDate.label(class="form-label") }}
+            {% if loan_id %}
+            {{ form.loanDate(class="form-control", type="date", readonly=true) }}
+            {% else %}
             {{ form.loanDate(class="form-control", type="date") }}
+            {% endif %}
         </div>
         <div class="col-md-6 mb-3">
             {{ form.returnDate.label(class="form-label") }}
             {{ form.returnDate(class="form-control", type="date") }}
         </div>
     </div>
+
+    {% if not loan_id %}
     <div class="small text-muted mb-2">Preencha o período primeiro para habilitar a seleção de usuário, livro e quantidade.</div>
 
     <div class="row">
@@ -45,6 +51,32 @@
         {{ form.amount.label(class="form-label") }}
         {{ form.amount(class="form-control", type="number") }}
     </div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Usuário</label>
+            <div class="small text-muted border rounded bg-light p-3" id="selectedUserInfoEdit">
+                <div><strong>Código:</strong> {{ loan_user_info.identificationCode if loan_user_info else '—' }}</div>
+                <div><strong>Nome:</strong> {{ loan_user_info.name if loan_user_info else '—' }}</div>
+                <div><strong>Idade:</strong> {{ loan_user_info.age if loan_user_info and loan_user_info.age is not none else '—' }}</div>
+                <div><strong>Data Nasc.:</strong> {{ loan_user_info.birthDate if loan_user_info else '—' }}</div>
+                <div><strong>Série/Turma:</strong> {{ loan_user_info.gradeNumber if loan_user_info else '—' }} / {{ loan_user_info.className if loan_user_info else '—' }}</div>
+                <div><strong>CPF/RG:</strong> {{ loan_user_info.cpf if loan_user_info else '—' }} / {{ loan_user_info.rg if loan_user_info else '—' }}</div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Livro</label>
+            <div class="small text-muted border rounded bg-light p-3" id="selectedBookInfoEdit">
+                <div><strong>Nome:</strong> {{ loan_book_info.bookName if loan_book_info else '—' }}</div>
+                <div><strong>Autor/Editora:</strong> {{ loan_book_info.authorName if loan_book_info else '—' }} / {{ loan_book_info.publisherName if loan_book_info else '—' }}</div>
+                <div><strong>Publicado:</strong> {{ loan_book_info.publishedDate if loan_book_info else '—' }}</div>
+                <div><strong>Livros emprestados:</strong> {{ loan_book_info.loanedAmount if loan_book_info else '—' }}</div>
+                <div><strong>Palavras-chave:</strong> {{ loan_book_info.keywords if loan_book_info else '—' }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="alert alert-danger d-none" id="loanFormError"></div>
 </form>
 <script>
@@ -180,8 +212,10 @@
         });
     }
 
-    userSearch?.addEventListener('input', (e) => searchUsers(e.target.value));
-    bookSearch?.addEventListener('input', (e) => searchBooks(e.target.value));
+    if (!isEditMode) {
+        userSearch?.addEventListener('input', (e) => searchUsers(e.target.value));
+        bookSearch?.addEventListener('input', (e) => searchBooks(e.target.value));
+    }
     loanDate?.addEventListener('change', () => { toggleDependentFields(); bookSearch?.value && searchBooks(bookSearch.value); });
     returnDate?.addEventListener('change', () => { toggleDependentFields(); bookSearch?.value && searchBooks(bookSearch.value); });
 
