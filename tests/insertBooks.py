@@ -1,7 +1,9 @@
-from app import app, db
+from app import createApp, db
 from pandas import pandas as pd
 from datetime import date
 from random import randint
+
+app = createApp()
 
 with app.app_context():
     import run

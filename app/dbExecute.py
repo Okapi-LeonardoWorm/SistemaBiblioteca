@@ -1,12 +1,11 @@
 from . import db
+from sqlalchemy import text
 
 
 def executeQuery(query, params=None):
     try:
-        cursor = db.connection.cursor()
-        cursor.execute(query, params)
-        db.connection.commit()
-        cursor.close()
+        db.session.execute(text(query), params or {})
+        db.session.commit()
     except Exception as e:
         print(f"\n{e}\n")
         db.session.rollback()

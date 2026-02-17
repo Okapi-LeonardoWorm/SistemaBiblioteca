@@ -67,8 +67,6 @@ def createApp(config_name: str | None = None):
         from . import forms, models, routes
         from .routes import bp as main_bp
         app.register_blueprint(main_bp)
-        # Cria as tabelas no banco de dados se elas não existirem
-        db.create_all()
     return app
 
 # Alias comum para compatibilidade com ferramentas/CLIs

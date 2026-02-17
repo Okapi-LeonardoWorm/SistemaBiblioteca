@@ -1,6 +1,8 @@
-import os
-import sqlite3
 from time import strftime
+from datetime import date
+
+from app import createApp, db
+from app.models import User
 
 # Usa Flask-Bcrypt se disponível; caso contrário, usa a lib bcrypt diretamente
 def hash_password(pw: str) -> str:
@@ -18,55 +20,37 @@ def hash_password(pw: str) -> str:
 
 
 def criaAdminUser():
-    # Encontrar o caminho do banco (preferir instance/biblioteca.db, senão biblioteca.db na raiz)
-    db_path = 'instance/biblioteca.db'
-    if not os.path.exists(db_path):
-        db_path = 'biblioteca.db'
-
-    # Conectar ao banco de dados
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # Verifica se o usuário admin (id=1) existe usando identificationCode
-    admin_row = cursor.execute(
-        'SELECT 1 FROM users WHERE "userId" = 1 AND "identificationCode" = ?',
-        ("admin",)
-    ).fetchone()
-    if admin_row:
-        # Atualiza dados essenciais do admin, incluindo senha e userType
-        try:
-            cursor.execute(
-                '''UPDATE users
-                   SET password = ?, "userType" = ?, "lastUpdate" = ?, "birthDate" = ?, "userCompleteName" = ?
-                 WHERE "userId" = 1''',
-                (
-                    hash_password("badminton"),
-                    "admin",
-                    strftime("%Y-%m-%d"),
-                    '1998-07-06',
-                    'Administrador'
-                )
+    app = createApp()
+    with app.app_context():
+        admin = User.query.filter_by(identificationCode='admin').first()
+        if admin:
+            admin.password = hash_password('badminton')
+            admin.userType = 'admin'
+            admin.lastUpdate = date.today()
+            admin.birthDate = date(1998, 7, 6)
+            admin.userCompleteName = 'Administrador'
+            if admin.updatedBy is None:
+                admin.updatedBy = admin.userId
+        else:
+            admin = User(
+                identificationCode='admin',
+                password=hash_password('badminton'),
+                userType='admin',
+                creationDate=date.today(),
+                lastUpdate=date.today(),
+                createdBy=None,
+                updatedBy=None,
+                birthDate=date(1998, 7, 6),
+                gradeNumber=None,
+                userCompleteName='Administrador',
             )
-            conn.commit()
-        except Exception as e:
-            print(f"Erro ao atualizar admin: {e}")
-    else:
-        # Criar o hash da senha e inserir o admin
-        password = "badminton"
-        hashed_password = hash_password(password)
+            db.session.add(admin)
 
         try:
-            cursor.execute('''
-                INSERT INTO users ("userId", "identificationCode", password, "userType", "creationDate", "lastUpdate", "createdBy", "updatedBy", "birthDate", "gradeNumber", "userCompleteName")
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (1, "admin", hashed_password, "admin", strftime("%Y-%m-%d"), strftime("%Y-%m-%d"), None, None, '1998-07-06', None, 'Administrador'))
-
-            conn.commit()
+            db.session.commit()
         except Exception as e:
-            print(f"Erro: {e}")
-
-    # Fechar a conexão
-    conn.close()
+            print(f"Erro ao criar/atualizar admin: {e}")
+            db.session.rollback()
 
 
 if __name__ == "__main__":
