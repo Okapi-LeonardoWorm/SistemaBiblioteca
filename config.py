@@ -5,7 +5,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = (
         os.environ.get('DATABASE_URL')
         or os.environ.get('SQLALCHEMY_DATABASE_URI')
-        or 'postgresql+psycopg2://biblioteca:biblioteca@localhost:5432/sistema_biblioteca'
+        or 'postgresql+psycopg2://biblioteca:biblioteca@localhost:5433/sistema_biblioteca'
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
@@ -15,7 +15,7 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = (
         os.environ.get('TEST_DATABASE_URL')
-        or 'postgresql+psycopg2://biblioteca:biblioteca@localhost:5432/sistema_biblioteca_test'
+        or 'postgresql+psycopg2://biblioteca:biblioteca@localhost:5433/sistema_biblioteca_test'
     )
     WTF_CSRF_ENABLED = False  # Disable CSRF forms protection in tests for simplicity
     SERVER_NAME = 'localhost'
