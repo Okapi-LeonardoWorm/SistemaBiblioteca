@@ -84,3 +84,132 @@ class TestRoutes(BaseTestCase):
         response = self.client.get(url_for('main.palavras_chave'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Tags', response.get_data(as_text=True))
+
+    def test_return_loan_rejects_invalid_status(self):
+        """Return endpoint should reject statuses other than COMPLETED and LOST."""
+        student = User(
+            username='student_return_invalid_status',
+            password='password',
+            userType='student',
+            birthDate=date(2006, 1, 2),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        book = Book(
+            bookName='Livro Retorno Inválido',
+            amount=2,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add_all([student, book])
+        db.session.commit()
+
+        loan = Loan(
+            amount=1,
+            loanDate=date.today(),
+            returnDate=date.today() + timedelta(days=7),
+            userId=student.userId,
+            bookId=book.bookId,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            status=StatusLoan.ACTIVE,
+        )
+        db.session.add(loan)
+        db.session.commit()
+
+        response = self.client.post(url_for('main.informar_retorno_emprestimo', loan_id=loan.loanId), data={
+            'status': 'ACTIVE',
+            'returnDate': date.today().strftime('%Y-%m-%d')
+        })
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json['success'])
+        self.assertIn('status', response.json['errors'])
+
+    def test_return_loan_rejects_date_before_loan_date(self):
+        """Return endpoint should reject returnDate earlier than the loan date."""
+        student = User(
+            username='student_return_invalid_date',
+            password='password',
+            userType='student',
+            birthDate=date(2006, 1, 3),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        book = Book(
+            bookName='Livro Retorno Data',
+            amount=2,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add_all([student, book])
+        db.session.commit()
+
+        loan = Loan(
+            amount=1,
+            loanDate=date.today(),
+            returnDate=date.today() + timedelta(days=7),
+            userId=student.userId,
+            bookId=book.bookId,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            status=StatusLoan.ACTIVE,
+        )
+        db.session.add(loan)
+        db.session.commit()
+
+        response = self.client.post(url_for('main.informar_retorno_emprestimo', loan_id=loan.loanId), data={
+            'status': 'COMPLETED',
+            'returnDate': (loan.loanDate - timedelta(days=1)).strftime('%Y-%m-%d')
+        })
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(response.json['success'])
+        self.assertIn('returnDate', response.json['errors'])
+
+    def test_return_loan_rejects_already_finalized(self):
+        """Return endpoint should reject loans already finalized as COMPLETED/LOST."""
+        student = User(
+            username='student_return_finalized',
+            password='password',
+            userType='student',
+            birthDate=date(2006, 1, 4),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        book = Book(
+            bookName='Livro Retorno Finalizado',
+            amount=2,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add_all([student, book])
+        db.session.commit()
+
+        loan = Loan(
+            amount=1,
+            loanDate=date.today() - timedelta(days=5),
+            returnDate=date.today() - timedelta(days=1),
+            userId=student.userId,
+            bookId=book.bookId,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            status=StatusLoan.COMPLETED,
+        )
+        db.session.add(loan)
+        db.session.commit()
+
+        response = self.client.post(url_for('main.informar_retorno_emprestimo', loan_id=loan.loanId), data={
+            'status': 'LOST',
+            'returnDate': date.today().strftime('%Y-%m-%d')
+        })
+
+        self.assertEqual(response.status_code, 409)
+        self.assertFalse(response.json['success'])
+        self.assertIn('status', response.json['errors'])

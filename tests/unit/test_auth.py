@@ -53,6 +53,24 @@ class TestAuth(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Usuário ou senha inválidos', response.get_data(as_text=True))
 
+    def test_login_rejects_username_with_extra_spaces(self):
+        """Login form should reject usernames containing surrounding spaces."""
+        response = self.client.post(url_for('main.login'), data={
+            'username': '  testuser  ',
+            'password': 'testpassword'
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('Olá, testuser!', response.get_data(as_text=True))
+
+    def test_login_rejects_username_with_special_characters(self):
+        """Login form regex should reject usernames with unsupported characters."""
+        response = self.client.post(url_for('main.login'), data={
+            'username': 'test@user',
+            'password': 'testpassword'
+        }, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('Olá, testuser!', response.get_data(as_text=True))
+
     def test_logout(self):
         """Test that a user can log out."""
         # First, log in the user
