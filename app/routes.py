@@ -63,6 +63,12 @@ def _parse_date(value: str):
     except Exception:
         return None
 
+def _get_config_bool(key: str) -> bool:
+    config_entry = Configuration.query.filter_by(key=key).first()
+    if not config_entry or config_entry.value is None:
+        return False
+    return str(config_entry.value).strip() == '1'
+
 def _available_copies_for_range(book, start_date, end_date):
     if not book:
         return 0
@@ -421,6 +427,8 @@ def cancelar_emprestimo(loan_id):
 @login_required
 def get_loan_form(loan_id):
     cancellation_available = False
+    can_edit_initial_note = False
+    can_edit_final_note = False
     now = datetime.now()
     if loan_id:
         loan = Loan.query.get_or_404(loan_id)
@@ -436,6 +444,15 @@ def get_loan_form(loan_id):
                 elapsed = (now - loan.creationDate).total_seconds() / 60
                 if elapsed <= cancellation_limit_minutes:
                     cancellation_available = True
+
+        is_active_loan = loan.status in (StatusLoan.ACTIVE, StatusLoan.OVERDUE)
+        is_finalized_loan = loan.status in (StatusLoan.COMPLETED, StatusLoan.LOST)
+
+        if is_active_loan:
+            can_edit_initial_note = _get_config_bool('PERMITE_ALTERAR_OBSERVACAO_INICIAL_EMPRESTIMO_ATIVO')
+        elif is_finalized_loan:
+            can_edit_initial_note = _get_config_bool('PERMITE_ALTERAR_OBSERVACAO_INICIAL_EMPRESTIMO_FINALIZADO')
+            can_edit_final_note = _get_config_bool('PERMITE_ALTERAR_OBSERVACAO_FINAL_EMPRESTIMO_FINALIZADO')
 
         loan_user_info = {
             'identificationCode': getattr(user, 'identificationCode', None) or '—',
@@ -468,7 +485,9 @@ def get_loan_form(loan_id):
         loan=loan,
         loan_user_info=loan_user_info,
         loan_book_info=loan_book_info,
-        cancellation_available=cancellation_available
+        cancellation_available=cancellation_available,
+        can_edit_initial_note=can_edit_initial_note,
+        can_edit_final_note=can_edit_final_note
     )
 
 @bp.route('/emprestimos/new', methods=['POST'])
@@ -505,6 +524,8 @@ def novo_emprestimo():
 def editar_emprestimo(loan_id):
     loan = Loan.query.get_or_404(loan_id)
     raw_return_date = (request.form.get('returnDate') or '').strip()
+    raw_initial_note = (request.form.get('initialNote') or '').strip()
+    raw_final_note = (request.form.get('finalNote') or '').strip()
     informed_return_date = _parse_date(raw_return_date)
 
     if not informed_return_date:
@@ -513,11 +534,39 @@ def editar_emprestimo(loan_id):
     if informed_return_date < loan.loanDate.date():
         return jsonify({'success': False, 'errors': {'returnDate': ['A data de devolução não pode ser anterior à data de empréstimo.']}})
 
+    current_initial_note = (loan.initialNote or '').strip()
+    current_final_note = (loan.finalNote or '').strip()
+
+    is_active_loan = loan.status in (StatusLoan.ACTIVE, StatusLoan.OVERDUE)
+    is_finalized_loan = loan.status in (StatusLoan.COMPLETED, StatusLoan.LOST)
+
+    can_edit_initial_note = False
+    can_edit_final_note = False
+    if is_active_loan:
+        can_edit_initial_note = _get_config_bool('PERMITE_ALTERAR_OBSERVACAO_INICIAL_EMPRESTIMO_ATIVO')
+    elif is_finalized_loan:
+        can_edit_initial_note = _get_config_bool('PERMITE_ALTERAR_OBSERVACAO_INICIAL_EMPRESTIMO_FINALIZADO')
+        can_edit_final_note = _get_config_bool('PERMITE_ALTERAR_OBSERVACAO_FINAL_EMPRESTIMO_FINALIZADO')
+
+    errors = {}
+    if raw_initial_note != current_initial_note and not can_edit_initial_note:
+        errors['initialNote'] = ['Alteração da observação inicial não permitida para este empréstimo.']
+
+    if raw_final_note != current_final_note and not can_edit_final_note:
+        errors['finalNote'] = ['Alteração da observação final não permitida para este empréstimo.']
+
+    if errors:
+        return jsonify({'success': False, 'errors': errors})
+
     # Regras de imutabilidade na edição:
     # não permitir alterar livro, usuário, quantidade e data de início.
     # apenas a data de devolução pode ser atualizada por esta rota.
     # Convert date back to datetime for consistent storage (default to midnight)
     loan.returnDate = datetime.combine(informed_return_date, datetime.min.time())
+    if can_edit_initial_note:
+        loan.initialNote = raw_initial_note
+    if can_edit_final_note:
+        loan.finalNote = raw_final_note
     loan.lastUpdate = datetime.now()
     loan.updatedBy = current_user.userId
     db.session.commit()

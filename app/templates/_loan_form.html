@@ -112,6 +112,31 @@
             </div>
         </div>
     </div>
+
+    <div class="mb-3">
+        {{ form.initialNote.label(class="form-label") }}
+        {% if can_edit_initial_note %}
+        {{ form.initialNote(class="form-control", rows=3, placeholder="Observações iniciais sobre o empréstimo (opcional)") }}
+        {% else %}
+        {{ form.initialNote(class="form-control", rows=3, placeholder="Observações iniciais sobre o empréstimo (opcional)", readonly=true) }}
+        <div class="form-text">Edição da observação inicial não permitida para este empréstimo.</div>
+        {% endif %}
+    </div>
+
+    <div class="mb-3">
+        <label for="finalNoteEdit" class="form-label">Observação Final</label>
+        <textarea
+            id="finalNoteEdit"
+            name="finalNote"
+            class="form-control"
+            rows="3"
+            placeholder="Observações finais sobre o empréstimo (opcional)"
+            {% if not can_edit_final_note %}readonly{% endif %}
+        >{{ loan.finalNote if loan and loan.finalNote else '' }}</textarea>
+        {% if not can_edit_final_note %}
+        <div class="form-text">Edição da observação final não permitida para este empréstimo.</div>
+        {% endif %}
+    </div>
     {% endif %}
 
     <div class="alert alert-danger d-none" id="loanFormError"></div>
