@@ -118,6 +118,7 @@ class LoanForm(FlaskForm):
         DataRequired(), NumberRange(min=1)])
     bookId = IntegerField('ID do Livro', validators=[
         DataRequired(), NumberRange(min=1)])
+    initialNote = TextAreaField('Observação', validators=[Optional()])
     submit = SubmitField('Cadastrar')
 
 

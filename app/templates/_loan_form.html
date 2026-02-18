@@ -83,6 +83,11 @@
         {{ form.amount.label(class="form-label") }}
         {{ form.amount(class="form-control", type="number") }}
     </div>
+
+    <div class="mb-3">
+        {{ form.initialNote.label(class="form-label") }}
+        {{ form.initialNote(class="form-control", rows=3, placeholder="Observações iniciais sobre o empréstimo (opcional)") }}
+    </div>
     {% else %}
     <div class="row">
         <div class="col-md-6 mb-3">

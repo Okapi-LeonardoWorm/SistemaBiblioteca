@@ -482,6 +482,7 @@ def novo_emprestimo():
             returnDate=form.returnDate.data,
             userId=form.userId.data,
             bookId=form.bookId.data,
+            initialNote=form.initialNote.data,
             creationDate=datetime.now(),
             lastUpdate=datetime.now(),
             createdBy=current_user.userId,
@@ -539,6 +540,7 @@ def informar_retorno_emprestimo(loan_id):
     # Aceita tanto form-data quanto JSON
     raw_status = (request.form.get('status') or (request.get_json(silent=True) or {}).get('status') or '').strip().upper()
     raw_return_date = (request.form.get('returnDate') or (request.get_json(silent=True) or {}).get('returnDate') or '').strip()
+    raw_final_note = (request.form.get('finalNote') or (request.get_json(silent=True) or {}).get('finalNote') or '').strip()
 
     allowed = {'COMPLETED', 'LOST'}
     if raw_status not in allowed:
@@ -584,6 +586,7 @@ def informar_retorno_emprestimo(loan_id):
 
     loan.returnDate = datetime.combine(informed_return_date, datetime.min.time())
     loan.status = StatusLoan[raw_status]
+    loan.finalNote = raw_final_note
     loan.lastUpdate = datetime.now()
     loan.updatedBy = current_user.userId
 
