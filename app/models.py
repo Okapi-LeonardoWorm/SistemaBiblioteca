@@ -213,3 +213,34 @@ class Configuration(db.Model):
             except ValueError:
                 return value
         return value
+
+
+class ConfigSpec(db.Model):
+    __tablename__ = 'config_specs'
+
+    configSpecId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    key = db.Column(db.String(100), nullable=False, unique=True)
+    valueType = db.Column(db.String(20), nullable=False, default='string')
+    allowedValues = db.Column(db.Text, nullable=True)
+    minValue = db.Column(db.Integer, nullable=True)
+    maxValue = db.Column(db.Integer, nullable=True)
+    required = db.Column(db.Boolean, nullable=False, default=False)
+    defaultValue = db.Column(db.Text, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+
+    @validates('creationDate', 'lastUpdate')
+    def _convert_dates(self, key, value):
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, '%Y-%m-%d')
+            except ValueError:
+                pass
+            try:
+                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return value
+        return value

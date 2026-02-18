@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import (DateField, IntegerField, PasswordField, StringField,
-                     SubmitField, RadioField, SelectField, TextAreaField)
+                     SubmitField, RadioField, SelectField, TextAreaField, BooleanField)
 from wtforms.validators import (DataRequired, InputRequired, Length,
                                 NumberRange, Optional, Regexp, ValidationError)
 from .models import User
@@ -250,3 +250,49 @@ class UserForm(FlaskForm):
         if not (7 <= len(digits) <= 14):
             raise ValidationError('RG deve conter entre 7 e 14 dígitos.')
         rg.data = digits
+
+
+class ConfigForm(FlaskForm):
+    key = StringField(
+        'Chave',
+        validators=[
+            DataRequired(),
+            Length(min=3, max=100),
+            Regexp(r'^[A-Za-z0-9_]+$', message='A chave deve conter apenas letras, números e underscore (_).')
+        ]
+    )
+    value = TextAreaField('Valor', validators=[Optional()])
+    description = TextAreaField('Descrição da Configuração', validators=[Optional()])
+
+    valueType = SelectField(
+        'Tipo de Valor',
+        choices=[
+            ('string', 'Texto'),
+            ('integer', 'Inteiro'),
+            ('boolean', 'Booleano (0/1)'),
+            ('enum', 'Lista de opções')
+        ],
+        validators=[DataRequired()]
+    )
+    allowedValues = StringField('Valores Permitidos (separados por vírgula)', validators=[Optional()])
+    minValue = IntegerField('Valor Mínimo (inteiro)', validators=[Optional()])
+    maxValue = IntegerField('Valor Máximo (inteiro)', validators=[Optional()])
+    required = BooleanField('Obrigatório')
+    defaultValue = StringField('Valor Padrão', validators=[Optional()])
+    specDescription = TextAreaField('Descrição da Regra', validators=[Optional()])
+    submit = SubmitField('Salvar Configuração')
+
+    def validate_key(self, field):
+        field.data = (field.data or '').strip().upper()
+
+    def validate_allowedValues(self, field):
+        if self.valueType.data == 'enum':
+            options = [item.strip() for item in (field.data or '').split(',') if item.strip()]
+            if not options:
+                raise ValidationError('Informe ao menos uma opção para tipo enum.')
+            field.data = ', '.join(options)
+
+    def validate_maxValue(self, field):
+        if self.valueType.data == 'integer' and self.minValue.data is not None and field.data is not None:
+            if field.data < self.minValue.data:
+                raise ValidationError('O valor máximo deve ser maior ou igual ao mínimo.')

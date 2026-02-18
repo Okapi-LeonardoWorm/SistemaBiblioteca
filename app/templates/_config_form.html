@@ -1,0 +1,85 @@
+<form id="configModalForm" action="{{ url_for('main.nova_configuracao') if not config_id else url_for('main.editar_configuracao', config_id=config_id) }}" method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            {{ form.key.label(class="form-label") }}
+            {% if config_id %}
+            {{ form.key(class="form-control", readonly=true) }}
+            {% else %}
+            {{ form.key(class="form-control", placeholder="EXEMPLO_DE_CHAVE") }}
+            {% endif %}
+            <div class="form-text">Use letras, números e underscore. A chave será normalizada para maiúsculo.</div>
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form.valueType.label(class="form-label") }}
+            {{ form.valueType(class="form-select", id="configValueType") }}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        {{ form.value.label(class="form-label") }}
+        {{ form.value(class="form-control", rows=2, placeholder="Valor efetivo da configuração") }}
+    </div>
+
+    <div class="mb-3">
+        {{ form.description.label(class="form-label") }}
+        {{ form.description(class="form-control", rows=2, placeholder="Descrição funcional da configuração") }}
+    </div>
+
+    <hr>
+    <h6 class="mb-3">Regras de validação</h6>
+
+    <div class="row" id="enumOptionsRow">
+        <div class="col-12 mb-3">
+            {{ form.allowedValues.label(class="form-label") }}
+            {{ form.allowedValues(class="form-control", placeholder="opcao1, opcao2, opcao3") }}
+        </div>
+    </div>
+
+    <div class="row" id="integerLimitsRow">
+        <div class="col-md-6 mb-3">
+            {{ form.minValue.label(class="form-label") }}
+            {{ form.minValue(class="form-control", type="number") }}
+        </div>
+        <div class="col-md-6 mb-3">
+            {{ form.maxValue.label(class="form-label") }}
+            {{ form.maxValue(class="form-control", type="number") }}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-3 d-flex align-items-center">
+            <div class="form-check mt-4">
+                {{ form.required(class="form-check-input") }}
+                {{ form.required.label(class="form-check-label") }}
+            </div>
+        </div>
+        <div class="col-md-8 mb-3">
+            {{ form.defaultValue.label(class="form-label") }}
+            {{ form.defaultValue(class="form-control", placeholder="Opcional") }}
+        </div>
+    </div>
+
+    <div class="mb-3">
+        {{ form.specDescription.label(class="form-label") }}
+        {{ form.specDescription(class="form-control", rows=2, placeholder="Descrição técnica da regra") }}
+    </div>
+</form>
+
+<script>
+(function() {
+    const typeInput = document.getElementById('configValueType');
+    const enumRow = document.getElementById('enumOptionsRow');
+    const integerRow = document.getElementById('integerLimitsRow');
+
+    function updateTypeBlocks() {
+        const t = typeInput ? typeInput.value : 'string';
+        enumRow.style.display = (t === 'enum') ? '' : 'none';
+        integerRow.style.display = (t === 'integer') ? '' : 'none';
+    }
+
+    typeInput?.addEventListener('change', updateTypeBlocks);
+    updateTypeBlocks();
+})();
+</script>

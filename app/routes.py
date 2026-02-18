@@ -8,10 +8,10 @@ from flask import Blueprint
 from . import bcrypt, db
 from .dbExecute import addFromForm
 from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
-                    SearchBooksForm, UserForm, SearchLoansForm)
+                    SearchBooksForm, UserForm, SearchLoansForm, ConfigForm)
 
 
-from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration
+from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration, ConfigSpec
 import unicodedata
 from .validaEmprestimo import validaEmprestimo
 
@@ -68,6 +68,67 @@ def _get_config_bool(key: str) -> bool:
     if not config_entry or config_entry.value is None:
         return False
     return str(config_entry.value).strip() == '1'
+
+def _is_admin_user() -> bool:
+    return bool(getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'userType', None) == 'admin')
+
+def _parse_allowed_values(raw: str):
+    return [item.strip() for item in (raw or '').split(',') if item.strip()]
+
+def _normalize_boolean_string(raw_value: str):
+    normalized = (raw_value or '').strip().lower()
+    if normalized in ('1', 'true', 'sim', 'yes'):
+        return '1'
+    if normalized in ('0', 'false', 'nao', 'não', 'no'):
+        return '0'
+    return None
+
+def _validate_config_value(raw_value: str, spec: ConfigSpec):
+    value = (raw_value or '').strip()
+    if spec.required and not value:
+        return False, None, 'Este valor é obrigatório.'
+    if not value:
+        return True, '', None
+
+    if spec.valueType == 'boolean':
+        bool_value = _normalize_boolean_string(value)
+        if bool_value is None:
+            return False, None, 'Valor inválido. Para booleano, use 0 ou 1.'
+        return True, bool_value, None
+
+    if spec.valueType == 'integer':
+        try:
+            int_value = int(value)
+        except (TypeError, ValueError):
+            return False, None, 'Valor inválido. Informe um número inteiro.'
+
+        if spec.minValue is not None and int_value < spec.minValue:
+            return False, None, f'Valor deve ser maior ou igual a {spec.minValue}.'
+        if spec.maxValue is not None and int_value > spec.maxValue:
+            return False, None, f'Valor deve ser menor ou igual a {spec.maxValue}.'
+        return True, str(int_value), None
+
+    if spec.valueType == 'enum':
+        allowed = _parse_allowed_values(spec.allowedValues)
+        if not allowed:
+            return False, None, 'A configuração enum não possui opções válidas definidas.'
+        if value not in allowed:
+            return False, None, f'Valor inválido. Opções permitidas: {", ".join(allowed)}.'
+        return True, value, None
+
+    return True, value, None
+
+def _build_or_update_spec_from_form(form: ConfigForm, existing_spec: ConfigSpec | None = None):
+    spec = existing_spec or ConfigSpec()
+    spec.key = form.key.data
+    spec.valueType = form.valueType.data
+    spec.allowedValues = (form.allowedValues.data or '').strip() or None
+    spec.minValue = form.minValue.data if form.valueType.data == 'integer' else None
+    spec.maxValue = form.maxValue.data if form.valueType.data == 'integer' else None
+    spec.required = bool(form.required.data)
+    spec.defaultValue = (form.defaultValue.data or '').strip() or None
+    spec.description = (form.specDescription.data or '').strip() or None
+    return spec
 
 def _available_copies_for_range(book, start_date, end_date):
     if not book:
@@ -888,6 +949,144 @@ def delete_user(user_id):
     db.session.commit()
     flash('Usuário excluído com sucesso!', 'success')
     return redirect(url_for('main.list_users'))
+
+
+# Configuration Management Routes
+@bp.route('/configuracoes')
+@login_required
+def configuracoes():
+    if not _is_admin_user():
+        flash('Acesso negado. Você precisa ser um administrador.', 'warning')
+        return redirect(url_for('main.menu'))
+
+    query = Configuration.query
+    search_term = (request.args.get('search') or '').strip()
+    if search_term:
+        query = query.filter(
+            or_(
+                Configuration.key.ilike(f'%{search_term}%'),
+                Configuration.description.ilike(f'%{search_term}%')
+            )
+        )
+
+    page = request.args.get(get_page_parameter(), type=int, default=1)
+    per_page = request.args.get('per_page', type=int, default=20)
+    configs = query.order_by(Configuration.key.asc(), Configuration.configId.asc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    keys = [cfg.key for cfg in configs.items if cfg.key]
+    specs_by_key = {}
+    if keys:
+        specs = ConfigSpec.query.filter(ConfigSpec.key.in_(keys)).all()
+        specs_by_key = {spec.key: spec for spec in specs}
+
+    return render_template('configuracoes.html', configs=configs, search_term=search_term, per_page=per_page, specs_by_key=specs_by_key)
+
+
+@bp.route('/configuracoes/form', defaults={'config_id': None}, methods=['GET'])
+@bp.route('/configuracoes/form/<int:config_id>', methods=['GET'])
+@login_required
+def get_config_form(config_id):
+    if not _is_admin_user():
+        return '<p class="text-danger">Acesso negado.</p>', 403
+
+    if config_id:
+        config = Configuration.query.get_or_404(config_id)
+        form = ConfigForm(obj=config)
+        spec = ConfigSpec.query.filter_by(key=config.key).first()
+        if spec:
+            form.valueType.data = spec.valueType
+            form.allowedValues.data = spec.allowedValues
+            form.minValue.data = spec.minValue
+            form.maxValue.data = spec.maxValue
+            form.required.data = spec.required
+            form.defaultValue.data = spec.defaultValue
+            form.specDescription.data = spec.description
+    else:
+        config = None
+        form = ConfigForm()
+        form.valueType.data = 'string'
+
+    return render_template('_config_form.html', form=form, config=config, config_id=config_id)
+
+
+@bp.route('/configuracoes/new', methods=['POST'])
+@login_required
+def nova_configuracao():
+    if not _is_admin_user():
+        return jsonify({'success': False, 'errors': {'auth': ['Acesso negado.']}}), 403
+
+    form = ConfigForm()
+    if not form.validate_on_submit():
+        return jsonify({'success': False, 'errors': form.errors})
+
+    existing = Configuration.query.filter_by(key=form.key.data).first()
+    if existing:
+        return jsonify({'success': False, 'errors': {'key': ['Esta chave já existe. Edite o registro existente.']}})
+
+    spec = _build_or_update_spec_from_form(form)
+    ok, normalized_value, error_msg = _validate_config_value(form.value.data, spec)
+    if not ok:
+        return jsonify({'success': False, 'errors': {'value': [error_msg]}})
+
+    spec.createdBy = current_user.userId
+    spec.updatedBy = current_user.userId
+    spec.creationDate = datetime.now()
+    spec.lastUpdate = datetime.now()
+
+    new_config = Configuration(
+        key=form.key.data,
+        value=normalized_value,
+        description=(form.description.data or '').strip() or None,
+        creationDate=datetime.now(),
+        lastUpdate=datetime.now(),
+        createdBy=current_user.userId,
+        updatedBy=current_user.userId,
+    )
+    db.session.add(spec)
+    db.session.add(new_config)
+    db.session.commit()
+    flash('Configuração criada com sucesso!', 'success')
+    return jsonify({'success': True})
+
+
+@bp.route('/configuracoes/edit/<int:config_id>', methods=['POST'])
+@login_required
+def editar_configuracao(config_id):
+    if not _is_admin_user():
+        return jsonify({'success': False, 'errors': {'auth': ['Acesso negado.']}}), 403
+
+    config = Configuration.query.get_or_404(config_id)
+    form = ConfigForm(request.form)
+    if not form.validate():
+        return jsonify({'success': False, 'errors': form.errors})
+
+    if form.key.data != config.key:
+        return jsonify({'success': False, 'errors': {'key': ['A chave não pode ser alterada na edição.']}})
+
+    spec = ConfigSpec.query.filter_by(key=config.key).first()
+    spec = _build_or_update_spec_from_form(form, spec)
+    ok, normalized_value, error_msg = _validate_config_value(form.value.data, spec)
+    if not ok:
+        return jsonify({'success': False, 'errors': {'value': [error_msg]}})
+
+    if not spec.configSpecId:
+        spec.createdBy = current_user.userId
+        spec.creationDate = datetime.now()
+        db.session.add(spec)
+
+    spec.updatedBy = current_user.userId
+    spec.lastUpdate = datetime.now()
+
+    config.value = normalized_value
+    config.description = (form.description.data or '').strip() or None
+    config.lastUpdate = datetime.now()
+    config.updatedBy = current_user.userId
+    db.session.commit()
+    flash('Configuração atualizada com sucesso!', 'success')
+    return jsonify({'success': True})
+
+
+
 
 
 # JSON APIs para autocomplete no modal de novo empréstimo

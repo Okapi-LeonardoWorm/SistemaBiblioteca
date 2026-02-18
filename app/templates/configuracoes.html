@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/pagination.html' import render_pagination %}
+
+{% block title %}Gerenciar Configurações{% endblock %}
+
+{% block head_links %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/management.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <header class="management-header">
+        <h1 class="h3">Gerenciar Configurações</h1>
+        <form class="search-form" method="GET" action="{{ url_for('main.configuracoes') }}">
+            <input type="text" name="search" class="form-control" placeholder="Buscar por chave ou descrição..." value="{{ search_term or '' }}">
+            <button type="submit" class="btn btn-primary">Buscar</button>
+        </form>
+    </header>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#configModal" data-config-id="">
+            <i class="fas fa-plus"></i> Nova Configuração
+        </button>
+
+        <form method="GET" action="{{ url_for('main.configuracoes') }}" class="d-flex align-items-center">
+            <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
+            <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Chave</th>
+                    <th>Valor</th>
+                    <th>Tipo</th>
+                    <th>Obrigatório</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for config in configs.items %}
+                {% set spec = specs_by_key.get(config.key) %}
+                <tr data-bs-toggle="modal" data-bs-target="#configModal" data-config-id="{{ config.configId }}">
+                    <td><code>{{ config.key }}</code></td>
+                    <td>{{ config.value or '—' }}</td>
+                    <td>{{ spec.valueType if spec else 'string' }}</td>
+                    <td>{{ 'Sim' if spec and spec.required else 'Não' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center">Nenhuma configuração encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-3">
+        {{ render_pagination(configs, search=search_term, per_page=per_page) }}
+    </div>
+
+    <div class="modal fade" id="configModal" tabindex="-1" aria-labelledby="configModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="configModalLabel">Carregando...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveConfigBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const configModal = document.getElementById('configModal');
+    const saveConfigBtn = document.getElementById('saveConfigBtn');
+
+    function collectErrors(errors) {
+        return Object.entries(errors || {})
+            .map(([field, messages]) => `${field}: ${(messages || []).join(', ')}`)
+            .join('\n');
+    }
+
+    function saveConfig() {
+        const form = document.getElementById('configModalForm');
+        if (!form) return;
+
+        const formData = new FormData(form);
+        const actionUrl = form.getAttribute('action');
+
+        fetch(actionUrl, {
+            method: 'POST',
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+                return;
+            }
+            alert('Erro de validação:\n' + collectErrors(data.errors));
+        })
+        .catch(() => {
+            alert('Ocorreu um erro ao salvar a configuração.');
+        });
+    }
+
+    configModal.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        const configId = trigger.getAttribute('data-config-id');
+        const modalTitle = configModal.querySelector('.modal-title');
+        const modalBody = configModal.querySelector('.modal-body');
+
+        modalTitle.textContent = 'Carregando...';
+        modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        const formUrl = configId ? `/configuracoes/form/${configId}` : '/configuracoes/form';
+
+        fetch(formUrl)
+            .then(response => response.text())
+            .then(html => {
+                modalTitle.textContent = configId ? 'Editar Configuração' : 'Nova Configuração';
+                modalBody.innerHTML = html;
+
+                const formEl = document.getElementById('configModalForm');
+                if (formEl) {
+                    formEl.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        saveConfig();
+                    });
+                }
+            })
+            .catch(() => {
+                modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
+            });
+    });
+
+    saveConfigBtn.addEventListener('click', saveConfig);
+});
+</script>
+{% endblock %}

@@ -1,6 +1,6 @@
 from tests.unit.base import BaseTestCase
 from flask import url_for
-from app.models import User, Book, Loan, KeyWord, StatusLoan
+from app.models import User, Book, Loan, KeyWord, StatusLoan, Configuration, ConfigSpec
 from app import db, bcrypt
 from datetime import date, timedelta
 
@@ -347,3 +347,37 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.json['success'])
         self.assertIn('word', response.json['errors'])
+
+    def test_create_config_rejects_invalid_boolean_value(self):
+        """/configuracoes/new should reject values different from 0/1 for boolean type."""
+        response = self.client.post(url_for('main.nova_configuracao'), data={
+            'key': 'PERMITE_RENOVAR_EMPRESTIMO',
+            'value': 'talvez',
+            'valueType': 'boolean',
+            'required': 'y'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json['success'])
+        self.assertIn('value', response.json['errors'])
+
+    def test_create_config_creates_spec_and_normalizes_boolean(self):
+        """/configuracoes/new should create config+spec and normalize boolean to 1/0."""
+        response = self.client.post(url_for('main.nova_configuracao'), data={
+            'key': 'PERMITE_RESERVA',
+            'value': 'true',
+            'description': 'Permite reservar livros',
+            'valueType': 'boolean',
+            'required': 'y',
+            'specDescription': 'Flag booleana de reserva'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        config = Configuration.query.filter_by(key='PERMITE_RESERVA').first()
+        spec = ConfigSpec.query.filter_by(key='PERMITE_RESERVA').first()
+        self.assertIsNotNone(config)
+        self.assertIsNotNone(spec)
+        self.assertEqual(config.value, '1')
+        self.assertEqual(spec.valueType, 'boolean')

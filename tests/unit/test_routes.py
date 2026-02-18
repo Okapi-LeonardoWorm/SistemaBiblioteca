@@ -85,6 +85,12 @@ class TestRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Tags', response.get_data(as_text=True))
 
+    def test_configuracoes_route(self):
+        """Test that the configuration management page is accessible for admin users."""
+        response = self.client.get(url_for('main.configuracoes'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Gerenciar Configurações', response.get_data(as_text=True))
+
     def test_return_loan_rejects_invalid_status(self):
         """Return endpoint should reject statuses other than COMPLETED and LOST."""
         student = User(

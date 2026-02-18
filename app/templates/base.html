@@ -48,6 +48,9 @@
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('main.palavras_chave') }}">Tags</a>
                   </li>
+                  <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('main.configuracoes') }}">Configurações</a>
+                  </li>
                 {% endif %}
               </ul>
               <span class="navbar-text me-3">Logado como: {{ current_user.username }}</span>
