@@ -189,7 +189,7 @@ class RolePermission(db.Model):
 
 
 class Configuration(db.Model):
-    __tablename__ = 'configurations'
+    __tablename__ = 'config'
 
     configId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     reference = db.Column(db.Integer, nullable=True)
