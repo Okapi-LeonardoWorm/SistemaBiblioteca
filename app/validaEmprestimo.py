@@ -25,10 +25,14 @@ def v3(form, activeBookLoans, book):
     print("availableBooks INI: ", availableBooks)
     # Itera sobre todos os empréstimos ativos
     for loan in activeBookLoans:
+        loan_start = loan.loanDate.date() if hasattr(loan.loanDate, 'date') else loan.loanDate
+        loan_end = loan.returnDate.date() if hasattr(loan.returnDate, 'date') else loan.returnDate
+        
         # Verifica se as datas de empréstimo solicitadas coincidem com as datas dos empréstimos existentes
         # if form.loanDate.data <= loan.returnDate and form.returnDate.data >= loan.loanDate: # Logica do GitHub Copilot
         # if form.returnDate.data > loan.loanDate >= form.loanDate.data or form.loanDate.data <= loan.returnDate < form.returnDate.data: # Minha lógica
-        if form.loanDate.data < loan.returnDate and form.returnDate.data > loan.loanDate: # Logica do GPT
+        
+        if form.loanDate.data < loan_end and form.returnDate.data > loan_start: # Logica do GPT
             availableBooks -= loan.amount
     print("availableBooks: END", availableBooks)
     

@@ -1,5 +1,5 @@
 from time import strftime
-from datetime import date
+from datetime import date, datetime
 
 from app import createApp, db
 from app.models import User
@@ -26,7 +26,7 @@ def criaAdminUser():
         if admin:
             admin.password = hash_password('badminton')
             admin.userType = 'admin'
-            admin.lastUpdate = date.today()
+            admin.lastUpdate = datetime.now()
             admin.birthDate = date(1998, 7, 6)
             admin.userCompleteName = 'Administrador'
             if admin.updatedBy is None:
@@ -36,8 +36,8 @@ def criaAdminUser():
                 identificationCode='admin',
                 password=hash_password('badminton'),
                 userType='admin',
-                creationDate=date.today(),
-                lastUpdate=date.today(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
                 createdBy=None,
                 updatedBy=None,
                 birthDate=date(1998, 7, 6),

@@ -136,8 +136,8 @@ def insert_users(start, end):
                 username=username,  # synonym para identificationCode
                 password=hashed_password,
                 userType="visitor",
-                creationDate=date.today(),
-                lastUpdate=date.today(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
                 createdBy=1,
                 updatedBy=1,
                 birthDate=birth,
@@ -175,6 +175,26 @@ def insert_users_from_list(user_list):
             else:
                 birth = date(2000, 1, 1)
 
+            # Tratamento de datas de criação e atualização
+            creationDate_str = user.get("creationDate")
+            lastUpdate_str = user.get("lastUpdate")
+            
+            try:
+                creationDate = datetime.strptime(creationDate_str, "%Y-%m-%d %H:%M:%S") if creationDate_str else datetime.now()
+            except ValueError:
+                try:
+                    creationDate = datetime.strptime(creationDate_str, "%Y-%m-%d") if creationDate_str else datetime.now()
+                except ValueError:
+                    creationDate = datetime.now()
+
+            try:
+                lastUpdate = datetime.strptime(lastUpdate_str, "%Y-%m-%d %H:%M:%S") if lastUpdate_str else datetime.now()
+            except ValueError:
+                try:
+                    lastUpdate = datetime.strptime(lastUpdate_str, "%Y-%m-%d") if lastUpdate_str else datetime.now()
+                except ValueError:
+                    lastUpdate = datetime.now()
+
             # pular se já existe
             if db.session.query(User.userId).filter_by(identificationCode=username).first():
                 continue
@@ -183,8 +203,8 @@ def insert_users_from_list(user_list):
                 username=username,  # synonym para identificationCode
                 password=hashed_password,
                 userType=user.get("userType", "visitor"),
-                creationDate=date.today(),
-                lastUpdate=date.today(),
+                creationDate=creationDate,
+                lastUpdate=lastUpdate,
                 createdBy=1,
                 updatedBy=1,
                 birthDate=birth,
@@ -218,7 +238,7 @@ def insert_books(start, end):
             authorName = f"author_{i}"
             publisherName = f"publisher_{i}"
             publishedDate = date.today()
-            acquisitionDate = date.today()
+            acquisitionDate = datetime.now()
             description = f"description_{i}"
 
             new_book = Book(
@@ -229,8 +249,8 @@ def insert_books(start, end):
                 publishedDate=publishedDate,
                 acquisitionDate=acquisitionDate,
                 description=description,
-                creationDate=date.today(),
-                lastUpdate=date.today(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
                 createdBy=1,
                 updatedBy=1,
             )
@@ -280,9 +300,12 @@ def insert_books_from_list(book_list):
                 publishedDate = date.today()
 
             try:
-                acquisitionDate = datetime.strptime(acquisitionDate_str, "%Y-%m-%d").date() if acquisitionDate_str else date.today()
+                acquisitionDate = datetime.strptime(acquisitionDate_str, "%Y-%m-%d %H:%M:%S") if acquisitionDate_str else datetime.now()
             except ValueError:
-                acquisitionDate = date.today()
+                try:
+                    acquisitionDate = datetime.strptime(acquisitionDate_str, "%Y-%m-%d") if acquisitionDate_str else datetime.now()
+                except ValueError:
+                    acquisitionDate = datetime.now()
 
             new_book = Book(
                 bookName=bookName,
@@ -292,8 +315,8 @@ def insert_books_from_list(book_list):
                 publishedDate=publishedDate,
                 acquisitionDate=acquisitionDate,
                 description=description,
-                creationDate=date.today(),
-                lastUpdate=date.today(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
                 createdBy=1,
                 updatedBy=1,
             )
@@ -318,8 +341,8 @@ def insert_keyWord(start, end):
 
             new_keyWord = KeyWord(
                 word=word,
-                creationDate=date.today(),
-                lastUpdate=date.today(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
                 createdBy=1,
                 updatedBy=1,
             )
@@ -349,8 +372,8 @@ def insert_keyword_from_list(list):
 
             new_keyWord = KeyWord(
                 word=word,
-                creationDate=date.today(),
-                lastUpdate=date.today(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
                 createdBy=1,
                 updatedBy=1,
             )

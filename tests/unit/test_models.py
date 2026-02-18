@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from tests.unit.base import BaseTestCase
 from app import db
 from app.models import User, Book, Loan, KeyWord, StatusLoan
@@ -21,8 +21,8 @@ class TestModels(BaseTestCase):
             amount=42,
             createdBy=admin.userId,
             updatedBy=admin.userId,
-            creationDate=date.today(),
-            lastUpdate=date.today()
+            creationDate=datetime.now(),
+            lastUpdate=datetime.now()
         )
         db.session.add(b)
         db.session.commit()
@@ -38,8 +38,8 @@ class TestModels(BaseTestCase):
             amount=1,
             createdBy=admin.userId,
             updatedBy=admin.userId,
-            creationDate=date.today(),
-            lastUpdate=date.today()
+            creationDate=datetime.now(),
+            lastUpdate=datetime.now()
         )
         db.session.add_all([student, book])
         db.session.commit()
@@ -48,13 +48,13 @@ class TestModels(BaseTestCase):
             userId=student.userId,
             bookId=book.bookId,
             amount=1,
-            loanDate=date.today(),
-            returnDate=date(2025, 1, 1),
+            loanDate=datetime.now(),
+            returnDate=datetime(2025, 1, 1),
             status=StatusLoan.ACTIVE,
             createdBy=admin.userId,
             updatedBy=admin.userId,
-            creationDate=date.today(),
-            lastUpdate=date.today()
+            creationDate=datetime.now(),
+            lastUpdate=datetime.now()
         )
         db.session.add(loan)
         db.session.commit()

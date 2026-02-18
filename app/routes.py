@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from flask import flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user, logout_user, AnonymousUserMixin
 from flask_paginate import Pagination, get_page_parameter
@@ -11,7 +11,7 @@ from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
                     SearchBooksForm, UserForm, SearchLoansForm)
 
 
-from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User
+from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration
 import unicodedata
 from .validaEmprestimo import validaEmprestimo
 
@@ -380,18 +380,62 @@ def emprestimos():
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
     loans_pagination = query.order_by(Loan.loanDate.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    # Get cancellation limit from config (in minutes)
+    config_entry = Configuration.query.filter_by(key='TEMPO_MAXIMO_PARA_CANCELAMENTO_DE_EMPRESTIMO').first()
+    cancellation_limit_minutes = int(config_entry.value) if config_entry and config_entry.value and config_entry.value.isdigit() else 0
+    now = datetime.now()
     
-    return render_template('emprestimos.html', loans=loans_pagination, search_term=search_term, per_page=per_page)
+    return render_template('emprestimos.html', loans=loans_pagination, search_term=search_term, per_page=per_page, cancellation_limit_minutes=cancellation_limit_minutes, now=now)
+
+@bp.route('/emprestimos/cancel/<int:loan_id>', methods=['POST'])
+@login_required
+def cancelar_emprestimo(loan_id):
+    loan = Loan.query.get_or_404(loan_id)
+    
+    if loan.status != StatusLoan.ACTIVE:
+        return jsonify({'success': False, 'message': 'Apenas empréstimos ativos podem ser cancelados.'}), 400
+
+    config_entry = Configuration.query.filter_by(key='TEMPO_MAXIMO_PARA_CANCELAMENTO_DE_EMPRESTIMO').first()
+    limit_minutes = int(config_entry.value) if config_entry and config_entry.value and config_entry.value.isdigit() else 0
+    
+    if limit_minutes <= 0:
+         return jsonify({'success': False, 'message': 'Cancelamento não permitido por configuração.'}), 403
+
+    elapsed = datetime.now() - loan.creationDate
+    if elapsed.total_seconds() / 60 > limit_minutes:
+        return jsonify({'success': False, 'message': 'Tempo limite para cancelamento excedido.'}), 403
+
+    # Cancelar
+    loan.status = StatusLoan.CANCELLED
+    loan.finalNote = "Cancelado pelo usuário dentro do prazo permitido."
+    loan.updatedBy = current_user.userId
+    loan.lastUpdate = datetime.now()
+    
+    db.session.commit()
+    flash('Empréstimo cancelado com sucesso.', 'success')
+    return jsonify({'success': True})
 
 @bp.route('/emprestimos/form', defaults={'loan_id': None}, methods=['GET'])
 @bp.route('/emprestimos/form/<int:loan_id>', methods=['GET'])
 @login_required
 def get_loan_form(loan_id):
+    cancellation_available = False
+    now = datetime.now()
     if loan_id:
         loan = Loan.query.get_or_404(loan_id)
         form = LoanForm(obj=loan)
         user = loan.user
         book = loan.book
+
+        # Check cancellation availability for this specific loan
+        if loan.status == StatusLoan.ACTIVE:
+            config_entry = Configuration.query.filter_by(key='TEMPO_MAXIMO_PARA_CANCELAMENTO_DE_EMPRESTIMO').first()
+            cancellation_limit_minutes = int(config_entry.value) if config_entry and config_entry.value and config_entry.value.isdigit() else 0
+            if cancellation_limit_minutes > 0:
+                elapsed = (now - loan.creationDate).total_seconds() / 60
+                if elapsed <= cancellation_limit_minutes:
+                    cancellation_available = True
 
         loan_user_info = {
             'identificationCode': getattr(user, 'identificationCode', None) or '—',
@@ -424,6 +468,7 @@ def get_loan_form(loan_id):
         loan=loan,
         loan_user_info=loan_user_info,
         loan_book_info=loan_book_info,
+        cancellation_available=cancellation_available
     )
 
 @bp.route('/emprestimos/new', methods=['POST'])
@@ -437,8 +482,8 @@ def novo_emprestimo():
             returnDate=form.returnDate.data,
             userId=form.userId.data,
             bookId=form.bookId.data,
-            creationDate=date.today(),
-            lastUpdate=date.today(),
+            creationDate=datetime.now(),
+            lastUpdate=datetime.now(),
             createdBy=current_user.userId,
             updatedBy=current_user.userId,
             status=StatusLoan.ACTIVE,
@@ -464,14 +509,15 @@ def editar_emprestimo(loan_id):
     if not informed_return_date:
         return jsonify({'success': False, 'errors': {'returnDate': ['Informe uma data de devolução válida no formato YYYY-MM-DD.']}})
 
-    if informed_return_date < loan.loanDate:
+    if informed_return_date < loan.loanDate.date():
         return jsonify({'success': False, 'errors': {'returnDate': ['A data de devolução não pode ser anterior à data de empréstimo.']}})
 
     # Regras de imutabilidade na edição:
     # não permitir alterar livro, usuário, quantidade e data de início.
     # apenas a data de devolução pode ser atualizada por esta rota.
-    loan.returnDate = informed_return_date
-    loan.lastUpdate = date.today()
+    # Convert date back to datetime for consistent storage (default to midnight)
+    loan.returnDate = datetime.combine(informed_return_date, datetime.min.time())
+    loan.lastUpdate = datetime.now()
     loan.updatedBy = current_user.userId
     db.session.commit()
     flash('Empréstimo atualizado com sucesso!', 'success')
@@ -508,7 +554,7 @@ def informar_retorno_emprestimo(loan_id):
             'errors': {'returnDate': ['Informe uma data de devolução válida no formato YYYY-MM-DD.']}
         }), 400
 
-    if informed_return_date < loan.loanDate:
+    if informed_return_date < loan.loanDate.date():
         return jsonify({
             'success': False,
             'errors': {'returnDate': ['A data de devolução não pode ser anterior à data de empréstimo.']}
@@ -533,12 +579,12 @@ def informar_retorno_emprestimo(loan_id):
                 'errors': {'amount': ['Estoque insuficiente para registrar perda desse empréstimo.']}
             }), 409
         loan.book.amount -= loan.amount
-        loan.book.lastUpdate = date.today()
+        loan.book.lastUpdate = datetime.now()
         loan.book.updatedBy = current_user.userId
 
-    loan.returnDate = informed_return_date
+    loan.returnDate = datetime.combine(informed_return_date, datetime.min.time())
     loan.status = StatusLoan[raw_status]
-    loan.lastUpdate = date.today()
+    loan.lastUpdate = datetime.now()
     loan.updatedBy = current_user.userId
 
     db.session.commit()

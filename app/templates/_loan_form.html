@@ -1,5 +1,37 @@
 <form id="loanModalForm" action="{{ url_for('main.novo_emprestimo') if not loan_id else url_for('main.editar_emprestimo', loan_id=loan_id) }}" method="POST">
     {{ form.hidden_tag() }}
+    
+    {% if loan_id %}
+    <div class="d-flex justify-content-end mb-3">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                Ações
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                {% if loan.status.name in ['ACTIVE', 'OVERDUE'] %}
+                    <li>
+                        <a class="dropdown-item" href="#" id="returnLoanFromEditBtn" data-loan-id="{{ loan_id }}">
+                            <i class="fas fa-undo me-2"></i>Informar retorno
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% if cancellation_available %}
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" onclick="cancelLoan(event, {{ loan_id }});">
+                            <i class="fas fa-ban me-2"></i>Cancelar
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% if not (loan.status.name in ['ACTIVE', 'OVERDUE']) and not cancellation_available %}
+                    <li><span class="dropdown-item disabled">Nenhuma ação disponível</span></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="row">
         <div class="col-md-6 mb-3">
             {{ form.loanDate.label(class="form-label") }}

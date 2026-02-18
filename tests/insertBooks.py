@@ -1,6 +1,6 @@
 from app import createApp, db
 from pandas import pandas as pd
-from datetime import date
+from datetime import date, datetime
 from random import randint
 
 app = createApp()
@@ -32,7 +32,7 @@ with app.app_context():
         amount = randint(1, 100)
         publisherName = f"publisher_{book}"
         publishedDate = dates[book]
-        acquisitionDate = date.today()
+        acquisitionDate = datetime.now()
         description = description
 
         new_book = Book(
@@ -43,8 +43,8 @@ with app.app_context():
             publishedDate=publishedDate,
             acquisitionDate=acquisitionDate,
             description=description,
-            creationDate=date.today(),
-            lastUpdate=date.today(),
+            creationDate=datetime.now(),
+            lastUpdate=datetime.now(),
             createdBy=1,
             updatedBy=1,
         )
