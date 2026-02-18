@@ -16,14 +16,14 @@ class User(db.Model, UserMixin):
     userCompleteName = db.Column(db.String(100), nullable=True)
     userType = db.Column(db.String(80), nullable=False)
     # Time format: dd/mm/yyyy|hh:mm:ss
-    creationDate = db.Column(db.Date, nullable=False, default=date.today)
-    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
 
     # Novos campos para unificar com Alunos
     userPhone = db.Column(db.String, nullable=True)
-    birthDate = db.Column(db.Date, nullable=False)
+    birthDate = db.Column(db.DateTime, nullable=False)
     cpf = db.Column(db.String(11), nullable=True)
     rg = db.Column(db.String(10), nullable=True)
     gradeNumber = db.Column(db.Integer, nullable=True)
@@ -44,12 +44,16 @@ class User(db.Model, UserMixin):
     def _convert_dates(self, key, value):
         if isinstance(value, str):
             try:
-                return datetime.strptime(value, '%Y-%m-%d').date()
+                # Se vier só data, assume meia-noite
+                return datetime.strptime(value, '%Y-%m-%d')
             except ValueError:
-                # Tenta outros formatos se necessário, mas mantém valor se falhar
+                pass
+            try:
+                # Tenta formato com hora
+                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
                 return value
-        if isinstance(value, datetime):
-            return value.date()
+        # Retorna o próprio objeto datetime
         return value
 
 
@@ -63,10 +67,10 @@ class Book(db.Model):
     authorName = db.Column(db.String, nullable=True)
     publisherName = db.Column(db.String, nullable=True)
     publishedDate = db.Column(db.Date, nullable=True)
-    acquisitionDate = db.Column(db.Date, nullable=True)
+    acquisitionDate = db.Column(db.DateTime, nullable=True)
     description = db.Column(db.Text, nullable=True)
-    creationDate = db.Column(db.Date, nullable=False, default=date.today)
-    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     
@@ -77,11 +81,13 @@ class Book(db.Model):
     def _convert_dates(self, key, value):
         if isinstance(value, str):
             try:
-                return datetime.strptime(value, '%Y-%m-%d').date()
+                return datetime.strptime(value, '%Y-%m-%d')
+            except ValueError:
+                pass
+            try:
+                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
             except ValueError:
                 return value
-        if isinstance(value, datetime):
-            return value.date()
         return value
 
 
@@ -91,8 +97,8 @@ class KeyWord(db.Model):
 
     wordId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     word = db.Column(db.String, unique=True, nullable=False)
-    creationDate = db.Column(db.Date, nullable=False, default=date.today)
-    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
 
@@ -102,6 +108,7 @@ class StatusLoan(enum.Enum):
     OVERDUE = "Atrasado"
     COMPLETED = "Concluído"
     LOST = "Perdido"
+    CANCELLED = "Cancelado"
     # BGN_TODAY = "bgn today"
     # END_TODAY = "end today"
 
@@ -111,15 +118,17 @@ class Loan(db.Model):
 
     loanId = db.Column(db.Integer, primary_key=True, autoincrement=True)
     amount = db.Column(db.Integer, nullable=False)
-    loanDate = db.Column(db.Date, nullable=False)
-    returnDate = db.Column(db.Date, nullable=False)
+    loanDate = db.Column(db.DateTime, nullable=False)
+    returnDate = db.Column(db.DateTime, nullable=False)
     userId = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False) # Alterado para userId
     bookId = db.Column(db.Integer, db.ForeignKey('books.bookId'), nullable=False)
-    creationDate = db.Column(db.Date, nullable=False, default=date.today)
-    lastUpdate = db.Column(db.Date, nullable=False, default=date.today)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     status = db.Column(Enum(StatusLoan), nullable=False)
+    initialNote = db.Column(db.Text, nullable=True)
+    finalNote = db.Column(db.Text, nullable=True)
     
     user = db.relationship('User', foreign_keys=[userId], backref=db.backref('loans', lazy='dynamic')) 
     created_user = db.relationship('User', foreign_keys=[createdBy], backref=db.backref('loans_created', lazy='dynamic'))
@@ -130,11 +139,13 @@ class Loan(db.Model):
     def _convert_dates(self, key, value):
         if isinstance(value, str):
             try:
-                return datetime.strptime(value, '%Y-%m-%d').date()
+                return datetime.strptime(value, '%Y-%m-%d')
+            except ValueError:
+                pass
+            try:
+                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
             except ValueError:
                 return value
-        if isinstance(value, datetime):
-            return value.date()
         return value
 
 
@@ -175,3 +186,30 @@ class RolePermission(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     roleId = db.Column(db.Integer, db.ForeignKey('roles.roleId'), nullable=False)
     permissionId = db.Column(db.Integer, db.ForeignKey('permissions.permissionId'), nullable=False)
+
+
+class Configuration(db.Model):
+    __tablename__ = 'configurations'
+
+    configId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    reference = db.Column(db.Integer, nullable=True)
+    key = db.Column(db.String(100), nullable=True)
+    value = db.Column(db.Text, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+
+    @validates('creationDate', 'lastUpdate')
+    def _convert_dates(self, key, value):
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, '%Y-%m-%d')
+            except ValueError:
+                pass
+            try:
+                return datetime.strptime(value, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                return value
+        return value
