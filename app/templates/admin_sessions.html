@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Gerenciamento de Sessões
+{% endblock %}
+
+{% block content %}
+  <div class="row mb-4">
+    <div class="col-12 text-center">
+      <h2>Sessões Ativas</h2>
+      <p class="text-white">Gerenciamento de sessões de usuários logados no sistema</p>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>Usuário</th>
+              <th>IP</th>
+              <th>Navegador/SO</th>
+              <th>Início da Sessão</th>
+              <th>Última Atividade</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for session in sessions %}
+              <tr class="{% if session.session_id == current_session_token %}table-info{% endif %}">
+                <td>
+                  <strong>{{ session.user.identificationCode }}</strong>
+                  {% if session.session_id == current_session_token %}
+                    <span class="badge bg-primary ms-2">Atual</span>
+                  {% endif %}
+                </td>
+                <td>{{ session.ip_address }}</td>
+                <td title="{{ session.user_agent }}">{{ session.user_agent|truncate(50) }}</td>
+                <td>{{ session.created_at.strftime('%d/%m/%Y %H:%M') }}</td>
+                <td>{{ session.last_activity.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                <td class="text-end">
+                  <form action="{{ url_for('main.revoke_session', session_id=session.session_id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Tem certeza que deseja derrubar esta sessão?');"><i class="bi bi-power"></i> Encerrar</button>
+                  </form>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center">Nenhuma sessão ativa encontrada.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+{% endblock %}
