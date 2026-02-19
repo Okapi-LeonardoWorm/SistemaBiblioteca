@@ -1,7 +1,7 @@
 from flask_login import UserMixin
 from sqlalchemy import Enum, UniqueConstraint
 from sqlalchemy.orm import validates, synonym
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import enum
 
 from app import db
@@ -260,4 +260,19 @@ class AuditLog(db.Model):
 
     def __repr__(self):
         return f'<AuditLog {self.action} on {self.target_type} id={self.target_id}>'
+
+
+class UserSession(db.Model):
+    __tablename__ = 'user_sessions'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    session_id = db.Column(db.String(255), unique=True, nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    last_activity = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    
+    user = db.relationship('User', backref=db.backref('sessions', lazy='dynamic'))
+
 
