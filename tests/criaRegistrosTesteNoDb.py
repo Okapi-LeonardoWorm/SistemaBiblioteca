@@ -2,11 +2,11 @@ from multiprocessing import Pool
 from time import strftime
 from random import randint
 from datetime import date, timedelta, datetime
-import unicodedata
 
 from flask import json
 from app import createApp, db
 from app.models import User, Book, KeyWord
+from app.utils import normalize_tag
 from .criaUserAdmin import criaAdminUser
 
 
@@ -104,16 +104,6 @@ def hash_password(pw: str) -> str:
             return _bcrypt.hashpw(pw.encode('utf-8'), _bcrypt.gensalt()).decode('utf-8')
         except Exception:
             return pw  # fallback: texto puro
-
-
-def _normalize_tag(token: str) -> str:
-    if not token:
-        return ''
-    token = token.strip()
-    nfkd = unicodedata.normalize('NFKD', token)
-    ascii_only = ''.join([c for c in nfkd if not unicodedata.combining(c)])
-    up = ascii_only.upper()
-    return ' '.join(up.split())
 
 
 def insert_users(start, end):
@@ -333,7 +323,7 @@ def insert_keyWord(start, end):
     with app.app_context():
         words = []
         for i in range(start, end):
-            word = _normalize_tag(f"word_{i}")
+            word = normalize_tag(f"word_{i}")
 
             # pular se já existe
             if db.session.query(KeyWord.wordId).filter_by(word=word).first():
@@ -364,7 +354,7 @@ def insert_keyword_from_list(list):
     app = createApp()
     with app.app_context():
         for i in list:
-            word = _normalize_tag(i)
+            word = normalize_tag(i)
 
             # pular se já existe
             if db.session.query(KeyWord.wordId).filter_by(word=word).first():

@@ -65,6 +65,8 @@ def createApp(config_name: str | None = None):
     
     with app.app_context():
         from . import forms, models, routes
+        from . import audit
+        audit.register_listeners(app)
         from .routes import bp as main_bp
         app.register_blueprint(main_bp)
     return app

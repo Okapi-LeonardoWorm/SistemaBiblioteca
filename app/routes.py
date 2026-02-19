@@ -12,38 +12,12 @@ from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
 
 
 from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration, ConfigSpec
-import unicodedata
+from .audit import log_manual_event
 from .validaEmprestimo import validaEmprestimo
-
+from .utils import normalize_tag, splitStringIntoList
 
 bp = Blueprint('main', __name__)
 
-
-def splitStringIntoList(string):
-    if not string:
-        return []
-    string_list = [item.strip().lower() for item in string.split(';') if item.strip()]
-    return string_list
-
-def _normalize_tag(token: str) -> str:
-    if not token:
-        return ''
-    # remove leading/trailing spaces
-    token = token.strip()
-    # remove accents
-    nfkd = unicodedata.normalize('NFKD', token)
-    ascii_only = ''.join([c for c in nfkd if not unicodedata.combining(c)])
-    # uppercase
-    up = ascii_only.upper()
-    # keep only allowed chars: A-Z, 0-9, space, hyphen
-    allowed = []
-    for ch in up:
-        if ('A' <= ch <= 'Z') or ('0' <= ch <= '9') or ch in [' ', '-']:
-            allowed.append(ch)
-    cleaned = ''.join(allowed)
-    # collapse multiple spaces
-    cleaned = ' '.join(cleaned.split())
-    return cleaned.strip()
 
 def _calc_age(birth_date):
     if not birth_date:
@@ -243,6 +217,10 @@ def menu():
 @bp.route('/logout')
 @login_required
 def logout():
+    try:
+        log_manual_event('LOGOUT', 'User', current_user.userId)
+    except Exception:
+        pass
     session.clear()
     logout_user()
     return redirect(url_for('main.login'))
@@ -268,7 +246,12 @@ def login():
             session['userId'] = user.userId
             session['userType'] = user.userType
             login_user(user)
+            try:
+                log_manual_event('LOGIN', 'User', user.userId, changes={'username': usernameStr})
+            except Exception:
+                pass
             if user.userType == 'admin':
+
                 return redirect(url_for('main.dashboard'))
             return redirect(url_for('main.index'))
         else:
@@ -384,7 +367,11 @@ def novo_livro():
         db.session.add(new_book)
         db.session.commit()
         
-        keywords_list = splitStringIntoList(form.keyWords.data)
+        # Processar keywords com normalize_tag
+        raw_keywords = splitStringIntoList(form.keyWords.data)
+        # normalize_tag retorna string vazia se inválido
+        keywords_list = [normalized for k in raw_keywords if (normalized := normalize_tag(k))]
+        
         for keyword_str in keywords_list:
             keyword_obj = KeyWord.query.filter_by(word=keyword_str).first()
             if not keyword_obj:
@@ -403,11 +390,45 @@ def novo_livro():
 def editar_livro(book_id):
     book = Book.query.get_or_404(book_id)
     form = BookForm(request.form)
+    
     if form.validate():
+        has_changes = False
+        
+        # 1. Verificar campos simples
+        # Obs: campos como bookName, authorName etc
+        for field in form:
+            if field.name in ['csrf_token', 'keyWords']: continue
+            if not hasattr(book, field.name): continue
+            
+            old_val = getattr(book, field.name)
+            new_val = field.data
+            
+            # Normalizar None e String Vazia
+            if isinstance(old_val, str) and new_val is None: new_val = ''
+            if old_val is None and isinstance(new_val, str): old_val = ''
+            
+            if old_val != new_val:
+                has_changes = True
+                break
+        
+        # 2. Verificar keywords
+        current_keywords = {kw.word for kw in book.keywords}
+        
+        raw_keywords = splitStringIntoList(form.keyWords.data)
+        # normalize_tag retorna string vazia se inválido
+        new_keywords = {normalized for k in raw_keywords if (normalized := normalize_tag(k))}
+        
+        if current_keywords != new_keywords:
+            has_changes = True
+            
+        if not has_changes:
+            # Se nada mudou, retorna sucesso sem tocar no banco
+            return jsonify({'success': True, 'message': 'Nenhuma alteração detectada.'})
+
         form.populate_obj(book)
         
-        new_keywords_str = set(splitStringIntoList(form.keyWords.data))
-        old_keywords_str = {kw.word for kw in book.keywords}
+        new_keywords_str = new_keywords
+        old_keywords_str = current_keywords
         
         for keyword_obj in list(book.keywords):
             if keyword_obj.word not in new_keywords_str:
@@ -748,7 +769,7 @@ def nova_palavra_chave():
         parts = []
         seen = set()
         for token in raw.replace(';', ',').split(','):
-            normalized = _normalize_tag(token)
+            normalized = normalize_tag(token)
             if normalized and normalized not in seen:
                 parts.append(normalized)
                 seen.add(normalized)
@@ -791,7 +812,7 @@ def editar_palavra_chave(keyword_id):
     keyword = KeyWord.query.get_or_404(keyword_id)
     form = KeyWordForm(request.form)
     if form.validate():
-        normalized = _normalize_tag(form.word.data or '')
+        normalized = normalize_tag(form.word.data or '')
         if not normalized:
             return jsonify({'success': False, 'errors': {'word': ['Informe uma tag válida.']}})
         # verificar duplicidade com outras tags

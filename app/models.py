@@ -244,3 +244,19 @@ class ConfigSpec(db.Model):
             except ValueError:
                 return value
         return value
+
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    timestamp = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
+    action = db.Column(db.String(50), nullable=False)
+    target_type = db.Column(db.String(50), nullable=False)
+    target_id = db.Column(db.String(50), nullable=True)
+    changes = db.Column(db.Text, nullable=True)
+
+    def __repr__(self):
+        return f'<AuditLog {self.action} on {self.target_type} id={self.target_id}>'
+
