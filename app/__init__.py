@@ -7,6 +7,7 @@ from flask_migrate import Migrate
 from flask_bootstrap import Bootstrap5
 from flask_wtf.csrf import generate_csrf
 from config import Config, TestingConfig
+from flask_session import Session
 
 
 
@@ -16,6 +17,7 @@ bcrypt = Bcrypt()
 login_manager = LoginManager()
 migrate = Migrate()
 bootstrap = Bootstrap5()
+sess = Session()
 
 
 def createApp(config_name: str | None = None):
@@ -35,7 +37,12 @@ def createApp(config_name: str | None = None):
     bootstrap.init_app(app)
     CORS(app)
     
+    # Configurar Sessão do Servidor
+    app.config['SESSION_SQLALCHEMY'] = db
+    sess.init_app(app)
+
     login_manager.login_view = 'main.login'
+    
     
     # Importa as rotas
     @login_manager.user_loader
