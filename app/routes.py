@@ -1,4 +1,5 @@
 from datetime import date, timedelta, datetime
+import json
 from flask import flash, redirect, render_template, request, session, url_for, jsonify
 from flask_login import current_user, login_required, login_user, logout_user, AnonymousUserMixin
 from flask_paginate import Pagination, get_page_parameter
@@ -11,7 +12,7 @@ from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
                     SearchBooksForm, UserForm, SearchLoansForm, ConfigForm)
 
 
-from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration, ConfigSpec
+from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration, ConfigSpec, AuditLog
 from .audit import log_manual_event
 from .validaEmprestimo import validaEmprestimo
 from .utils import normalize_tag, splitStringIntoList
@@ -1179,3 +1180,88 @@ def api_search_books():
             'keywords': [kw.word for kw in getattr(b, 'keywords', [])]
         })
     return jsonify({'results': results})
+
+@bp.route('/logs')
+@login_required
+def logs():
+    if not _is_admin_user():
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('main.index'))
+    
+    pagination = AuditLog.query.outerjoin(User, AuditLog.user_id == User.userId)\
+        .add_columns(User.identificationCode)\
+        .order_by(AuditLog.timestamp.desc())\
+        .paginate(page=request.args.get('page', 1, type=int), per_page=20, error_out=False)
+
+    return render_template('logs.html', pagination=pagination)
+
+@bp.route('/audit_logs')
+@login_required
+def audit_logs():
+    if not _is_admin_user():
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('main.index'))
+
+    # Pagination
+    try:
+        page = request.args.get('page', 1, type=int)
+    except ValueError:
+        page = 1
+    per_page = 20
+
+    # Filter params
+    action_filter = request.args.get('action', '').strip()
+    target_type_filter = request.args.get('target_type', '').strip()
+    user_id_filter = request.args.get('user_id', '').strip()
+    start_date_str = request.args.get('start_date', '').strip()
+    end_date_str = request.args.get('end_date', '').strip()
+
+    query = AuditLog.query
+
+    if action_filter:
+        query = query.filter(AuditLog.action.ilike(f"%{action_filter}%"))
+    
+    if target_type_filter:
+        query = query.filter(AuditLog.target_type.ilike(f"%{target_type_filter}%"))
+
+    if user_id_filter:
+        try:
+            uid = int(user_id_filter)
+            query = query.filter(AuditLog.user_id == uid)
+        except ValueError:
+            pass
+
+    if start_date_str:
+        start_date = _parse_date(start_date_str)
+        if start_date:
+            # Combine date with min time
+            start_dt = datetime.combine(start_date, datetime.min.time())
+            query = query.filter(AuditLog.timestamp >= start_dt)
+    
+    if end_date_str:
+        end_date = _parse_date(end_date_str)
+        if end_date:
+            # Combine date with max time to include the whole day
+            end_dt = datetime.combine(end_date, datetime.max.time())
+            query = query.filter(AuditLog.timestamp <= end_dt)
+
+    # Order by timestamp desc
+    query = query.order_by(AuditLog.timestamp.desc())
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    logs = pagination.items
+
+    # Pre-process logs to parse JSON changes if needed, or pass helper
+    # We can do it in the template using a custom filter or just simple json.loads if available
+    # But let's attach a parsed property or just handle strings in template
+    
+    return render_template(
+        'audit_logs.html',
+        logs=logs,
+        pagination=pagination,
+        action_filter=action_filter,
+        target_type_filter=target_type_filter,
+        user_id_filter=user_id_filter,
+        start_date=start_date_str,
+        end_date=end_date_str
+    )
