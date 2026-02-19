@@ -25,12 +25,6 @@
         <i class="fas fa-user-circle"></i>
         <span>Minha Conta</span>
       </a>
-      {% if current_user.userType == 'admin' %}
-      <a href="{{ url_for('main.logs') }}" class="menu-button">
-        <i class="fas fa-list-alt"></i>
-        <span>Logs</span>
-      </a>
-      {% endif %}
       <!-- Adicione mais botões conforme necessário -->
     </div>
   </div>

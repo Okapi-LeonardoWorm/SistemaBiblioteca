@@ -4,6 +4,7 @@ from flask import flash, redirect, render_template, request, session, url_for, j
 from flask_login import current_user, login_required, login_user, logout_user, AnonymousUserMixin
 from flask_paginate import Pagination, get_page_parameter
 from sqlalchemy import func, or_
+from sqlalchemy.orm import joinedload
 from flask import Blueprint
 
 from . import bcrypt, db
@@ -1181,20 +1182,6 @@ def api_search_books():
         })
     return jsonify({'results': results})
 
-@bp.route('/logs')
-@login_required
-def logs():
-    if not _is_admin_user():
-        flash('Acesso não autorizado.', 'danger')
-        return redirect(url_for('main.index'))
-    
-    pagination = AuditLog.query.outerjoin(User, AuditLog.user_id == User.userId)\
-        .add_columns(User.identificationCode)\
-        .order_by(AuditLog.timestamp.desc())\
-        .paginate(page=request.args.get('page', 1, type=int), per_page=20, error_out=False)
-
-    return render_template('logs.html', pagination=pagination)
-
 @bp.route('/audit_logs')
 @login_required
 def audit_logs():
@@ -1216,7 +1203,7 @@ def audit_logs():
     start_date_str = request.args.get('start_date', '').strip()
     end_date_str = request.args.get('end_date', '').strip()
 
-    query = AuditLog.query
+    query = AuditLog.query.options(joinedload(AuditLog.user))
 
     if action_filter:
         query = query.filter(AuditLog.action.ilike(f"%{action_filter}%"))

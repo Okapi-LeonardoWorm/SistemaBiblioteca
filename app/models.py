@@ -252,6 +252,7 @@ class AuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     timestamp = db.Column(db.DateTime, default=datetime.now, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('audit_logs', lazy='dynamic'))
     action = db.Column(db.String(50), nullable=False)
     target_type = db.Column(db.String(50), nullable=False)
     target_id = db.Column(db.String(50), nullable=True)
