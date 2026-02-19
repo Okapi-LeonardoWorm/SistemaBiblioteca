@@ -58,8 +58,33 @@ def populate_configs():
                     "defaultValue": "1",
                     "description": "1 = Sim, 0 = Não"
                 }
-            }
-        ]
+            },
+            {
+                "key": "SESSION_LIFETIME_HOURS",
+                "value": "12",
+                "description": "Tempo máximo de duração da sessão do usuário em horas.",
+                "spec": {
+                    "valueType": "integer",
+                    "minValue": 1,
+                    "maxValue": 168, # 1 semana
+                    "required": True,
+                    "defaultValue": "12",
+                    "description": "Número de horas antes da sessão expirar."
+                }
+            },
+            {
+                "key": "SESSION_INACTIVITY_MINUTES",
+                "value": "60",
+                "description": "Tempo máximo de inatividade em minutos antes da sessão expirar.",
+                "spec": {
+                    "valueType": "integer",
+                    "minValue": 5,
+                    "maxValue": 720,
+                    "required": True,
+                    "defaultValue": "60",
+                    "description": "Minutos de inatividade permitidos."
+                }
+            },        ]
 
         for item in default_configs:
             key = item['key']
