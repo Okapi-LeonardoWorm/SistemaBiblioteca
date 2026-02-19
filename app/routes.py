@@ -1,6 +1,6 @@
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta, datetime, timezone
 import json
-from flask import flash, redirect, render_template, request, session, url_for, jsonify
+from flask import flash, redirect, render_template, request, session, url_for, jsonify, current_app
 from flask_login import current_user, login_required, login_user, logout_user, AnonymousUserMixin
 from flask_paginate import Pagination, get_page_parameter
 from sqlalchemy import func, or_
@@ -13,12 +13,93 @@ from .forms import (BookForm, KeyWordForm, LoanForm, LoginForm, RegisterForm,
                     SearchBooksForm, UserForm, SearchLoansForm, ConfigForm)
 
 
-from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration, ConfigSpec, AuditLog
+from .models import Book, KeyWord, KeyWordBook, Loan, StatusLoan, User, Configuration, ConfigSpec, AuditLog, UserSession
 from .audit import log_manual_event
 from .validaEmprestimo import validaEmprestimo
 from .utils import normalize_tag, splitStringIntoList
+from uuid import uuid4 # Para gerar o session_id
 
 bp = Blueprint('main', __name__)
+
+
+@bp.before_app_request
+def check_session_timeout():
+    if current_user.is_authenticated:
+        session.permanent = False  # Garante que o cookie expira ao fechar o navegador
+        now = datetime.now(timezone.utc)
+        
+        # 1. Validação de Sessão no Banco (Server-Side)
+        # Se existir um token na sessão, verifica se ele é válido no banco
+        current_session_token = session.get('session_token')
+        if current_session_token:
+            user_session = UserSession.query.filter_by(session_id=current_session_token).first()
+            
+            # Se a sessão não existe no banco (foi revogada), desloga
+            if not user_session:
+                logout_user()
+                session.clear()
+                flash('Sua sessão foi encerrada remotamente.', 'warning')
+                return redirect(url_for('main.login'))
+            
+            # 2. Verificação de Inatividade (Híbrido)
+            # Busca configuração de inatividade do banco
+            config_inactivity = Configuration.query.filter_by(key='SESSION_INACTIVITY_MINUTES').first()
+            inactivity_minutes = int(config_inactivity.value) if (config_inactivity and config_inactivity.value.isdigit()) else 60
+            
+            # Se user_session.last_activity for naive, assume UTC ou converte. 
+            # O modelo define default=datetime.now, que pode ser naive dependendo do sistema.
+            # Vamos garantir comparação segura.
+            last_activity = user_session.last_activity
+            if last_activity.tzinfo is None:
+                last_activity = last_activity.replace(tzinfo=timezone.utc)
+            
+            if now - last_activity > timedelta(minutes=inactivity_minutes):
+                # Remove sessão do banco
+                db.session.delete(user_session)
+                db.session.commit()
+                
+                logout_user()
+                session.clear()
+                flash('Sua sessão expirou por inatividade.', 'warning')
+                return redirect(url_for('main.login'))
+            
+            # Atualiza last_activity
+            user_session.last_activity = now
+            db.session.commit()
+
+        # 3. Verificação de Tempo Absoluto (12h - Fallback/Legacy)
+        start_time_str = session.get('session_start')
+        if start_time_str:
+            try:
+                # Converte string ISO de volta para datetime com timezone
+                start_time = datetime.fromisoformat(start_time_str)
+                
+                # Busca configuração do banco de dados
+                config_db = Configuration.query.filter_by(key='SESSION_LIFETIME_HOURS').first()
+                if config_db and config_db.value.isdigit():
+                    limit_hours = int(config_db.value)
+                else:
+                    # Fallback para o valor do config.py ou 12h
+                    limit_config = current_app.config.get('PERMANENT_SESSION_LIFETIME')
+                    limit_hours = limit_config.total_seconds() / 3600 if limit_config else 12
+
+                limit = timedelta(hours=limit_hours)
+
+                if now - start_time > limit:
+                    # Tenta limpar do banco também
+                    if current_session_token:
+                         UserSession.query.filter_by(session_id=current_session_token).delete()
+                         db.session.commit()
+
+                    logout_user()
+                    session.clear()
+                    flash('Sua sessão expirou (limite de tempo total). Por favor, faça login novamente.', 'warning')
+                    return redirect(url_for('main.login'))
+            except (ValueError, TypeError):
+                logout_user()
+                session.clear()
+                return redirect(url_for('main.login'))
+
 
 
 def _calc_age(birth_date):
@@ -223,6 +304,16 @@ def logout():
         log_manual_event('LOGOUT', 'User', current_user.userId)
     except Exception:
         pass
+        
+    # Remove sessão do servidor se existir
+    session_token = session.get('session_token')
+    if session_token:
+        try:
+            db.session.query(UserSession).filter_by(session_id=session_token).delete()
+            db.session.commit()
+        except:
+            pass
+
     session.clear()
     logout_user()
     return redirect(url_for('main.login'))
@@ -243,12 +334,33 @@ def login():
                 # Se a senha no banco não estiver hasheada (ex.: em testes), faz comparação direta
                 valid_password = (user.password == form.password.data)
         if user and valid_password:
+            # Generate Session Token
+            token_str = str(uuid4())
+            
             session['logged_in'] = True
             session['username'] = usernameStr
             session['userId'] = user.userId
             session['userType'] = user.userType
+            session['session_start'] = datetime.now(timezone.utc).isoformat()
+            session['session_token'] = token_str
+
             login_user(user)
+
+            # Grava no banco
             try:
+                ip_address = request.headers.get('X-Forwarded-For', request.remote_addr) # Use a separate variable
+                user_agent = request.headers.get('User-Agent')
+                new_session = UserSession(
+                    user_id=user.userId,
+                    session_id=token_str,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    created_at=datetime.now(timezone.utc),
+                    last_activity=datetime.now(timezone.utc)
+                )
+                db.session.add(new_session)
+                db.session.commit()
+
                 log_manual_event('LOGIN', 'User', user.userId, changes={'username': usernameStr})
             except Exception:
                 pass
@@ -1216,7 +1328,65 @@ def audit_logs():
             uid = int(user_id_filter)
             query = query.filter(AuditLog.user_id == uid)
         except ValueError:
-            pass
+             # Se for string (nome), tenta buscar pelo ID
+             user_obj = User.query.filter(User.identificationCode.ilike(f"%{user_id_filter}%")).first()
+             if user_obj:
+                 query = query.filter(AuditLog.user_id == user_obj.userId)
+             else:
+                 query = query.filter(AuditLog.user_id == -1) # força vazio
+
+    if start_date_str:
+        try:
+             start_dt = datetime.strptime(start_date_str, '%Y-%m-%d')
+             query = query.filter(AuditLog.timestamp >= start_dt)
+        except ValueError:
+             pass
+
+    if end_date_str:
+        try:
+             end_dt = datetime.strptime(end_date_str, '%Y-%m-%d')
+             # Ajusta para final do dia
+             end_dt = end_dt.replace(hour=23, minute=59, second=59)
+             query = query.filter(AuditLog.timestamp <= end_dt)
+        except ValueError:
+             pass
+
+    query = query.order_by(AuditLog.timestamp.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    logs = pagination.items
+
+    return render_template('audit_logs.html', logs=logs, pagination=pagination)
+
+
+@bp.route('/admin/sessions')
+@login_required
+def manage_sessions():
+    if current_user.userType != 'admin':
+        flash('Acesso negado. Apenas administradores podem ver as sessões.', 'danger')
+        return redirect(url_for('main.index'))
+        
+    sessions = UserSession.query.order_by(UserSession.last_activity.desc()).all()
+    current_token = session.get('session_token')
+    
+    return render_template('admin_sessions.html', sessions=sessions, current_session_token=current_token)
+
+@bp.route('/admin/sessions/revoke/<session_id>', methods=['POST'])
+@login_required
+def revoke_session(session_id):
+    if current_user.userType != 'admin':
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('main.index'))
+        
+    user_session = UserSession.query.filter_by(session_id=session_id).first()
+    if user_session:
+        db.session.delete(user_session)
+        db.session.commit()
+        flash('Sessão encerrada com sucesso.', 'success')
+    else:
+        flash('Sessão não encontrada.', 'warning')
+        
+    return redirect(url_for('main.manage_sessions'))
+
 
     if start_date_str:
         start_date = _parse_date(start_date_str)
