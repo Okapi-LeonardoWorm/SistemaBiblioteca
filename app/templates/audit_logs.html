@@ -26,7 +26,7 @@
     <!-- Filter Form -->
     <div class="card mb-4">
       <div class="card-body">
-        <form method="GET" action="{{ url_for('main.audit_logs') }}" class="row g-3">
+        <form method="GET" action="{{ url_for('audit_logs.audit_logs') }}" class="row g-3">
           <div class="col-md-2">
             <label for="action" class="form-label">Ação</label>
             <input type="text" class="form-control" id="action" name="action" value="{{ action_filter }}" placeholder="Ex: UPDATE" />
@@ -49,7 +49,7 @@
           </div>
           <div class="col-md-2 d-flex align-items-end">
             <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-            <a href="{{ url_for('main.audit_logs') }}" class="btn btn-secondary w-100 ms-2">Limpar</a>
+            <a href="{{ url_for('audit_logs.audit_logs') }}" class="btn btn-secondary w-100 ms-2">Limpar</a>
           </div>
         </form>
       </div>
@@ -117,7 +117,7 @@
       <ul class="pagination justify-content-center">
         {% if pagination.has_prev %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('main.audit_logs', page=pagination.prev_num, action=action_filter, target_type=target_type_filter, user_id=user_id_filter, start_date=start_date, end_date=end_date) }}" aria-label="Anterior"><span aria-hidden="true">&laquo;</span></a>
+            <a class="page-link" href="{{ url_for('audit_logs.audit_logs', page=pagination.prev_num, action=action_filter, target_type=target_type_filter, user_id=user_id_filter, start_date=start_date, end_date=end_date) }}" aria-label="Anterior"><span aria-hidden="true">&laquo;</span></a>
           </li>
         {% else %}
           <li class="page-item disabled">
@@ -133,7 +133,7 @@
               </li>
             {% else %}
               <li class="page-item">
-                <a class="page-link" href="{{ url_for('main.audit_logs', page=p, action=action_filter, target_type=target_type_filter, user_id=user_id_filter, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
+                <a class="page-link" href="{{ url_for('audit_logs.audit_logs', page=p, action=action_filter, target_type=target_type_filter, user_id=user_id_filter, start_date=start_date, end_date=end_date) }}">{{ p }}</a>
               </li>
             {% endif %}
           {% else %}
@@ -145,7 +145,7 @@
 
         {% if pagination.has_next %}
           <li class="page-item">
-            <a class="page-link" href="{{ url_for('main.audit_logs', page=pagination.next_num, action=action_filter, target_type=target_type_filter, user_id=user_id_filter, start_date=start_date, end_date=end_date) }}" aria-label="Próximo"><span aria-hidden="true">&raquo;</span></a>
+            <a class="page-link" href="{{ url_for('audit_logs.audit_logs', page=pagination.next_num, action=action_filter, target_type=target_type_filter, user_id=user_id_filter, start_date=start_date, end_date=end_date) }}" aria-label="Próximo"><span aria-hidden="true">&raquo;</span></a>
           </li>
         {% else %}
           <li class="page-item disabled">

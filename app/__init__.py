@@ -41,7 +41,7 @@ def createApp(config_name: str | None = None):
     app.config['SESSION_SQLALCHEMY'] = db
     sess.init_app(app)
 
-    login_manager.login_view = 'main.login'
+    login_manager.login_view = 'auth.login'
     
     
     # Importa as rotas
@@ -71,11 +71,12 @@ def createApp(config_name: str | None = None):
     
     
     with app.app_context():
-        from . import forms, models, routes
+        from . import forms, models
         from . import audit
+        from .routes import register_blueprints
+
         audit.register_listeners(app)
-        from .routes import bp as main_bp
-        app.register_blueprint(main_bp)
+        register_blueprints(app)
     return app
 
 # Alias comum para compatibilidade com ferramentas/CLIs

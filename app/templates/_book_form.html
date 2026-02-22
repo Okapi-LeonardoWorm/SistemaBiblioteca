@@ -1,4 +1,4 @@
-<form id="bookModalForm" action="{{ url_for('main.novo_livro') if not book_id else url_for('main.editar_livro', book_id=book_id) }}" method="POST">
+<form id="bookModalForm" action="{{ url_for('books.novo_livro') if not book_id else url_for('books.editar_livro', book_id=book_id) }}" method="POST">
     {{ form.hidden_tag() }}
     <div class="mb-3">
         {{ form.bookName.label(class="form-label") }}

@@ -1,13 +1,14 @@
 import unittest
 from datetime import datetime, timedelta
-from app import createApp, db
-from app.models import User, Book, Loan, StatusLoan, Configuration, Role
+from app import db
+from app.models import User, Book, Loan, StatusLoan, Configuration
 from flask import json
-from flask_login import login_user
+
+from tests.unit.base import _TEST_APP
 
 class TestLoanCancellation(unittest.TestCase):
     def setUp(self):
-        self.app = createApp('testing')
+        self.app = _TEST_APP
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()

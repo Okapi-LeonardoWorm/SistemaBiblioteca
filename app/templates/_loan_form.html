@@ -1,4 +1,4 @@
-<form id="loanModalForm" action="{{ url_for('main.novo_emprestimo') if not loan_id else url_for('main.editar_emprestimo', loan_id=loan_id) }}" method="POST">
+<form id="loanModalForm" action="{{ url_for('loans.novo_emprestimo') if not loan_id else url_for('loans.editar_emprestimo', loan_id=loan_id) }}" method="POST">
     {{ form.hidden_tag() }}
     
     {% if loan_id %}

@@ -1,4 +1,4 @@
-<form id="configModalForm" action="{{ url_for('main.nova_configuracao') if not config_id else url_for('main.editar_configuracao', config_id=config_id) }}" method="POST">
+<form id="configModalForm" action="{{ url_for('configs.nova_configuracao') if not config_id else url_for('configs.editar_configuracao', config_id=config_id) }}" method="POST">
     {{ form.hidden_tag() }}
 
     <div class="row">

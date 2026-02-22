@@ -11,7 +11,7 @@
 <div class="container py-4">
     <header class="management-header">
         <h1 class="h3">Gerenciar Configurações</h1>
-        <form class="search-form" method="GET" action="{{ url_for('main.configuracoes') }}">
+        <form class="search-form" method="GET" action="{{ url_for('configs.configuracoes') }}">
             <input type="text" name="search" class="form-control" placeholder="Buscar por chave ou descrição..." value="{{ search_term or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
@@ -22,7 +22,7 @@
             <i class="fas fa-plus"></i> Nova Configuração
         </button>
 
-        <form method="GET" action="{{ url_for('main.configuracoes') }}" class="d-flex align-items-center">
+        <form method="GET" action="{{ url_for('configs.configuracoes') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">

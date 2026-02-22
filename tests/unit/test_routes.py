@@ -12,32 +12,32 @@ class TestRoutes(BaseTestCase):
         super().setUp()
         self.admin_user = self._create_admin_user()
         # Log in the admin user
-        self.client.post(url_for('main.login'), data={
+        self.client.post(url_for('auth.login'), data={
             'username': self.admin_user.username,
             'password': 'adminpassword' # The raw password used in the helper
         }, follow_redirects=True)
 
     def test_dashboard_route(self):
         """Test that the dashboard is accessible when an admin is logged in."""
-        response = self.client.get(url_for('main.dashboard'))
+        response = self.client.get(url_for('navigation.dashboard'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Dashboard Administrativo', response.get_data(as_text=True))
 
     def test_livros_route(self):
         """Test that the book management page is accessible."""
-        response = self.client.get(url_for('main.livros'))
+        response = self.client.get(url_for('books.livros'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Livros', response.get_data(as_text=True))
 
     def test_users_route(self):
         """Test that the user management page is accessible."""
-        response = self.client.get(url_for('main.list_users'))
+        response = self.client.get(url_for('users.list_users'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Usuários', response.get_data(as_text=True))
 
     def test_emprestimos_route(self):
         """Test that the loan management page is accessible."""
-        response = self.client.get(url_for('main.emprestimos'))
+        response = self.client.get(url_for('loans.emprestimos'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Empréstimos', response.get_data(as_text=True))
 
@@ -75,19 +75,19 @@ class TestRoutes(BaseTestCase):
         db.session.add(loan)
         db.session.commit()
 
-        response = self.client.get(url_for('main.emprestimos', search='Livro Pesquisa'))
+        response = self.client.get(url_for('loans.emprestimos', search='Livro Pesquisa'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Livro Pesquisa Rota', response.get_data(as_text=True))
         
     def test_palavras_chave_route(self):
         """Test that the keyword management page is accessible."""
-        response = self.client.get(url_for('main.palavras_chave'))
+        response = self.client.get(url_for('keywords.palavras_chave'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Tags', response.get_data(as_text=True))
 
     def test_configuracoes_route(self):
         """Test that the configuration management page is accessible for admin users."""
-        response = self.client.get(url_for('main.configuracoes'))
+        response = self.client.get(url_for('configs.configuracoes'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Configurações', response.get_data(as_text=True))
 
@@ -125,7 +125,7 @@ class TestRoutes(BaseTestCase):
         db.session.add(loan)
         db.session.commit()
 
-        response = self.client.post(url_for('main.informar_retorno_emprestimo', loan_id=loan.loanId), data={
+        response = self.client.post(url_for('loans.informar_retorno_emprestimo', loan_id=loan.loanId), data={
             'status': 'ACTIVE',
             'returnDate': date.today().strftime('%Y-%m-%d')
         })
@@ -168,7 +168,7 @@ class TestRoutes(BaseTestCase):
         db.session.add(loan)
         db.session.commit()
 
-        response = self.client.post(url_for('main.informar_retorno_emprestimo', loan_id=loan.loanId), data={
+        response = self.client.post(url_for('loans.informar_retorno_emprestimo', loan_id=loan.loanId), data={
             'status': 'COMPLETED',
             'returnDate': (loan.loanDate - timedelta(days=1)).strftime('%Y-%m-%d')
         })
@@ -211,7 +211,7 @@ class TestRoutes(BaseTestCase):
         db.session.add(loan)
         db.session.commit()
 
-        response = self.client.post(url_for('main.informar_retorno_emprestimo', loan_id=loan.loanId), data={
+        response = self.client.post(url_for('loans.informar_retorno_emprestimo', loan_id=loan.loanId), data={
             'status': 'LOST',
             'returnDate': date.today().strftime('%Y-%m-%d')
         })

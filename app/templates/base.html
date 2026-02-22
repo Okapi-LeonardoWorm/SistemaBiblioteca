@@ -28,39 +28,39 @@
       {% if session.get('logged_in') %}
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
           <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('main.index') }}">Biblioteca</a>
+            <a class="navbar-brand" href="{{ url_for('auth.index') }}">Biblioteca</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
             <div class="collapse navbar-collapse" id="navbarNav">
               <ul class="navbar-nav me-auto">
                 {% if current_user.userType == 'admin' %}
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                    <a class="nav-link" href="{{ url_for('navigation.dashboard') }}">Dashboard</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.livros') }}">Livros</a>
+                    <a class="nav-link" href="{{ url_for('books.livros') }}">Livros</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.emprestimos') }}">Empréstimos</a>
+                    <a class="nav-link" href="{{ url_for('loans.emprestimos') }}">Empréstimos</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.list_users') }}">Usuários</a>
+                    <a class="nav-link" href="{{ url_for('users.list_users') }}">Usuários</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.palavras_chave') }}">Tags</a>
+                    <a class="nav-link" href="{{ url_for('keywords.palavras_chave') }}">Tags</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.configuracoes') }}">Configurações</a>
+                    <a class="nav-link" href="{{ url_for('configs.configuracoes') }}">Configurações</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.audit_logs') }}">Audit Logs</a>
+                    <a class="nav-link" href="{{ url_for('audit_logs.audit_logs') }}">Audit Logs</a>
                   </li>
                   <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('main.manage_sessions') }}">Sessões</a>
+                    <a class="nav-link" href="{{ url_for('admin_sessions.manage_sessions') }}">Sessões</a>
                   </li>
                 {% endif %}
               </ul>
               <span class="navbar-text me-3">Logado como: {{ current_user.username }}</span>
-              <a href="{{ url_for('main.logout') }}" class="btn btn-outline-danger">Logout</a>
+              <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">Logout</a>
             </div>
           </div>
         </nav>

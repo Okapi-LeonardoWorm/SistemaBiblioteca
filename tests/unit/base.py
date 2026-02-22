@@ -2,13 +2,15 @@ import unittest
 from app import createApp, db
 from app.models import User, Book, Loan, KeyWord, StatusLoan
 
+_TEST_APP = createApp(config_name="testing")
+
 class BaseTestCase(unittest.TestCase):
     def setUp(self):
         """
         Called before each test. Sets up a test client, a test database,
         and the application context.
         """
-        self.app = createApp(config_name="testing")
+        self.app = _TEST_APP
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
         self.app_context.push()
@@ -25,10 +27,13 @@ class BaseTestCase(unittest.TestCase):
     def _create_admin_user(self):
         """Helper method to create an admin user for testing protected routes."""
         admin_user = User(
-            username='admin',
+            identificationCode='admin',
+            userCompleteName='Administrador',
             password='adminpassword',  # Plain text for test simplicity, will be hashed by model/route
             userType='admin',
-            birthDate='1990-01-01'
+            birthDate='1990-01-01',
+            createdBy=None,
+            updatedBy=None,
         )
         db.session.add(admin_user)
         db.session.commit()

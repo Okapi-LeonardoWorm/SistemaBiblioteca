@@ -22,13 +22,13 @@ class TestAuth(BaseTestCase):
 
     def test_login_page_loads(self):
         """Test that the login page loads correctly."""
-        response = self.client.get(url_for('main.login'))
+        response = self.client.get(url_for('auth.login'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Login', response.get_data(as_text=True))
 
     def test_successful_login(self):
         """Test that a user can log in successfully."""
-        response = self.client.post(url_for('main.login'), data={
+        response = self.client.post(url_for('auth.login'), data={
             'username': 'testuser',
             'password': 'testpassword'
         }, follow_redirects=True)
@@ -37,7 +37,7 @@ class TestAuth(BaseTestCase):
 
     def test_failed_login_wrong_password(self):
         """Test that login fails with an incorrect password."""
-        response = self.client.post(url_for('main.login'), data={
+        response = self.client.post(url_for('auth.login'), data={
             'username': 'testuser',
             'password': 'wrongpassword'
         }, follow_redirects=True)
@@ -46,25 +46,25 @@ class TestAuth(BaseTestCase):
 
     def test_failed_login_wrong_username(self):
         """Test that login fails with a non-existent username."""
-        response = self.client.post(url_for('main.login'), data={
+        response = self.client.post(url_for('auth.login'), data={
             'username': 'nouser',
             'password': 'testpassword'
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Usuário ou senha inválidos', response.get_data(as_text=True))
 
-    def test_login_rejects_username_with_extra_spaces(self):
-        """Login form should reject usernames containing surrounding spaces."""
-        response = self.client.post(url_for('main.login'), data={
+    def test_login_accepts_username_with_extra_spaces(self):
+        """Login should normalize username removendo espaços nas extremidades."""
+        response = self.client.post(url_for('auth.login'), data={
             'username': '  testuser  ',
             'password': 'testpassword'
         }, follow_redirects=True)
         self.assertEqual(response.status_code, 200)
-        self.assertNotIn('Olá, testuser!', response.get_data(as_text=True))
+        self.assertIn('Olá, testuser!', response.get_data(as_text=True))
 
     def test_login_rejects_username_with_special_characters(self):
         """Login form regex should reject usernames with unsupported characters."""
-        response = self.client.post(url_for('main.login'), data={
+        response = self.client.post(url_for('auth.login'), data={
             'username': 'test@user',
             'password': 'testpassword'
         }, follow_redirects=True)
@@ -74,18 +74,18 @@ class TestAuth(BaseTestCase):
     def test_logout(self):
         """Test that a user can log out."""
         # First, log in the user
-        self.client.post(url_for('main.login'), data={
+        self.client.post(url_for('auth.login'), data={
             'username': 'testuser',
             'password': 'testpassword'
         }, follow_redirects=True)
 
         # Then, log out
-        response = self.client.get(url_for('main.logout'), follow_redirects=True)
+        response = self.client.get(url_for('auth.logout'), follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Login', response.get_data(as_text=True))
 
     def test_access_protected_route_without_login(self):
         """Test that protected routes redirect to login when not authenticated."""
-        response = self.client.get(url_for('main.dashboard'), follow_redirects=True)
+        response = self.client.get(url_for('navigation.dashboard'), follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn('Login', response.get_data(as_text=True))

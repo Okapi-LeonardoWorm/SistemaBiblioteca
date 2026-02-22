@@ -11,7 +11,7 @@
 <div class="container py-4">
     <header class="management-header">
         <h1 class="h3">Gerenciar Usuários</h1>
-        <form class="search-form" method="GET" action="{{ url_for('main.list_users') }}">
+        <form class="search-form" method="GET" action="{{ url_for('users.list_users') }}">
             <input type="text" name="search" class="form-control" placeholder="Buscar por nome..." value="{{ search_term or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
@@ -23,7 +23,7 @@
         </button>
         
         <!-- Items per page selector -->
-        <form method="GET" action="{{ url_for('main.list_users') }}" class="d-flex align-items-center">
+        <form method="GET" action="{{ url_for('users.list_users') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
@@ -53,7 +53,7 @@
                     <td>{{ user.userPhone or 'N/A' }}</td>
                     <td>{{ user.birthDate.strftime('%d/%m/%Y') if user.birthDate else 'N/A' }}</td>
                     <td>
-                        <form action="{{ url_for('main.delete_user', user_id=user.userId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
+                        <form action="{{ url_for('users.delete_user', user_id=user.userId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
                         </form>

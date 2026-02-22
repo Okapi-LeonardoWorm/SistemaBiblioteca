@@ -11,14 +11,14 @@ class TestCreationRoutes(BaseTestCase):
         super().setUp()
         self.admin_user = self._create_admin_user()
         # Log in the admin user for routes that require authentication
-        self.client.post(url_for('main.login'), data={
+        self.client.post(url_for('auth.login'), data={
             'username': 'admin',
             'password': 'adminpassword'
         }, follow_redirects=True)
 
     def test_create_book(self):
         """Test book creation via the /livros/new endpoint."""
-        response = self.client.post(url_for('main.novo_livro'), data={
+        response = self.client.post(url_for('books.novo_livro'), data={
             'bookName': 'New Test Book',
             'authorName': 'Test Author',
             'amount': 10,
@@ -37,7 +37,7 @@ class TestCreationRoutes(BaseTestCase):
     def test_create_users_via_register(self):
         """Test creation of different user types via the /register endpoint."""
         # 1. Admin creates a staff member
-        response_staff = self.client.post(url_for('main.register'), data={
+        response_staff = self.client.post(url_for('auth.register'), data={
             'username': 'staffuser',
             'password': 'password123',
             'userType': 'staff',
@@ -50,7 +50,7 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(staff_user.userType, 'staff')
 
         # 2. Admin creates another admin
-        response_admin = self.client.post(url_for('main.register'), data={
+        response_admin = self.client.post(url_for('auth.register'), data={
             'username': 'newadmin',
             'password': 'password123',
             'userType': 'admin',
@@ -64,7 +64,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_register_trims_and_lowercases_identification_code(self):
         """Register should normalize username to trimmed lower-case identification code."""
-        response = self.client.post(url_for('main.register'), data={
+        response = self.client.post(url_for('auth.register'), data={
             'username': '  UserMixedCase  ',
             'password': 'password123',
             'userType': 'student',
@@ -78,7 +78,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_register_sanitizes_phone_cpf_and_rg_to_digits(self):
         """Register validators should keep only digits for phone/CPF/RG fields."""
-        response = self.client.post(url_for('main.register'), data={
+        response = self.client.post(url_for('auth.register'), data={
             'username': 'digits_only_user',
             'password': 'password123',
             'userType': 'student',
@@ -97,7 +97,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_create_user_rejects_invalid_phone_length(self):
         """/users/new should reject phone values that do not have 10 or 11 digits."""
-        response = self.client.post(url_for('main.new_user'), data={
+        response = self.client.post(url_for('users.new_user'), data={
             'identificationCode': 'invalid_phone_user',
             'userCompleteName': 'Invalid Phone User',
             'userType': 'aluno',
@@ -111,7 +111,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_create_user_requires_birthdate(self):
         """/users/new should fail in create mode when birthDate is missing."""
-        response = self.client.post(url_for('main.new_user'), data={
+        response = self.client.post(url_for('users.new_user'), data={
             'identificationCode': 'no_birth_user',
             'userCompleteName': 'User Without Birth',
             'userType': 'aluno'
@@ -135,7 +135,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add(existing)
         db.session.commit()
 
-        response = self.client.post(url_for('main.new_user'), data={
+        response = self.client.post(url_for('users.new_user'), data={
             'identificationCode': 'dup_code',
             'userCompleteName': 'Duplicated User',
             'userType': 'aluno',
@@ -160,7 +160,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add(user)
         db.session.commit()
 
-        response = self.client.post(url_for('main.edit_user', user_id=user.userId), data={
+        response = self.client.post(url_for('users.edit_user', user_id=user.userId), data={
             'identificationCode': 'edit_pwd_user',
             'userCompleteName': 'User Edit Password Updated',
             'userType': 'aluno',
@@ -188,7 +188,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add(user)
         db.session.commit()
 
-        response = self.client.post(url_for('main.edit_user', user_id=user.userId), data={
+        response = self.client.post(url_for('users.edit_user', user_id=user.userId), data={
             'identificationCode': 'edit_pwd_user2',
             'userCompleteName': 'User Edit Password Updated 2',
             'userType': 'aluno',
@@ -205,7 +205,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_create_book_trims_text_fields(self):
         """/livros/new should trim trailing and leading spaces in text fields."""
-        response = self.client.post(url_for('main.novo_livro'), data={
+        response = self.client.post(url_for('books.novo_livro'), data={
             'bookName': '  Livro com Espaço  ',
             'authorName': '  Autor com Espaço  ',
             'amount': 5,
@@ -220,7 +220,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_create_book_rejects_zero_amount(self):
         """/livros/new should reject zero quantity."""
-        response = self.client.post(url_for('main.novo_livro'), data={
+        response = self.client.post(url_for('books.novo_livro'), data={
             'bookName': 'Livro Inválido',
             'amount': 0,
             'keyWords': 'python'
@@ -237,7 +237,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add_all([student, book])
         db.session.commit()
 
-        response = self.client.post(url_for('main.novo_emprestimo'), data={
+        response = self.client.post(url_for('loans.novo_emprestimo'), data={
             'userId': student.userId,
             'bookId': book.bookId,
             'amount': 1,
@@ -259,7 +259,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add_all([student, book])
         db.session.commit()
 
-        response = self.client.post(url_for('main.novo_emprestimo'), data={
+        response = self.client.post(url_for('loans.novo_emprestimo'), data={
             'userId': student.userId,
             'bookId': book.bookId,
             'amount': 1,
@@ -276,7 +276,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add(book)
         db.session.commit()
 
-        response = self.client.post(url_for('main.novo_emprestimo'), data={
+        response = self.client.post(url_for('loans.novo_emprestimo'), data={
             'userId': 99999,
             'bookId': book.bookId,
             'amount': 1,
@@ -308,7 +308,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add(existing_loan)
         db.session.commit()
 
-        response = self.client.post(url_for('main.novo_emprestimo'), data={
+        response = self.client.post(url_for('loans.novo_emprestimo'), data={
             'userId': student2.userId,
             'bookId': book.bookId,
             'amount': 1,
@@ -322,7 +322,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_create_keywords_normalizes_accents_special_chars_and_deduplicates(self):
         """/palavras_chave/new should normalize and deduplicate submitted tags."""
-        response = self.client.post(url_for('main.nova_palavra_chave'), data={
+        response = self.client.post(url_for('keywords.nova_palavra_chave'), data={
             'word': ' ciência!! ; ciência ; ai-ml '
         })
 
@@ -340,7 +340,7 @@ class TestCreationRoutes(BaseTestCase):
         db.session.add_all([kw1, kw2])
         db.session.commit()
 
-        response = self.client.post(url_for('main.editar_palavra_chave', keyword_id=kw2.wordId), data={
+        response = self.client.post(url_for('keywords.editar_palavra_chave', keyword_id=kw2.wordId), data={
             'word': 'ciência'
         })
 
@@ -350,7 +350,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_create_config_rejects_invalid_boolean_value(self):
         """/configuracoes/new should reject values different from 0/1 for boolean type."""
-        response = self.client.post(url_for('main.nova_configuracao'), data={
+        response = self.client.post(url_for('configs.nova_configuracao'), data={
             'key': 'PERMITE_RENOVAR_EMPRESTIMO',
             'value': 'talvez',
             'valueType': 'boolean',
@@ -363,7 +363,7 @@ class TestCreationRoutes(BaseTestCase):
 
     def test_create_config_creates_spec_and_normalizes_boolean(self):
         """/configuracoes/new should create config+spec and normalize boolean to 1/0."""
-        response = self.client.post(url_for('main.nova_configuracao'), data={
+        response = self.client.post(url_for('configs.nova_configuracao'), data={
             'key': 'PERMITE_RESERVA',
             'value': 'true',
             'description': 'Permite reservar livros',

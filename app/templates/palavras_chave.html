@@ -11,7 +11,7 @@
 <div class="container py-4">
     <header class="management-header">
         <h1 class="h3">Gerenciar Tags (Palavras-chave)</h1>
-        <form class="search-form" method="GET" action="{{ url_for('main.palavras_chave') }}">
+        <form class="search-form" method="GET" action="{{ url_for('keywords.palavras_chave') }}">
             <input type="text" name="search" class="form-control" placeholder="Buscar por tag..." value="{{ search_term or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
@@ -22,7 +22,7 @@
             <i class="fas fa-plus"></i> Nova Tag
         </button>
         
-        <form method="GET" action="{{ url_for('main.palavras_chave') }}" class="d-flex align-items-center">
+        <form method="GET" action="{{ url_for('keywords.palavras_chave') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
@@ -46,7 +46,7 @@
                 <tr data-bs-toggle="modal" data-bs-target="#keywordModal" data-keyword-id="{{ keyword.wordId }}">
                     <td>{{ keyword.word }}</td>
                     <td>
-                        <form action="{{ url_for('main.excluir_palavra_chave', id=keyword.wordId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir esta tag?');">
+                        <form action="{{ url_for('keywords.excluir_palavra_chave', id=keyword.wordId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir esta tag?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
                         </form>

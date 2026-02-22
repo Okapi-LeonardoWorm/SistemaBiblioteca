@@ -11,7 +11,7 @@
 <div class="container py-4">
     <header class="management-header">
         <h1 class="h3">Gerenciar Livros</h1>
-        <form class="search-form" method="GET" action="{{ url_for('main.livros') }}">
+        <form class="search-form" method="GET" action="{{ url_for('books.livros') }}">
             <input type="text" name="search" class="form-control" placeholder="Buscar por título ou autor..." value="{{ search_term or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
@@ -22,7 +22,7 @@
             <i class="fas fa-plus"></i> Novo Livro
         </button>
         
-        <form method="GET" action="{{ url_for('main.livros') }}" class="d-flex align-items-center">
+        <form method="GET" action="{{ url_for('books.livros') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
@@ -52,7 +52,7 @@
                     <td>{{ book.publisherName or 'N/A' }}</td>
                     <td>{{ book.amount }}</td>
                     <td>
-                        <form action="{{ url_for('main.excluir_livro', id=book.bookId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este livro?');">
+                        <form action="{{ url_for('books.excluir_livro', id=book.bookId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este livro?');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
                         </form>

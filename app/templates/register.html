@@ -11,7 +11,7 @@
         <div class="card shadow-sm">
           <div class="card-body p-4">
             <h1 class="card-title text-center mb-4">Registrar Novo Usuário</h1>
-            <form method="POST" action="{{ url_for('main.register') }}" novalidate>
+            <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
               {{ form.hidden_tag() }}
 
               <div class="row">
