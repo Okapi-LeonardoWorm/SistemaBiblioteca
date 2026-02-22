@@ -120,17 +120,21 @@ def _parse_date(value: str):
     except Exception:
         return None
 
+
 def _get_config_bool(key: str) -> bool:
     config_entry = Configuration.query.filter_by(key=key).first()
     if not config_entry or config_entry.value is None:
         return False
     return str(config_entry.value).strip() == '1'
 
+
 def _is_admin_user() -> bool:
     return bool(getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'userType', None) == 'admin')
 
+
 def _parse_allowed_values(raw: str):
     return [item.strip() for item in (raw or '').split(',') if item.strip()]
+
 
 def _normalize_boolean_string(raw_value: str):
     normalized = (raw_value or '').strip().lower()
@@ -139,6 +143,7 @@ def _normalize_boolean_string(raw_value: str):
     if normalized in ('0', 'false', 'nao', 'não', 'no'):
         return '0'
     return None
+
 
 def _validate_config_value(raw_value: str, spec: ConfigSpec):
     value = (raw_value or '').strip()
@@ -175,6 +180,7 @@ def _validate_config_value(raw_value: str, spec: ConfigSpec):
 
     return True, value, None
 
+
 def _build_or_update_spec_from_form(form: ConfigForm, existing_spec: ConfigSpec | None = None):
     spec = existing_spec or ConfigSpec()
     spec.key = form.key.data
@@ -186,6 +192,7 @@ def _build_or_update_spec_from_form(form: ConfigForm, existing_spec: ConfigSpec 
     spec.defaultValue = (form.defaultValue.data or '').strip() or None
     spec.description = (form.specDescription.data or '').strip() or None
     return spec
+
 
 def _available_copies_for_range(book, start_date, end_date):
     if not book:
@@ -204,6 +211,7 @@ def _available_copies_for_range(book, start_date, end_date):
     used = q.scalar() or 0
     available = book.amount - used
     return max(available, 0)
+
 
 @bp.route('/')
 @bp.route('/index')
@@ -331,7 +339,7 @@ def login():
             try:
                 valid_password = bcrypt.check_password_hash(user.password, form.password.data)
             except ValueError:
-                # Se a senha no banco não estiver hasheada (ex.: em testes), faz comparação direta
+                # Se a senha no banco não estiver hasheada (ex.: em testes), faz comparação direta - REMOVER APÓS MIGRAÇÃO PARA PRODUÇÃO!
                 valid_password = (user.password == form.password.data)
         if user and valid_password:
             # Generate Session Token
@@ -365,11 +373,11 @@ def login():
             except Exception:
                 pass
             if user.userType == 'admin':
-
                 return redirect(url_for('main.dashboard'))
             return redirect(url_for('main.index'))
         else:
             flash('Usuário ou senha inválidos', 'danger')
+            
     return render_template('login.html', form=form)
 
 
@@ -1387,38 +1395,3 @@ def revoke_session(session_id):
         
     return redirect(url_for('main.manage_sessions'))
 
-
-    if start_date_str:
-        start_date = _parse_date(start_date_str)
-        if start_date:
-            # Combine date with min time
-            start_dt = datetime.combine(start_date, datetime.min.time())
-            query = query.filter(AuditLog.timestamp >= start_dt)
-    
-    if end_date_str:
-        end_date = _parse_date(end_date_str)
-        if end_date:
-            # Combine date with max time to include the whole day
-            end_dt = datetime.combine(end_date, datetime.max.time())
-            query = query.filter(AuditLog.timestamp <= end_dt)
-
-    # Order by timestamp desc
-    query = query.order_by(AuditLog.timestamp.desc())
-
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-    logs = pagination.items
-
-    # Pre-process logs to parse JSON changes if needed, or pass helper
-    # We can do it in the template using a custom filter or just simple json.loads if available
-    # But let's attach a parsed property or just handle strings in template
-    
-    return render_template(
-        'audit_logs.html',
-        logs=logs,
-        pagination=pagination,
-        action_filter=action_filter,
-        target_type_filter=target_type_filter,
-        user_id_filter=user_id_filter,
-        start_date=start_date_str,
-        end_date=end_date_str
-    )

@@ -5,6 +5,7 @@ from app.models import AuditLog
 import json
 from datetime import datetime, date
 
+
 def get_current_user_id():
     try:
         if current_user and current_user.is_authenticated:
@@ -13,10 +14,12 @@ def get_current_user_id():
         pass
     return None
 
+
 def json_serializer(obj):
     if isinstance(obj, (datetime, date)):
         return obj.isoformat()
     return str(obj)
+
 
 def get_changes_insert(target):
     changes = {}
@@ -71,6 +74,7 @@ def get_changes_update(target):
         pass
     return changes
 
+
 def create_audit_log(connection, action, target_type, target_id, changes=None, user_id=None):
     # Se action for UPDATE/DELETE, 'changes' deve ser um dicionário não vazio
     if changes is not None and isinstance(changes, dict) and not changes:
@@ -102,11 +106,13 @@ def create_audit_log(connection, action, target_type, target_id, changes=None, u
     except Exception as e:
         print(f"Erro ao salvar log de auditoria: {e}")
 
+
 def after_insert_listener(mapper, connection, target):
     if isinstance(target, AuditLog): return
     changes = get_changes_insert(target)
     pk = _get_pk(target)
     create_audit_log(connection, 'CREATE', target.__class__.__name__, pk, changes)
+
 
 def after_update_listener(mapper, connection, target):
     if isinstance(target, AuditLog): return
@@ -115,11 +121,13 @@ def after_update_listener(mapper, connection, target):
         pk = _get_pk(target)
         create_audit_log(connection, 'UPDATE', target.__class__.__name__, pk, changes)
 
+
 def after_delete_listener(mapper, connection, target):
     if isinstance(target, AuditLog): return
     changes = get_changes_insert(target) # Salva estado antes de deletar
     pk = _get_pk(target)
     create_audit_log(connection, 'DELETE', target.__class__.__name__, pk, changes)
+
 
 def _get_pk(target):
     try:
@@ -130,6 +138,7 @@ def _get_pk(target):
              return "-".join(pks)
     except:
         return None
+
 
 def register_listeners(app):
     from app import models
@@ -144,8 +153,6 @@ def register_listeners(app):
                      event.listen(obj, 'after_insert', after_insert_listener)
                      event.listen(obj, 'after_update', after_update_listener)
                      event.listen(obj, 'after_delete', after_delete_listener)
-
-
 
 
 def log_manual_event(action, target_type='System', target_id=None, changes=None):

@@ -14,6 +14,7 @@ def _digits_only(val: str) -> str:
         return ''
     return ''.join(ch for ch in str(val) if ch.isdigit())
 
+
 class LoginForm(FlaskForm):
     username = StringField(validators=[InputRequired(), Length(
         min=3, max=20, message="Seu nome de usuário deve conter entre 3 e 20 caracteres"),  Regexp(r'^[a-zA-Z_ ]+$', message="O nome de usuário pode conter apenas letras minúsculas e sublinhados(Underline), não pode conter espaços.")], render_kw={"placeholder": "Username"})
@@ -21,6 +22,7 @@ class LoginForm(FlaskForm):
         min=4, max=20, message="A senha deve conter entre 4 e 20 caracteres")], render_kw={"placeholder": "Password"})
 
     submit = SubmitField("Login")
+
 
 class RegisterForm(FlaskForm):
     username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=3, max=20)])
