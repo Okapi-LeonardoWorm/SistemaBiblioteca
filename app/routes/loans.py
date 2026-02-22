@@ -4,28 +4,210 @@ from flask import Blueprint, flash, jsonify, render_template, request
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 from sqlalchemy import or_
+from sqlalchemy.orm import aliased
 
 from app.forms import LoanForm
-from app.models import Book, Configuration, Loan, StatusLoan, User
+from app.models import Book, Configuration, KeyWord, Loan, StatusLoan, User
 from app.utils import calc_age, get_config_bool, parse_date
 from app.validaEmprestimo import validaEmprestimo
 from app import db
 
 bp = Blueprint('loans', __name__)
 
+
+def _parse_int(value):
+    try:
+        if value is None or value == '':
+            return None
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _add_date_range_filter(query, column, start_raw, end_raw):
+    start_date = parse_date((start_raw or '').strip())
+    end_date = parse_date((end_raw or '').strip())
+    if start_date:
+        query = query.filter(column >= datetime.combine(start_date, datetime.min.time()))
+    if end_date:
+        query = query.filter(column <= datetime.combine(end_date, datetime.max.time()))
+    return query
+
 @bp.route('/emprestimos')
 @login_required
 def emprestimos():
     query = Loan.query
+    created_by_user = aliased(User)
     search_term = (request.args.get('search') or '').strip()
+
+    advanced_filters = {
+        'loan_date_start': (request.args.get('loan_date_start') or '').strip(),
+        'loan_date_end': (request.args.get('loan_date_end') or '').strip(),
+        'return_date_start': (request.args.get('return_date_start') or '').strip(),
+        'return_date_end': (request.args.get('return_date_end') or '').strip(),
+        'loan_status': (request.args.get('loan_status') or '').strip(),
+        'loan_amount_min': (request.args.get('loan_amount_min') or '').strip(),
+        'loan_amount_max': (request.args.get('loan_amount_max') or '').strip(),
+        'loan_created_by': (request.args.get('loan_created_by') or '').strip(),
+
+        'user_code': (request.args.get('user_code') or '').strip(),
+        'user_name': (request.args.get('user_name') or '').strip(),
+        'user_type': (request.args.get('user_type') or '').strip(),
+        'user_birth_start': (request.args.get('user_birth_start') or '').strip(),
+        'user_birth_end': (request.args.get('user_birth_end') or '').strip(),
+        'user_cpf': (request.args.get('user_cpf') or '').strip(),
+        'user_rg': (request.args.get('user_rg') or '').strip(),
+        'user_phone': (request.args.get('user_phone') or '').strip(),
+        'user_grade': (request.args.get('user_grade') or '').strip(),
+        'user_class': (request.args.get('user_class') or '').strip(),
+
+        'book_name': (request.args.get('book_name') or '').strip(),
+        'book_author': (request.args.get('book_author') or '').strip(),
+        'book_publisher': (request.args.get('book_publisher') or '').strip(),
+        'book_published_start': (request.args.get('book_published_start') or '').strip(),
+        'book_published_end': (request.args.get('book_published_end') or '').strip(),
+        'book_acquired_start': (request.args.get('book_acquired_start') or '').strip(),
+        'book_acquired_end': (request.args.get('book_acquired_end') or '').strip(),
+        'book_description': (request.args.get('book_description') or '').strip(),
+        'book_tags': (request.args.get('book_tags') or '').strip(),
+    }
+
+    needs_user_join = bool(
+        search_term
+        or advanced_filters['user_code']
+        or advanced_filters['user_name']
+        or advanced_filters['user_type']
+        or advanced_filters['user_birth_start']
+        or advanced_filters['user_birth_end']
+        or advanced_filters['user_cpf']
+        or advanced_filters['user_rg']
+        or advanced_filters['user_phone']
+        or advanced_filters['user_grade']
+        or advanced_filters['user_class']
+    )
+    needs_book_join = bool(
+        search_term
+        or advanced_filters['book_name']
+        or advanced_filters['book_author']
+        or advanced_filters['book_publisher']
+        or advanced_filters['book_published_start']
+        or advanced_filters['book_published_end']
+        or advanced_filters['book_acquired_start']
+        or advanced_filters['book_acquired_end']
+        or advanced_filters['book_description']
+        or advanced_filters['book_tags']
+    )
+    needs_created_user_join = bool(advanced_filters['loan_created_by'])
+    needs_keyword_join = bool(advanced_filters['book_tags'])
+
+    if needs_user_join:
+        query = query.join(Loan.user)
+    if needs_book_join:
+        query = query.join(Loan.book)
+    if needs_created_user_join:
+        query = query.join(created_by_user, Loan.created_user)
+    if needs_keyword_join:
+        query = query.outerjoin(Book.keywords)
+
     if search_term:
-        query = query.join(Loan.user).join(Loan.book).filter(
+        query = query.filter(
             or_(
                 User.userCompleteName.ilike(f'%{search_term}%'),
                 User.identificationCode.ilike(f'%{search_term}%'),
                 Book.bookName.ilike(f'%{search_term}%')
             )
-        ).distinct()
+        )
+
+    # Categoria: Empréstimos
+    query = _add_date_range_filter(
+        query,
+        Loan.loanDate,
+        advanced_filters['loan_date_start'],
+        advanced_filters['loan_date_end']
+    )
+    query = _add_date_range_filter(
+        query,
+        Loan.returnDate,
+        advanced_filters['return_date_start'],
+        advanced_filters['return_date_end']
+    )
+    if advanced_filters['loan_status']:
+        status_name = advanced_filters['loan_status'].upper()
+        if status_name in StatusLoan.__members__:
+            query = query.filter(Loan.status == StatusLoan[status_name])
+
+    amount_min = _parse_int(advanced_filters['loan_amount_min'])
+    amount_max = _parse_int(advanced_filters['loan_amount_max'])
+    if amount_min is not None:
+        query = query.filter(Loan.amount >= amount_min)
+    if amount_max is not None:
+        query = query.filter(Loan.amount <= amount_max)
+
+    if advanced_filters['loan_created_by']:
+        query = query.filter(
+            or_(
+                created_by_user.identificationCode.ilike(f"%{advanced_filters['loan_created_by']}%"),
+                created_by_user.userCompleteName.ilike(f"%{advanced_filters['loan_created_by']}%")
+            )
+        )
+
+    # Categoria: Usuário
+    if advanced_filters['user_code']:
+        query = query.filter(User.identificationCode.ilike(f"%{advanced_filters['user_code']}%"))
+    if advanced_filters['user_name']:
+        query = query.filter(User.userCompleteName.ilike(f"%{advanced_filters['user_name']}%"))
+    if advanced_filters['user_type']:
+        query = query.filter(User.userType.ilike(f"%{advanced_filters['user_type']}%"))
+    query = _add_date_range_filter(
+        query,
+        User.birthDate,
+        advanced_filters['user_birth_start'],
+        advanced_filters['user_birth_end']
+    )
+    if advanced_filters['user_cpf']:
+        query = query.filter(User.cpf.ilike(f"%{advanced_filters['user_cpf']}%"))
+    if advanced_filters['user_rg']:
+        query = query.filter(User.rg.ilike(f"%{advanced_filters['user_rg']}%"))
+    if advanced_filters['user_phone']:
+        query = query.filter(User.userPhone.ilike(f"%{advanced_filters['user_phone']}%"))
+    user_grade = _parse_int(advanced_filters['user_grade'])
+    if user_grade is not None:
+        query = query.filter(User.gradeNumber == user_grade)
+    if advanced_filters['user_class']:
+        query = query.filter(User.className.ilike(f"%{advanced_filters['user_class']}%"))
+
+    # Categoria: Livro
+    if advanced_filters['book_name']:
+        query = query.filter(Book.bookName.ilike(f"%{advanced_filters['book_name']}%"))
+    if advanced_filters['book_author']:
+        query = query.filter(Book.authorName.ilike(f"%{advanced_filters['book_author']}%"))
+    if advanced_filters['book_publisher']:
+        query = query.filter(Book.publisherName.ilike(f"%{advanced_filters['book_publisher']}%"))
+
+    book_published_start = parse_date(advanced_filters['book_published_start'])
+    book_published_end = parse_date(advanced_filters['book_published_end'])
+    if book_published_start:
+        query = query.filter(Book.publishedDate >= book_published_start)
+    if book_published_end:
+        query = query.filter(Book.publishedDate <= book_published_end)
+
+    query = _add_date_range_filter(
+        query,
+        Book.acquisitionDate,
+        advanced_filters['book_acquired_start'],
+        advanced_filters['book_acquired_end']
+    )
+
+    if advanced_filters['book_description']:
+        query = query.filter(Book.description.ilike(f"%{advanced_filters['book_description']}%"))
+
+    if advanced_filters['book_tags']:
+        tags = [tag.strip() for tag in advanced_filters['book_tags'].split(',') if tag.strip()]
+        if tags:
+            query = query.filter(or_(*[KeyWord.word.ilike(f'%{tag}%') for tag in tags]))
+
+    if needs_user_join or needs_book_join or needs_created_user_join or needs_keyword_join:
+        query = query.distinct()
 
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
@@ -36,7 +218,16 @@ def emprestimos():
     cancellation_limit_minutes = int(config_entry.value) if config_entry and config_entry.value and config_entry.value.isdigit() else 0
     now = datetime.now()
     
-    return render_template('emprestimos.html', loans=loans_pagination, search_term=search_term, per_page=per_page, cancellation_limit_minutes=cancellation_limit_minutes, now=now)
+    return render_template(
+        'emprestimos.html',
+        loans=loans_pagination,
+        search_term=search_term,
+        per_page=per_page,
+        cancellation_limit_minutes=cancellation_limit_minutes,
+        now=now,
+        filters=advanced_filters,
+        status_options=StatusLoan
+    )
 
 @bp.route('/emprestimos/cancel/<int:loan_id>', methods=['POST'])
 @login_required

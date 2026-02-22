@@ -57,7 +57,6 @@ class User(db.Model, UserMixin):
         return value
 
 
-
 class Book(db.Model):
     __tablename__ = 'books'
     
@@ -89,8 +88,7 @@ class Book(db.Model):
             except ValueError:
                 return value
         return value
-
-
+    
 
 class KeyWord(db.Model):
     __tablename__ = 'keyWords'
@@ -274,5 +272,3 @@ class UserSession(db.Model):
     last_activity = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     user = db.relationship('User', backref=db.backref('sessions', lazy='dynamic'))
-
-

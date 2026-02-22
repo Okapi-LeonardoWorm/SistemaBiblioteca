@@ -12,24 +12,177 @@
     <header class="management-header">
         <h1 class="h3">Gerenciar Empréstimos</h1>
         <form class="search-form" method="GET" action="{{ url_for('loans.emprestimos') }}">
-            <input type="text" name="search" class="form-control" placeholder="Buscar por livro ou usuário..." value="{{ search_term or '' }}">
+            <input type="text" name="search" class="form-control search-input" placeholder="Buscar por livro ou usuário..." value="{{ search_term or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
     </header>
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="">
-            <i class="fas fa-plus"></i> Novo Empréstimo
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="">
+                <i class="fas fa-plus"></i> Novo Empréstimo
+            </button>
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedLoanFilters" aria-expanded="false" aria-controls="advancedLoanFilters">
+                Filtros avançados
+            </button>
+        </div>
         
         <form method="GET" action="{{ url_for('loans.emprestimos') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
+            {% for key, value in filters.items() %}
+            <input type="hidden" name="{{ key }}" value="{{ value }}">
+            {% endfor %}
             <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
                 <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
                 <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
                 <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
             </select>
+        </form>
+    </div>
+
+    <div class="collapse mb-3" id="advancedLoanFilters">
+        <form method="GET" action="{{ url_for('loans.emprestimos') }}" class="advanced-filters-card">
+            <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <input type="hidden" name="per_page" value="{{ per_page }}">
+
+            <div class="advanced-filters-grid">
+                <section class="advanced-filter-group">
+                    <h6>Empréstimos</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Empréstimo de</label>
+                            <input type="date" name="loan_date_start" class="form-control" value="{{ filters.loan_date_start or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Empréstimo até</label>
+                            <input type="date" name="loan_date_end" class="form-control" value="{{ filters.loan_date_end or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Retorno de</label>
+                            <input type="date" name="return_date_start" class="form-control" value="{{ filters.return_date_start or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Retorno até</label>
+                            <input type="date" name="return_date_end" class="form-control" value="{{ filters.return_date_end or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select name="loan_status" class="form-select">
+                                <option value="">Todos</option>
+                                {% for option in status_options %}
+                                <option value="{{ option.name }}" {% if filters.loan_status == option.name %}selected{% endif %}>{{ option.value }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Qtd. mín.</label>
+                            <input type="number" min="1" name="loan_amount_min" class="form-control" value="{{ filters.loan_amount_min or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Qtd. máx.</label>
+                            <input type="number" min="1" name="loan_amount_max" class="form-control" value="{{ filters.loan_amount_max or '' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Criado por</label>
+                            <input type="text" name="loan_created_by" class="form-control" placeholder="Código ou nome" value="{{ filters.loan_created_by or '' }}">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="advanced-filter-group">
+                    <h6>Usuário</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Código</label>
+                            <input type="text" name="user_code" class="form-control" value="{{ filters.user_code or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nome</label>
+                            <input type="text" name="user_name" class="form-control" value="{{ filters.user_name or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo</label>
+                            <input type="text" name="user_type" class="form-control" value="{{ filters.user_type or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nascimento de</label>
+                            <input type="date" name="user_birth_start" class="form-control" value="{{ filters.user_birth_start or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Nascimento até</label>
+                            <input type="date" name="user_birth_end" class="form-control" value="{{ filters.user_birth_end or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">CPF</label>
+                            <input type="text" name="user_cpf" class="form-control" value="{{ filters.user_cpf or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">RG</label>
+                            <input type="text" name="user_rg" class="form-control" value="{{ filters.user_rg or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Telefone</label>
+                            <input type="text" name="user_phone" class="form-control" value="{{ filters.user_phone or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Série</label>
+                            <input type="number" min="0" name="user_grade" class="form-control" value="{{ filters.user_grade or '' }}">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Turma</label>
+                            <input type="text" name="user_class" class="form-control" value="{{ filters.user_class or '' }}">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="advanced-filter-group">
+                    <h6>Livro</h6>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label">Nome</label>
+                            <input type="text" name="book_name" class="form-control" value="{{ filters.book_name or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Autor</label>
+                            <input type="text" name="book_author" class="form-control" value="{{ filters.book_author or '' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Editora</label>
+                            <input type="text" name="book_publisher" class="form-control" value="{{ filters.book_publisher or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Publicação de</label>
+                            <input type="date" name="book_published_start" class="form-control" value="{{ filters.book_published_start or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Publicação até</label>
+                            <input type="date" name="book_published_end" class="form-control" value="{{ filters.book_published_end or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Aquisição de</label>
+                            <input type="date" name="book_acquired_start" class="form-control" value="{{ filters.book_acquired_start or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Aquisição até</label>
+                            <input type="date" name="book_acquired_end" class="form-control" value="{{ filters.book_acquired_end or '' }}">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label">Descrição</label>
+                            <input type="text" name="book_description" class="form-control" value="{{ filters.book_description or '' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tags</label>
+                            <input type="text" name="book_tags" class="form-control" placeholder="Ex.: aventura, ficção" value="{{ filters.book_tags or '' }}">
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <div class="advanced-filters-actions mt-3">
+                <a href="{{ url_for('loans.emprestimos') }}" class="btn btn-outline-secondary">Limpar filtros</a>
+                <button type="submit" class="btn btn-primary">Aplicar filtros</button>
+            </div>
         </form>
     </div>
 
@@ -72,7 +225,7 @@
 
     <!-- Pagination -->
     <div class="mt-3">
-        {{ render_pagination(loans, search=search_term, per_page=per_page) }}
+        {{ render_pagination(loans, search=search_term, per_page=per_page, **filters) }}
     </div>
 
     <!-- Loan Modal -->

@@ -3,7 +3,7 @@ from flask import url_for
 from datetime import date, timedelta
 
 from app import db
-from app.models import Book, Loan, StatusLoan, User
+from app.models import Book, KeyWord, Loan, StatusLoan, User
 
 class TestRoutes(BaseTestCase):
 
@@ -78,6 +78,142 @@ class TestRoutes(BaseTestCase):
         response = self.client.get(url_for('loans.emprestimos', search='Livro Pesquisa'))
         self.assertEqual(response.status_code, 200)
         self.assertIn('Livro Pesquisa Rota', response.get_data(as_text=True))
+
+    def test_emprestimos_advanced_filters_route(self):
+        """Advanced filters should combine with AND across loan, user and book fields."""
+        user_match = User(
+            identificationCode='ALUNO-001',
+            userCompleteName='Aluno Filtro',
+            password='password',
+            userType='student',
+            birthDate=date(2008, 5, 10),
+            cpf='12345678901',
+            rg='1234567890',
+            userPhone='11999999999',
+            gradeNumber=7,
+            className='A',
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        user_other = User(
+            identificationCode='ALUNO-999',
+            userCompleteName='Outro Usuário',
+            password='password',
+            userType='teacher',
+            birthDate=date(1990, 1, 1),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+
+        book_match = Book(
+            bookName='Livro Avançado',
+            amount=3,
+            authorName='Autor Exato',
+            publisherName='Editora Boa',
+            publishedDate=date(2020, 1, 1),
+            acquisitionDate=date(2024, 1, 10),
+            description='Descrição especial para filtro',
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        book_other = Book(
+            bookName='Livro Sem Match',
+            amount=3,
+            authorName='Outro Autor',
+            publisherName='Outra Editora',
+            publishedDate=date(2010, 1, 1),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+
+        kw_match = KeyWord(
+            word='aventura',
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        book_match.keywords.append(kw_match)
+
+        db.session.add_all([user_match, user_other, book_match, book_other, kw_match])
+        db.session.commit()
+
+        loan_match = Loan(
+            amount=2,
+            loanDate=date(2025, 1, 15),
+            returnDate=date(2025, 1, 25),
+            userId=user_match.userId,
+            bookId=book_match.bookId,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            status=StatusLoan.ACTIVE,
+        )
+        loan_other = Loan(
+            amount=1,
+            loanDate=date(2024, 1, 15),
+            returnDate=date(2024, 1, 25),
+            userId=user_other.userId,
+            bookId=book_other.bookId,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            status=StatusLoan.COMPLETED,
+        )
+        db.session.add_all([loan_match, loan_other])
+        db.session.commit()
+
+        response = self.client.get(url_for(
+            'loans.emprestimos',
+            loan_date_start='2025-01-01',
+            loan_date_end='2025-12-31',
+            return_date_start='2025-01-01',
+            return_date_end='2025-12-31',
+            loan_status='ACTIVE',
+            loan_amount_min='2',
+            loan_amount_max='2',
+            loan_created_by='admin',
+            user_code='ALUNO-001',
+            user_name='Aluno Filtro',
+            user_type='student',
+            user_birth_start='2008-01-01',
+            user_birth_end='2008-12-31',
+            user_cpf='12345678901',
+            user_rg='1234567890',
+            user_phone='1199999',
+            user_grade='7',
+            user_class='A',
+            book_name='Livro Avançado',
+            book_author='Autor Exato',
+            book_publisher='Editora Boa',
+            book_published_start='2019-01-01',
+            book_published_end='2021-12-31',
+            book_acquired_start='2024-01-01',
+            book_acquired_end='2024-12-31',
+            book_description='especial',
+            book_tags='aventura'
+        ))
+
+        content = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Livro Avançado', content)
+        self.assertNotIn('Livro Sem Match', content)
+
+    def test_emprestimos_filters_are_preserved_in_page_controls(self):
+        """Selected advanced filters should be preserved in per-page and pagination parameters."""
+        response = self.client.get(url_for(
+            'loans.emprestimos',
+            search='Livro',
+            per_page=50,
+            user_name='Maria',
+            book_tags='aventura'
+        ))
+
+        content = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('name="user_name" value="Maria"', content)
+        self.assertIn('name="book_tags" value="aventura"', content)
+        self.assertIn('name="per_page"', content)
         
     def test_palavras_chave_route(self):
         """Test that the keyword management page is accessible."""

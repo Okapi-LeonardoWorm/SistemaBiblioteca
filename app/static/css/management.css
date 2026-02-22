@@ -15,6 +15,34 @@
     margin-bottom: 0.5rem;
 }
 
+.search-input {
+    min-width: 240px;
+}
+
+.advanced-filters-card {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.advanced-filters-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.advanced-filter-group h6 {
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+.advanced-filters-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
 .table-responsive {
     background-color: #ffffff;
     border-radius: 0.5rem;
@@ -97,5 +125,13 @@
     .search-form .form-control,
     .search-form .btn {
         margin-bottom: 0;
+    }
+
+    .advanced-filters-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .advanced-filter-group:last-child {
+        grid-column: span 2;
     }
 }
