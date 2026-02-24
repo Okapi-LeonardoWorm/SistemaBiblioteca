@@ -12,11 +12,38 @@ from app.utils import normalize_tag, split_string_into_list
 
 bp = Blueprint('books', __name__)
 
+
+def _parse_int(value):
+    try:
+        if value is None or value == '':
+            return None
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
 @bp.route('/livros')
 @login_required
 def livros():
     query = Book.query
-    search_term = request.args.get('search', '')
+    search_term = (request.args.get('search') or '').strip()
+
+    filters = {
+        'book_author': (request.args.get('book_author') or '').strip(),
+        'book_publisher': (request.args.get('book_publisher') or '').strip(),
+        'book_published_start': (request.args.get('book_published_start') or '').strip(),
+        'book_published_end': (request.args.get('book_published_end') or '').strip(),
+        'book_acquired_start': (request.args.get('book_acquired_start') or '').strip(),
+        'book_acquired_end': (request.args.get('book_acquired_end') or '').strip(),
+        'book_amount_min': (request.args.get('book_amount_min') or '').strip(),
+        'book_amount_max': (request.args.get('book_amount_max') or '').strip(),
+        'book_description': (request.args.get('book_description') or '').strip(),
+        'book_tags': (request.args.get('book_tags') or '').strip(),
+    }
+
+    needs_keywords_join = bool(filters['book_tags'])
+    if needs_keywords_join:
+        query = query.outerjoin(Book.keywords)
+
     if search_term:
         query = query.filter(
             or_(
@@ -25,11 +52,55 @@ def livros():
             )
         )
 
+    if filters['book_author']:
+        query = query.filter(Book.authorName.ilike(f"%{filters['book_author']}%"))
+    if filters['book_publisher']:
+        query = query.filter(Book.publisherName.ilike(f"%{filters['book_publisher']}%"))
+
+    published_start = filters['book_published_start']
+    published_end = filters['book_published_end']
+    if published_start:
+        query = query.filter(Book.publishedDate >= published_start)
+    if published_end:
+        query = query.filter(Book.publishedDate <= published_end)
+
+    acquired_start = filters['book_acquired_start']
+    acquired_end = filters['book_acquired_end']
+    if acquired_start:
+        query = query.filter(Book.acquisitionDate >= acquired_start)
+    if acquired_end:
+        query = query.filter(Book.acquisitionDate <= acquired_end)
+
+    amount_min = _parse_int(filters['book_amount_min'])
+    amount_max = _parse_int(filters['book_amount_max'])
+    if amount_min is not None:
+        query = query.filter(Book.amount >= amount_min)
+    if amount_max is not None:
+        query = query.filter(Book.amount <= amount_max)
+
+    if filters['book_description']:
+        query = query.filter(Book.description.ilike(f"%{filters['book_description']}%"))
+
+    if filters['book_tags']:
+        raw_tags = filters['book_tags'].replace(';', ',')
+        tags = [normalize_tag(tag) for tag in raw_tags.split(',') if normalize_tag(tag)]
+        if tags:
+            query = query.filter(or_(*[KeyWord.word.ilike(f'%{tag}%') for tag in tags]))
+
+    if needs_keywords_join:
+        query = query.distinct()
+
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
     books_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     
-    return render_template('livros.html', books=books_pagination, search_term=search_term, per_page=per_page)
+    return render_template(
+        'livros.html',
+        books=books_pagination,
+        search_term=search_term,
+        per_page=per_page,
+        filters=filters
+    )
 
 
 @bp.route('/livros/form', defaults={'book_id': None}, methods=['GET'])

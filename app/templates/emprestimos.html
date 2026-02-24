@@ -9,6 +9,13 @@
 
 {% block content %}
 <div class="container py-4">
+    {% set advanced_open = namespace(value=false) %}
+    {% for value in filters.values() %}
+        {% if value %}
+            {% set advanced_open.value = true %}
+        {% endif %}
+    {% endfor %}
+
     <header class="management-header">
         <h1 class="h3">Gerenciar Empréstimos</h1>
         <form class="search-form" method="GET" action="{{ url_for('loans.emprestimos') }}">
@@ -22,7 +29,7 @@
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="">
                 <i class="fas fa-plus"></i> Novo Empréstimo
             </button>
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedLoanFilters" aria-expanded="false" aria-controls="advancedLoanFilters">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedLoanFilters" aria-expanded="{{ 'true' if advanced_open.value else 'false' }}" aria-controls="advancedLoanFilters">
                 Filtros avançados
             </button>
         </div>
@@ -41,7 +48,7 @@
         </form>
     </div>
 
-    <div class="collapse mb-3" id="advancedLoanFilters">
+    <div class="collapse mb-3{% if advanced_open.value %} show{% endif %}" id="advancedLoanFilters">
         <form method="GET" action="{{ url_for('loans.emprestimos') }}" class="advanced-filters-card">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <input type="hidden" name="per_page" value="{{ per_page }}">
