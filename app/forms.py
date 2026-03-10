@@ -94,8 +94,28 @@ class BookForm(FlaskForm):
         DataRequired(), NumberRange(min=1)])
     authorName = StringField('Nome do Autor', validators=[Optional()])
     publisherName = StringField('Nome da Editora', validators=[Optional()])
+    publishedDateMode = RadioField(
+        'Formato de Publicação',
+        choices=[('year', 'Ano'), ('date', 'Data')],
+        default='year',
+        validators=[DataRequired()]
+    )
+    publicationYear = IntegerField(
+        'Ano de Publicação',
+        validators=[Optional(), NumberRange(min=1000, max=9999)]
+    )
     publishedDate = DateField(
         'Data de Publicação', format='%Y-%m-%d', validators=[Optional()])
+    acquisitionDateMode = RadioField(
+        'Formato de Aquisição',
+        choices=[('year', 'Ano'), ('date', 'Data')],
+        default='year',
+        validators=[DataRequired()]
+    )
+    acquisitionYear = IntegerField(
+        'Ano de Aquisição',
+        validators=[Optional(), NumberRange(min=1000, max=9999)]
+    )
     acquisitionDate = DateField('Data de Aquisição',
                                 format='%Y-%m-%d', validators=[Optional()])
     description = TextAreaField('Descrição', validators=[Optional()])

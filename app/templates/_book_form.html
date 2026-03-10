@@ -14,12 +14,42 @@
     </div>
     <div class="row">
         <div class="col-md-6 mb-3">
-            {{ form.publishedDate.label(class="form-label") }}
-            {{ form.publishedDate(class="form-control", type="date") }}
+            <label class="form-label d-block">Publicação</label>
+            <div class="mb-2">
+                {% for option in form.publishedDateMode %}
+                <div class="form-check form-check-inline">
+                    {{ option(class="form-check-input") }}
+                    {{ option.label(class="form-check-label") }}
+                </div>
+                {% endfor %}
+            </div>
+            <div data-mode-container="published" data-mode-value="year" class="mb-2">
+                {{ form.publicationYear.label(class="form-label") }}
+                {{ form.publicationYear(class="form-control", type="number", min="1000", max="9999", step="1") }}
+            </div>
+            <div data-mode-container="published" data-mode-value="date" class="mb-2">
+                {{ form.publishedDate.label(class="form-label") }}
+                {{ form.publishedDate(class="form-control", type="date") }}
+            </div>
         </div>
         <div class="col-md-6 mb-3">
-            {{ form.acquisitionDate.label(class="form-label") }}
-            {{ form.acquisitionDate(class="form-control", type="date") }}
+            <label class="form-label d-block">Aquisição</label>
+            <div class="mb-2">
+                {% for option in form.acquisitionDateMode %}
+                <div class="form-check form-check-inline">
+                    {{ option(class="form-check-input") }}
+                    {{ option.label(class="form-check-label") }}
+                </div>
+                {% endfor %}
+            </div>
+            <div data-mode-container="acquisition" data-mode-value="year" class="mb-2">
+                {{ form.acquisitionYear.label(class="form-label") }}
+                {{ form.acquisitionYear(class="form-control", type="number", min="1000", max="9999", step="1") }}
+            </div>
+            <div data-mode-container="acquisition" data-mode-value="date" class="mb-2">
+                {{ form.acquisitionDate.label(class="form-label") }}
+                {{ form.acquisitionDate(class="form-control", type="date") }}
+            </div>
         </div>
     </div>
     <div class="mb-3">

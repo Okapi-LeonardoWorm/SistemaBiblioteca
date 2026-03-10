@@ -203,6 +203,49 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookModal = document.getElementById('bookModal');
     const saveBookBtn = document.getElementById('saveBookBtn');
 
+    function toggleDateModeFields(form, modeName, sectionName) {
+        const selected = form.querySelector(`input[name="${modeName}"]:checked`)?.value || 'year';
+        const yearContainer = form.querySelector(`[data-mode-container="${sectionName}"][data-mode-value="year"]`);
+        const dateContainer = form.querySelector(`[data-mode-container="${sectionName}"][data-mode-value="date"]`);
+
+        const yearInput = yearContainer ? yearContainer.querySelector('input') : null;
+        const dateInput = dateContainer ? dateContainer.querySelector('input') : null;
+
+        if (yearContainer) {
+            yearContainer.style.display = selected === 'year' ? '' : 'none';
+        }
+        if (dateContainer) {
+            dateContainer.style.display = selected === 'date' ? '' : 'none';
+        }
+
+        if (yearInput) {
+            yearInput.disabled = selected !== 'year';
+        }
+        if (dateInput) {
+            dateInput.disabled = selected !== 'date';
+        }
+    }
+
+    function initBookDateModeToggle(scope) {
+        const form = scope.querySelector('#bookModalForm');
+        if (!form) {
+            return;
+        }
+
+        const syncPublished = () => toggleDateModeFields(form, 'publishedDateMode', 'published');
+        const syncAcquisition = () => toggleDateModeFields(form, 'acquisitionDateMode', 'acquisition');
+
+        form.querySelectorAll('input[name="publishedDateMode"]').forEach((input) => {
+            input.addEventListener('change', syncPublished);
+        });
+        form.querySelectorAll('input[name="acquisitionDateMode"]').forEach((input) => {
+            input.addEventListener('change', syncAcquisition);
+        });
+
+        syncPublished();
+        syncAcquisition();
+    }
+
     bookModal.addEventListener('show.bs.modal', function (event) {
         const trigger = event.relatedTarget;
         const bookId = trigger.getAttribute('data-book-id');
@@ -219,6 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(html => {
                 modalTitle.textContent = bookId ? 'Editar Livro' : 'Novo Livro';
                 modalBody.innerHTML = html;
+                initBookDateModeToggle(modalBody);
             })
             .catch(err => {
                 modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';

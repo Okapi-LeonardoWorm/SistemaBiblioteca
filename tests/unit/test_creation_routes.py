@@ -22,7 +22,9 @@ class TestCreationRoutes(BaseTestCase):
             'bookName': 'New Test Book',
             'authorName': 'Test Author',
             'amount': 10,
+            'publishedDateMode': 'date',
             'publishedDate': '2024-01-01',
+            'acquisitionDateMode': 'date',
             'acquisitionDate': '2024-01-01',
             'keyWords': 'test; python; flask'
         })
@@ -33,6 +35,72 @@ class TestCreationRoutes(BaseTestCase):
         book = Book.query.filter_by(bookName='New Test Book').first()
         self.assertIsNotNone(book)
         self.assertEqual(book.amount, 10)
+        self.assertEqual(book.publicationYear, 2024)
+        self.assertEqual(book.acquisitionYear, 2024)
+        self.assertIsNotNone(book.publishedDate)
+        self.assertIsNotNone(book.acquisitionDate)
+
+    def test_create_book_with_year_mode(self):
+        """/livros/new should save only year fields when year mode is selected."""
+        response = self.client.post(url_for('books.novo_livro'), data={
+            'bookName': 'Livro Apenas Ano',
+            'authorName': 'Autor Ano',
+            'amount': 3,
+            'publishedDateMode': 'year',
+            'publicationYear': 2018,
+            'acquisitionDateMode': 'year',
+            'acquisitionYear': 2022,
+            'keyWords': 'ano; teste'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        book = Book.query.filter_by(bookName='Livro Apenas Ano').first()
+        self.assertIsNotNone(book)
+        self.assertEqual(book.publicationYear, 2018)
+        self.assertEqual(book.acquisitionYear, 2022)
+        self.assertIsNone(book.publishedDate)
+        self.assertIsNone(book.acquisitionDate)
+
+    def test_edit_book_switches_from_date_to_year_mode(self):
+        """/livros/edit should null date fields when switching to year mode."""
+        book = Book(
+            bookName='Livro Editavel',
+            amount=2,
+            publishedDate=date(2020, 6, 1),
+            publicationYear=2020,
+            acquisitionDate=date(2021, 7, 1),
+            acquisitionYear=2021,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add(book)
+        db.session.commit()
+
+        response = self.client.post(url_for('books.editar_livro', book_id=book.bookId), data={
+            'bookName': 'Livro Editavel',
+            'authorName': '',
+            'publisherName': '',
+            'amount': 2,
+            'publishedDateMode': 'year',
+            'publicationYear': 2015,
+            'acquisitionDateMode': 'year',
+            'acquisitionYear': 2016,
+            'description': '',
+            'keyWords': ''
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        updated = Book.query.get(book.bookId)
+        self.assertIsNone(updated.publishedDate)
+        self.assertIsNone(updated.acquisitionDate)
+        self.assertEqual(updated.publicationYear, 2015)
+        self.assertEqual(updated.acquisitionYear, 2016)
 
     def test_create_users_via_register(self):
         """Test creation of different user types via the /register endpoint."""

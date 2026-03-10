@@ -19,6 +19,8 @@ class TestModels(BaseTestCase):
         b = Book(
             bookName='The Hitchhiker\'s Guide to the Galaxy',
             amount=42,
+            publicationYear=1979,
+            acquisitionYear=2024,
             createdBy=admin.userId,
             updatedBy=admin.userId,
             creationDate=datetime.now(),
@@ -28,6 +30,8 @@ class TestModels(BaseTestCase):
         db.session.commit()
         self.assertEqual(Book.query.count(), 1)
         self.assertEqual(Book.query.first().amount, 42)
+        self.assertEqual(Book.query.first().publicationYear, 1979)
+        self.assertEqual(Book.query.first().acquisitionYear, 2024)
 
     def test_loan_creation_and_relationship(self):
         """Test that a loan can be created and is related to a user and a book."""

@@ -70,6 +70,9 @@ def api_search_books():
             'authorName': b.authorName,
             'publisherName': b.publisherName,
             'publishedDate': b.publishedDate.isoformat() if b.publishedDate else None,
+            'publicationYear': b.publicationYear,
+            'acquisitionDate': b.acquisitionDate.isoformat() if b.acquisitionDate else None,
+            'acquisitionYear': b.acquisitionYear,
             'amount': b.amount,
             'available': available,
             'keywords': [kw.word for kw in getattr(b, 'keywords', [])]

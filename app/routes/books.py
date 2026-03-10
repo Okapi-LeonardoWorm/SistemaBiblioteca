@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -20,6 +20,28 @@ def _parse_int(value):
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _normalize_book_date_inputs(form):
+    published_mode = form.publishedDateMode.data or 'year'
+    acquisition_mode = form.acquisitionDateMode.data or 'year'
+
+    if published_mode == 'date':
+        published_date = form.publishedDate.data
+        form.publicationYear.data = published_date.year if published_date else None
+    else:
+        form.publishedDate.data = None
+
+    if acquisition_mode == 'date':
+        acquisition_value = form.acquisitionDate.data
+        if acquisition_value:
+            form.acquisitionYear.data = acquisition_value.year
+            if isinstance(acquisition_value, date) and not isinstance(acquisition_value, datetime):
+                form.acquisitionDate.data = datetime.combine(acquisition_value, datetime.min.time())
+        else:
+            form.acquisitionYear.data = None
+    else:
+        form.acquisitionDate.data = None
 
 @bp.route('/livros')
 @login_required
@@ -110,6 +132,20 @@ def get_book_form(book_id):
     if book_id:
         book = Book.query.get_or_404(book_id)
         form = BookForm(obj=book)
+        if book.publishedDate:
+            form.publishedDateMode.data = 'date'
+            if form.publicationYear.data is None:
+                form.publicationYear.data = book.publishedDate.year
+        else:
+            form.publishedDateMode.data = 'year'
+
+        if book.acquisitionDate:
+            form.acquisitionDateMode.data = 'date'
+            if form.acquisitionYear.data is None:
+                form.acquisitionYear.data = book.acquisitionDate.year
+        else:
+            form.acquisitionDateMode.data = 'year'
+
         form.keyWords.data = '; '.join([kw.word for kw in book.keywords])
     else:
         form = BookForm()
@@ -121,13 +157,17 @@ def get_book_form(book_id):
 def novo_livro():
     form = BookForm()
     if form.validate_on_submit():
+        _normalize_book_date_inputs(form)
+
         new_book = Book(
             bookName=(form.bookName.data or '').strip(),
             amount=form.amount.data,
             authorName=(form.authorName.data or '').strip() if form.authorName.data else None,
             publisherName=(form.publisherName.data or '').strip() if form.publisherName.data else None,
             publishedDate=form.publishedDate.data,
+            publicationYear=form.publicationYear.data,
             acquisitionDate=form.acquisitionDate.data,
+            acquisitionYear=form.acquisitionYear.data,
             description=(form.description.data or '').strip() if form.description.data else None,
             creationDate=date.today(),
             lastUpdate=date.today(),
@@ -162,6 +202,7 @@ def editar_livro(book_id):
     form = BookForm(request.form)
     
     if form.validate():
+        _normalize_book_date_inputs(form)
         has_changes = False
         
         # 1. Verificar campos simples

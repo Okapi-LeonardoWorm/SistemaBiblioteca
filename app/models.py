@@ -66,7 +66,9 @@ class Book(db.Model):
     authorName = db.Column(db.String, nullable=True)
     publisherName = db.Column(db.String, nullable=True)
     publishedDate = db.Column(db.Date, nullable=True)
+    publicationYear = db.Column(db.Integer, nullable=True)
     acquisitionDate = db.Column(db.DateTime, nullable=True)
+    acquisitionYear = db.Column(db.Integer, nullable=True)
     description = db.Column(db.Text, nullable=True)
     creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
@@ -79,6 +81,11 @@ class Book(db.Model):
     @validates('publishedDate', 'acquisitionDate', 'creationDate', 'lastUpdate')
     def _convert_dates(self, key, value):
         if isinstance(value, str):
+            if key == 'publishedDate':
+                try:
+                    return datetime.strptime(value, '%Y-%m-%d').date()
+                except ValueError:
+                    return value
             try:
                 return datetime.strptime(value, '%Y-%m-%d')
             except ValueError:
