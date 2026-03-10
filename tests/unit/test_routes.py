@@ -178,6 +178,27 @@ class TestRoutes(BaseTestCase):
         self.assertIn('USR-001', content)
         self.assertNotIn('USR-999', content)
 
+    def test_api_users_search_includes_pcd_flag(self):
+        """/api/users/search should return pcd boolean for autocomplete rendering."""
+        pcd_user = User(
+            identificationCode='API-PCD-001',
+            userCompleteName='API PCD',
+            password='password',
+            userType='student',
+            birthDate=date(2008, 1, 1),
+            pcd=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(pcd_user)
+        db.session.commit()
+
+        response = self.client.get('/api/users/search?q=API-PCD&limit=5')
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertTrue(payload['results'])
+        self.assertTrue(payload['results'][0]['pcd'])
+
     def test_users_filters_are_preserved_in_page_controls(self):
         """Selected user advanced filters should be preserved in page controls."""
         response = self.client.get(url_for(

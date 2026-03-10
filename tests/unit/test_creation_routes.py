@@ -70,7 +70,7 @@ class TestCreationRoutes(BaseTestCase):
             'amount': 1,
             'publishedDateMode': 'year',
             'acquisitionDateMode': 'year',
-            'keyWords': 'ação, ficção; acao; Ficção científica, ficcao cientifica'
+            'keyWords': 'ação, ficção; AÇÃO; Ficção científica, ficção científica'
         })
 
         self.assertEqual(response.status_code, 200)
@@ -79,7 +79,7 @@ class TestCreationRoutes(BaseTestCase):
         book = Book.query.filter_by(bookName='Livro Tags Mistas').first()
         self.assertIsNotNone(book)
         created_tags = sorted([kw.word for kw in book.keywords])
-        self.assertEqual(created_tags, sorted(['ACAO', 'FICCAO', 'FICCAO CIENTIFICA']))
+        self.assertEqual(created_tags, sorted(['AÇÃO', 'FICÇÃO', 'FICÇÃO CIENTÍFICA']))
 
     def test_edit_book_switches_from_date_to_year_mode(self):
         """/livros/edit should null date fields when switching to year mode."""
@@ -207,6 +207,37 @@ class TestCreationRoutes(BaseTestCase):
         self.assertFalse(response.json['success'])
         self.assertIn('birthDate', response.json['errors'])
 
+    def test_create_user_defaults_pcd_to_false(self):
+        """/users/new should persist pcd as false when checkbox is not sent."""
+        response = self.client.post(url_for('users.new_user'), data={
+            'identificationCode': 'pcd_default_false',
+            'userCompleteName': 'PCD Default False',
+            'userType': 'aluno',
+            'birthDate': '2003-03-03'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+        created_user = User.query.filter_by(identificationCode='pcd_default_false').first()
+        self.assertIsNotNone(created_user)
+        self.assertFalse(created_user.pcd)
+
+    def test_create_user_persists_pcd_true(self):
+        """/users/new should persist pcd as true when checkbox is selected."""
+        response = self.client.post(url_for('users.new_user'), data={
+            'identificationCode': 'pcd_true_user',
+            'userCompleteName': 'PCD True User',
+            'userType': 'aluno',
+            'birthDate': '2003-03-03',
+            'pcd': 'y'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+        created_user = User.query.filter_by(identificationCode='pcd_true_user').first()
+        self.assertIsNotNone(created_user)
+        self.assertTrue(created_user.pcd)
+
     def test_create_user_rejects_duplicate_identification_code(self):
         """/users/new should reject duplicate identificationCode values."""
         existing = User(
@@ -288,6 +319,58 @@ class TestCreationRoutes(BaseTestCase):
         updated_user = User.query.get(user.userId)
         self.assertNotEqual(updated_user.password, 'current_password')
         self.assertTrue(bcrypt.check_password_hash(updated_user.password, 'newpass123'))
+
+    def test_edit_user_updates_pcd_flag(self):
+        """/users/edit should update pcd field when checkbox is selected."""
+        user = User(
+            identificationCode='edit_pcd_user',
+            userCompleteName='Edit PCD User',
+            password='current_password',
+            userType='aluno',
+            birthDate=date(2004, 4, 5),
+            pcd=False,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        response = self.client.post(url_for('users.edit_user', user_id=user.userId), data={
+            'identificationCode': 'edit_pcd_user',
+            'userCompleteName': 'Edit PCD User',
+            'userType': 'aluno',
+            'birthDate': '2004-04-05',
+            'pcd': 'y',
+            'password': ''
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        updated_user = User.query.get(user.userId)
+        self.assertTrue(updated_user.pcd)
+
+    def test_users_list_shows_pcd_icon_when_true(self):
+        """/users should render wheelchair icon next to identification code for pcd users."""
+        pcd_user = User(
+            identificationCode='PCD-LIST-001',
+            userCompleteName='PCD List User',
+            password='password',
+            userType='aluno',
+            birthDate=date(2004, 4, 5),
+            pcd=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(pcd_user)
+        db.session.commit()
+
+        response = self.client.get(url_for('users.list_users'))
+        content = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('PCD-LIST-001', content)
+        self.assertIn('fa-wheelchair', content)
 
     def test_create_book_trims_text_fields(self):
         """/livros/new should trim trailing and leading spaces in text fields."""
@@ -416,12 +499,12 @@ class TestCreationRoutes(BaseTestCase):
         self.assertTrue(response.json['success'])
         self.assertEqual(response.json['created'], 2)
 
-        self.assertIsNotNone(KeyWord.query.filter_by(word='CIENCIA').first())
+        self.assertIsNotNone(KeyWord.query.filter_by(word='CIÊNCIA').first())
         self.assertIsNotNone(KeyWord.query.filter_by(word='AI-ML').first())
 
     def test_edit_keyword_rejects_duplicate_after_normalization(self):
         """/palavras_chave/edit should reject updates that normalize to an existing keyword."""
-        kw1 = KeyWord(word='CIENCIA', createdBy=self.admin_user.userId, updatedBy=self.admin_user.userId)
+        kw1 = KeyWord(word='CIÊNCIA', createdBy=self.admin_user.userId, updatedBy=self.admin_user.userId)
         kw2 = KeyWord(word='LITERATURA', createdBy=self.admin_user.userId, updatedBy=self.admin_user.userId)
         db.session.add_all([kw1, kw2])
         db.session.commit()

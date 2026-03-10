@@ -12,6 +12,7 @@ class TestModels(BaseTestCase):
         db.session.commit()
         self.assertEqual(User.query.count(), 1)
         self.assertEqual(User.query.first().username, 'testuser')
+        self.assertFalse(User.query.first().pcd)
 
     def test_book_creation(self):
         """Test that a book can be created."""
