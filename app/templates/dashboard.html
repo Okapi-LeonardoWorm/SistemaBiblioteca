@@ -34,14 +34,14 @@
         <div class="loan-list-card">
           <div class="list-group loan-list-group">
             {% for loan in loans.items %}
-              <a href="#" class="list-group-item list-group-item-action loan-list-item" data-bs-toggle="modal" data-bs-target="#loanDetailsModal" data-loan-id="{{ loan.loanId }}" data-book-name="{{ loan.book.bookName }}" data-user-name="{{ loan.user.userCompleteName or loan.user.username }}" data-user-code="{{ loan.user.username }}" data-loan-date="{{ loan.loanDate.isoformat() }}" data-return-date="{{ loan.returnDate.isoformat() }}" data-amount="{{ loan.amount }}" data-status="{{ loan.status.name }}">
+              <a href="#" class="list-group-item list-group-item-action loan-list-item" data-bs-toggle="modal" data-bs-target="#loanDetailsModal" data-loan-id="{{ loan.loanId }}" data-book-name="{{ loan.book.bookName }}" data-user-name="{{ loan.user.userCompleteName or loan.user.username }}" data-user-code="{{ loan.user.username }}" data-user-pcd="{{ '1' if loan.user.pcd else '0' }}" data-loan-date="{{ loan.loanDate.isoformat() }}" data-return-date="{{ loan.returnDate.isoformat() }}" data-amount="{{ loan.amount }}" data-status="{{ loan.status.name }}">
                 <div class="loan-list-top">
                   <span class="loan-label">Livro</span>
                   <span class="loan-date-badge">Devolução: {{ loan.returnDate.strftime('%d/%m/%Y') }}</span>
                 </div>
                 <div class="loan-book-name">{{ loan.book.bookName }}</div>
                 <div class="loan-user-line">
-                  <strong>Usuário:</strong> {{ loan.user.username }}
+                  <strong>Usuário:</strong> {{ render_user_identifier(loan.user) }}
                 </div>
               </a>
             {% else %}
@@ -105,7 +105,7 @@
     <div class="row mt-4">
       <div class="col-md-6">
         <div class="keyword-analytics-card">
-          <h3 class="section-title mb-3">Top 10 palavras-chave mais utilizadas</h3>
+          <h3 class="section-title mb-3">Top 10 tags mais utilizadas</h3>
 
           {% if keyword_top10 %}
             <div class="table-responsive keyword-top-scroll">
@@ -113,7 +113,7 @@
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Palavra-chave</th>
+                    <th>Tag</th>
                     <th>Ocorrências</th>
                   </tr>
                 </thead>
@@ -129,7 +129,7 @@
               </table>
             </div>
           {% else %}
-            <div class="alert alert-secondary mb-0">Ainda não há palavras-chave vinculadas a livros.</div>
+            <div class="alert alert-secondary mb-0">Ainda não há tags vinculadas a livros.</div>
           {% endif %}
         </div>
       </div>
@@ -246,7 +246,14 @@
         const data = trigger.dataset
         document.getElementById('detailBookName').textContent = data.bookName || ''
         document.getElementById('detailUserName').textContent = data.userName || ''
-        document.getElementById('detailUserCode').textContent = data.userCode || ''
+        const userCodeEl = document.getElementById('detailUserCode')
+        if (userCodeEl) {
+          if (data.userPcd === '1') {
+            userCodeEl.innerHTML = '<i class="fas fa-wheelchair me-1 text-primary" aria-label="Usuario PCD" title="Usuario PCD"></i>' + (data.userCode || '')
+          } else {
+            userCodeEl.textContent = data.userCode || ''
+          }
+        }
         document.getElementById('detailAmount').textContent = data.amount || ''
         document.getElementById('detailLoanDate').textContent = formatDateBR(data.loanDate)
         document.getElementById('detailReturnDate').textContent = formatDateBR(data.returnDate)

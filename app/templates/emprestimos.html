@@ -216,7 +216,7 @@
                         <span class="fade-hover-text" data-full="{{ loan.book.authorName or 'N/A' }}">{{ loan.book.authorName or 'N/A' }}</span>
                     </td>
                     <td>{{ loan.book.publishedDate.strftime('%d/%m/%Y') if loan.book.publishedDate else 'N/A' }}</td>
-                    <td>{{ loan.user.username }}</td>
+                    <td>{{ render_user_identifier(loan.user) }}</td>
                     <td>{{ loan.loanDate.strftime('%d/%m/%Y') }}</td>
                     <td>{{ loan.returnDate.strftime('%d/%m/%Y') }}</td>
                     <td><span class="badge bg-{% if loan.status.name == 'ACTIVE' %}success{% elif loan.status.name == 'OVERDUE' %}danger{% else %}secondary{% endif %}">{{ loan.status.value }}</span></td>

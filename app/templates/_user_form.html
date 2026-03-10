@@ -5,7 +5,7 @@
         {{ form.userType(class="form-select", id="userTypeSelect", required=True) }}
     </div>
     <div class="mb-3">
-        <label class="form-label">{{ form.identificationCode.label.text }} <span style="color:#d00">*</span></label>
+        <label class="form-label">{{ form.identificationCode.label.text }} <span style="color:#d00">(Este também o seu login deste usuário)*</span></label>
         {{ form.identificationCode(class="form-control", id="identificationCodeInput", required=True, minlength=3, maxlength=150) }}
         <div id="identificationCodeHelp" class="form-text"></div>
     </div>
@@ -60,6 +60,10 @@
     <div class="mb-3">
         {{ form.notes.label(class="form-label") }}
         {{ form.notes(class="form-control") }}
+    </div>
+    <div class="form-check mt-3 mb-3">
+        {{ form.pcd(class="form-check-input") }}
+        {{ form.pcd.label(class="form-check-label") }}
     </div>
     <script>
     (function() {

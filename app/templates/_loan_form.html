@@ -75,7 +75,7 @@
                 <div><strong>Autor/Editora:</strong> <span data-field="authorName"></span> / <span data-field="publisherName"></span></div>
                 <div><strong>Publicado:</strong> <span data-field="publishedDate"></span></div>
                 <div><strong>Disponíveis no período:</strong> <span data-field="available"></span> / <span data-field="amount"></span></div>
-                <div><strong>Palavras-chave:</strong> <span data-field="keywords"></span></div>
+                <div><strong>Tags:</strong> <span data-field="keywords"></span></div>
             </div>
         </div>
     </div>
@@ -108,7 +108,7 @@
                 <div><strong>Autor/Editora:</strong> {{ loan_book_info.authorName if loan_book_info else '—' }} / {{ loan_book_info.publisherName if loan_book_info else '—' }}</div>
                 <div><strong>Publicado:</strong> {{ loan_book_info.publishedDate if loan_book_info else '—' }}</div>
                 <div><strong>Livros emprestados:</strong> {{ loan_book_info.loanedAmount if loan_book_info else '—' }}</div>
-                <div><strong>Palavras-chave:</strong> {{ loan_book_info.keywords if loan_book_info else '—' }}</div>
+                <div><strong>Tags:</strong> {{ loan_book_info.keywords if loan_book_info else '—' }}</div>
             </div>
         </div>
     </div>
@@ -210,12 +210,15 @@
         }
 
         (data.results || []).forEach(u => {
+            const identificationDisplay = u.pcd
+                ? `<i class="fas fa-wheelchair me-1 text-primary" aria-label="Usuario PCD" title="Usuario PCD"></i>${u.identificationCode || '—'}`
+                : `${u.identificationCode || '—'}`;
             const a = document.createElement('a');
             a.href = '#'; a.className = 'list-group-item list-group-item-action';
             a.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center">
-                    <strong>${u.name || 'Sem nome'}</strong>
-                    <span class="badge text-bg-light border">${u.identificationCode || '—'}</span>
+                    <strong>${identificationDisplay}</strong>
+                    <span class="badge text-bg-light border">${u.name || 'Sem nome'}</span>
                 </div>
                 <div class="small text-muted mt-1 d-flex flex-wrap gap-3">
                     <span><strong>Tipo:</strong> ${userTypeLabel(u.userType)}</span>

@@ -131,7 +131,7 @@
             <tbody>
                 {% for user in users.items %}
                 <tr data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="{{ user.userId }}">
-                    <td>{{ user.username }}</td>
+                    <td>{{ render_user_identifier(user) }}</td>
                     <td>{{ user.userType }}</td>
                     <td>{{ user.userPhone or 'N/A' }}</td>
                     <td>{{ user.birthDate.strftime('%d/%m/%Y') if user.birthDate else 'N/A' }}</td>
