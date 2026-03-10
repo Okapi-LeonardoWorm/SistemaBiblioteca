@@ -33,6 +33,7 @@ class User(db.Model, UserMixin):
     guardianName2 = db.Column(db.String, nullable=True)
     guardianPhone2 = db.Column(db.String, nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    pcd = db.Column(db.Boolean, nullable=False, default=False)
 
     # Backward-compat attribute so code/tests using `username` still work
     username = synonym('identificationCode')
