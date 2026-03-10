@@ -63,6 +63,24 @@ class TestCreationRoutes(BaseTestCase):
         self.assertIsNone(book.publishedDate)
         self.assertIsNone(book.acquisitionDate)
 
+    def test_create_book_keywords_accept_comma_and_semicolon(self):
+        """/livros/new should normalize and deduplicate keywords split by comma and semicolon."""
+        response = self.client.post(url_for('books.novo_livro'), data={
+            'bookName': 'Livro Tags Mistas',
+            'amount': 1,
+            'publishedDateMode': 'year',
+            'acquisitionDateMode': 'year',
+            'keyWords': 'ação, ficção; acao; Ficção científica, ficcao cientifica'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        book = Book.query.filter_by(bookName='Livro Tags Mistas').first()
+        self.assertIsNotNone(book)
+        created_tags = sorted([kw.word for kw in book.keywords])
+        self.assertEqual(created_tags, sorted(['ACAO', 'FICCAO', 'FICCAO CIENTIFICA']))
+
     def test_edit_book_switches_from_date_to_year_mode(self):
         """/livros/edit should null date fields when switching to year mode."""
         book = Book(

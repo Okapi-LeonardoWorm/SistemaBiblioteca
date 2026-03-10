@@ -4,7 +4,9 @@ import unicodedata
 def split_string_into_list(string):
     if not string:
         return []
-    return [item.strip().lower() for item in string.split(';') if item.strip()]
+    # Backward-compatible helper: now supports comma and semicolon separators.
+    normalized = str(string).replace(';', ',')
+    return [item.strip().lower() for item in normalized.split(',') if item.strip()]
 
 
 def normalize_tag(token: str) -> str:
@@ -21,3 +23,17 @@ def normalize_tag(token: str) -> str:
     cleaned = ''.join(allowed)
     cleaned = ' '.join(cleaned.split())
     return cleaned.strip()
+
+
+def parse_normalized_tags(raw: str):
+    if not raw:
+        return []
+
+    parts = []
+    seen = set()
+    for token in str(raw).replace(';', ',').split(','):
+        normalized = normalize_tag(token)
+        if normalized and normalized not in seen:
+            parts.append(normalized)
+            seen.add(normalized)
+    return parts

@@ -7,7 +7,7 @@ from flask_paginate import get_page_parameter
 from app import db
 from app.forms import KeyWordForm
 from app.models import KeyWord
-from app.utils import normalize_tag
+from app.utils import normalize_tag, parse_normalized_tags
 
 bp = Blueprint('keywords', __name__)
 
@@ -43,15 +43,7 @@ def get_keyword_form(keyword_id):
 def nova_palavra_chave():
     form = KeyWordForm()
     if form.validate_on_submit():
-        raw = form.word.data or ''
-        # split por vírgula ou ponto e vírgula
-        parts = []
-        seen = set()
-        for token in raw.replace(';', ',').split(','):
-            normalized = normalize_tag(token)
-            if normalized and normalized not in seen:
-                parts.append(normalized)
-                seen.add(normalized)
+        parts = parse_normalized_tags(form.word.data)
 
         if not parts:
             return jsonify({'success': False, 'errors': {'word': ['Informe ao menos uma tag válida.']}})

@@ -8,7 +8,7 @@ from .config_utils import (
 from .date_utils import calc_age, parse_date
 from .loan_utils import available_copies_for_range
 from .session_utils import check_session_timeout
-from .text_utils import normalize_tag, split_string_into_list
+from .text_utils import normalize_tag, parse_normalized_tags, split_string_into_list
 
 
 __all__ = [
@@ -20,6 +20,7 @@ __all__ = [
     'is_admin_user',
     'normalize_boolean_string',
     'normalize_tag',
+    'parse_normalized_tags',
     'parse_allowed_values',
     'parse_date',
     'split_string_into_list',

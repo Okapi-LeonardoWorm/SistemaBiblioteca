@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from app import db
 from app.forms import BookForm
 from app.models import Book, KeyWord
-from app.utils import normalize_tag, split_string_into_list
+from app.utils import parse_normalized_tags
 
 bp = Blueprint('books', __name__)
 
@@ -104,8 +104,7 @@ def livros():
         query = query.filter(Book.description.ilike(f"%{filters['book_description']}%"))
 
     if filters['book_tags']:
-        raw_tags = filters['book_tags'].replace(';', ',')
-        tags = [normalize_tag(tag) for tag in raw_tags.split(',') if normalize_tag(tag)]
+        tags = parse_normalized_tags(filters['book_tags'])
         if tags:
             query = query.filter(or_(*[KeyWord.word.ilike(f'%{tag}%') for tag in tags]))
 
@@ -177,10 +176,7 @@ def novo_livro():
         db.session.add(new_book)
         db.session.commit()
         
-        # Processar keywords com normalize_tag
-        raw_keywords = split_string_into_list(form.keyWords.data)
-        # normalize_tag retorna string vazia se inválido
-        keywords_list = [normalized for k in raw_keywords if (normalized := normalize_tag(k))]
+        keywords_list = parse_normalized_tags(form.keyWords.data)
         
         for keyword_str in keywords_list:
             keyword_obj = KeyWord.query.filter_by(word=keyword_str).first()
@@ -225,9 +221,7 @@ def editar_livro(book_id):
         # 2. Verificar keywords
         current_keywords = {kw.word for kw in book.keywords}
         
-        raw_keywords = split_string_into_list(form.keyWords.data)
-        # normalize_tag retorna string vazia se inválido
-        new_keywords = {normalized for k in raw_keywords if (normalized := normalize_tag(k))}
+        new_keywords = set(parse_normalized_tags(form.keyWords.data))
         
         if current_keywords != new_keywords:
             has_changes = True
