@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_bootstrap import Bootstrap5
 from flask_wtf.csrf import generate_csrf
+from markupsafe import Markup, escape
 from config import Config, TestingConfig
 from flask_session import Session
 
@@ -53,6 +54,19 @@ def createApp(config_name: str | None = None):
 
     @app.context_processor
     def inject_globals():
+        def _render_user_identifier(user):
+            if user is None:
+                return ''
+            identification = getattr(user, 'identificationCode', None) or getattr(user, 'username', '')
+            identification_safe = escape(identification)
+            if not bool(getattr(user, 'pcd', False)):
+                return identification_safe
+
+            return Markup(
+                '<i class="fas fa-wheelchair me-1 text-primary" aria-label="Usuario PCD" title="Usuario PCD"></i>'
+                f'{identification_safe}'
+            )
+
         def _csrf_token():
             # In tests (or when CSRF is disabled), return empty string to avoid template errors
             if not app.config.get('WTF_CSRF_ENABLED', True):
@@ -67,7 +81,8 @@ def createApp(config_name: str | None = None):
             username=session.get('username'),
             userType=session.get('userType'),
             userId=session.get('userId'),
-            csrf_token=_csrf_token)
+            csrf_token=_csrf_token,
+            render_user_identifier=_render_user_identifier)
     
     
     with app.app_context():

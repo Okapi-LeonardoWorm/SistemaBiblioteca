@@ -30,6 +30,7 @@ def api_search_users():
             'userId': u.userId,
             'identificationCode': u.identificationCode,
             'name': u.userCompleteName,
+            'pcd': bool(u.pcd),
             'userType': u.userType,
             'age': calc_age(u.birthDate),
             'birthDate': u.birthDate.isoformat() if u.birthDate else None,

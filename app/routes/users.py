@@ -109,6 +109,7 @@ def new_user():
             guardianName2=form.guardianName2.data,
             guardianPhone2=form.guardianPhone2.data,
             notes=form.notes.data,
+            pcd=bool(form.pcd.data),
         )
         db.session.add(new_user)
         db.session.commit()
@@ -137,6 +138,7 @@ def edit_user(user_id):
         user.guardianName2 = form.guardianName2.data
         user.guardianPhone2 = form.guardianPhone2.data
         user.notes = form.notes.data
+        user.pcd = bool(form.pcd.data)
         if form.password.data:
             user.password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user.lastUpdate = date.today()

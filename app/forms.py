@@ -119,12 +119,12 @@ class BookForm(FlaskForm):
     acquisitionDate = DateField('Data de Aquisição',
                                 format='%Y-%m-%d', validators=[Optional()])
     description = TextAreaField('Descrição', validators=[Optional()])
-    keyWords = StringField('Palavras-chave', validators=[Optional()])
+    keyWords = StringField('Tags', validators=[Optional()])
     submit = SubmitField('Cadastrar')
 
 
 class KeyWordForm(FlaskForm):
-    word = StringField('Palavra', validators=[DataRequired()])
+    word = StringField('Tag', validators=[DataRequired()])
     submit = SubmitField('Cadastrar')
 
 
@@ -146,7 +146,7 @@ class LoanForm(FlaskForm):
 
 class KeyWordBookForm(FlaskForm):
     bookId = IntegerField('ID do Livro', validators=[DataRequired()])
-    wordId = StringField('ID da Palavra', validators=[DataRequired()])
+    wordId = StringField('ID da Tag', validators=[DataRequired()])
     submit = SubmitField('Cadastrar')
 
 
@@ -160,7 +160,7 @@ class SearchBooksForm(FlaskForm):
                               format='%Y-%m-%d', validators=[Optional()])
     acquisitionDate = DateField('Data de Aquisição',
                                 format='%Y-%m-%d', validators=[Optional()])
-    keywords = StringField('Palavras-chave', validators=[Optional()])
+    keywords = StringField('Tags', validators=[Optional()])
     submit = SubmitField('Buscar')
     
 
@@ -210,6 +210,7 @@ class UserForm(FlaskForm):
     guardianName2 = StringField('Nome do Responsável 2', validators=[Optional()])
     guardianPhone2 = StringField('Telefone do Responsável 2', validators=[Optional()], render_kw={"placeholder": "(11) 4002-8922", "inputmode": "numeric"})
     notes = TextAreaField('Observações', validators=[Optional()])
+    pcd = BooleanField('PCD')
     submit = SubmitField('Salvar Usuário')
 
     def validate_identificationCode(self, identificationCode):
