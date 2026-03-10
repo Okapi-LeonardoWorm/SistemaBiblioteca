@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('users', sa.Column('pcd', sa.Boolean(), nullable=False, server_default=sa.text('0')))
+    op.add_column('users', sa.Column('pcd', sa.Boolean(), nullable=False, server_default=sa.text('false')))
     op.alter_column('users', 'pcd', server_default=None)
 
 
