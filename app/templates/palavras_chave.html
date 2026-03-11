@@ -10,7 +10,7 @@
 {% block content %}
 <div class="container py-4">
     <header class="management-header">
-        <h1 class="h3">Gerenciar Tags (Palavras-chave)</h1>
+        <h1 class="h3">Gerenciar Tags</h1>
         <form class="search-form" method="GET" action="{{ url_for('keywords.palavras_chave') }}">
             <input type="text" name="search" class="form-control" placeholder="Buscar por tag..." value="{{ search_term or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
@@ -37,7 +37,7 @@
         <table class="table table-hover">
             <thead>
                 <tr>
-                    <th>Palavra-chave</th>
+                    <th>Tag</th>
                     <th>Ações</th>
                 </tr>
             </thead>
