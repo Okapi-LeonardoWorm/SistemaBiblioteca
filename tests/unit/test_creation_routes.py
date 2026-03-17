@@ -291,6 +291,73 @@ class TestCreationRoutes(BaseTestCase):
         updated_user = User.query.get(user.userId)
         self.assertEqual(updated_user.password, 'current_password')
 
+    def test_bulk_import_route_allows_bibliotecario(self):
+        """/users/import/bulk should allow bibliotecario users."""
+        bibliotecario = User(
+            identificationCode='biblio1',
+            userCompleteName='Bibliotecario',
+            password='abc123',
+            userType='bibliotecario',
+            birthDate=date(1990, 1, 1),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(bibliotecario)
+        db.session.commit()
+
+        self.client.get(url_for('auth.logout'), follow_redirects=True)
+        self.client.post(url_for('auth.login'), data={
+            'username': 'biblio1',
+            'password': 'abc123'
+        }, follow_redirects=True)
+
+        response = self.client.get(url_for('users.bulk_user_import_select_type'), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Importar Usuários em Massa', response.get_data(as_text=True))
+
+    def test_bulk_import_route_denies_non_privileged_user(self):
+        """/users/import/bulk should deny access for non admin/bibliotecario users."""
+        aluno = User(
+            identificationCode='aluno1',
+            userCompleteName='Aluno',
+            password='abc123',
+            userType='aluno',
+            birthDate=date(2010, 1, 1),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(aluno)
+        db.session.commit()
+
+        self.client.get(url_for('auth.logout'), follow_redirects=True)
+        self.client.post(url_for('auth.login'), data={
+            'username': 'aluno1',
+            'password': 'abc123'
+        }, follow_redirects=True)
+
+        response = self.client.get(url_for('users.bulk_user_import_select_type'), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('Etapa 1 de 3', response.get_data(as_text=True))
+
+    def test_bulk_template_download_csv(self):
+        """/users/import/bulk/template should return a CSV model for valid type."""
+        response = self.client.get(
+            url_for('users.bulk_user_import_download_template', user_type='aluno', format='csv')
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('text/csv', response.content_type)
+        self.assertIn('Login', response.get_data(as_text=True))
+
+    def test_bulk_template_download_xlsx(self):
+        """/users/import/bulk/template should return an XLSX model for valid type."""
+        response = self.client.get(
+            url_for('users.bulk_user_import_download_template', user_type='aluno', format='xlsx')
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', response.content_type)
+
     def test_edit_user_updates_password_when_provided(self):
         """/users/edit should hash and update password when a new one is provided."""
         user = User(
