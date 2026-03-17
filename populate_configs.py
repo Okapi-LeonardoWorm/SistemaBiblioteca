@@ -84,7 +84,52 @@ def populate_configs():
                     "defaultValue": "60",
                     "description": "Minutos de inatividade permitidos."
                 }
-            },        ]
+            },
+            {
+                "key": "BULK_IMPORT_USER_REQUIRED_COLUMNS_ALUNO",
+                "value": "identificationCode,password,userCompleteName,birthDate",
+                "description": "Colunas obrigatórias para importação em massa de criação de usuários do tipo aluno.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "identificationCode,password,userCompleteName,birthDate",
+                    "description": "Lista de campos separados por vírgula."
+                }
+            },
+            {
+                "key": "BULK_IMPORT_USER_REQUIRED_COLUMNS_COLABORADOR",
+                "value": "identificationCode,password,userCompleteName,birthDate",
+                "description": "Cópia da configuração de colunas obrigatórias para importação em massa de colaboradores.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "identificationCode,password,userCompleteName,birthDate",
+                    "description": "Lista de campos separados por vírgula."
+                }
+            },
+            {
+                "key": "BULK_IMPORT_USER_REQUIRED_COLUMNS_BIBLIOTECARIO",
+                "value": "identificationCode,password,userCompleteName,birthDate",
+                "description": "Cópia da configuração de colunas obrigatórias para importação em massa de bibliotecários.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "identificationCode,password,userCompleteName,birthDate",
+                    "description": "Lista de campos separados por vírgula."
+                }
+            },
+            {
+                "key": "BULK_IMPORT_USER_REQUIRED_COLUMNS_ADMIN",
+                "value": "identificationCode,password,userCompleteName,birthDate",
+                "description": "Cópia da configuração de colunas obrigatórias para importação em massa de administradores.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "identificationCode,password,userCompleteName,birthDate",
+                    "description": "Lista de campos separados por vírgula."
+                }
+            },
+        ]
 
         for item in default_configs:
             key = item['key']

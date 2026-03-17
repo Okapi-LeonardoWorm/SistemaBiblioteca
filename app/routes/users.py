@@ -1,6 +1,9 @@
 from datetime import date
+import io
+import os
+import threading
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 from sqlalchemy import or_
@@ -8,8 +11,25 @@ from sqlalchemy import or_
 from app import bcrypt, db
 from app.forms import UserForm
 from app.models import User
+from app.services import (
+    USER_BULK_TEMPLATE_COLUMNS,
+    build_user_bulk_template_rows,
+    create_job,
+    get_job,
+    get_bulk_field_label,
+    get_required_fields_for_user_type,
+    run_user_create_import_job,
+)
+from app.utils import SUPPORTED_IMPORT_EXTENSIONS, build_template_bytes, can_manage_user_bulk_import, detect_extension
 
 bp = Blueprint('users', __name__)
+
+ALLOWED_BULK_USER_TYPES = [
+    ('aluno', 'Aluno'),
+    ('colaborador', 'Colaborador'),
+    ('bibliotecario', 'Bibliotecário'),
+    ('admin', 'Admin'),
+]
 
 
 def _parse_int(value):
@@ -165,6 +185,205 @@ def delete_user(user_id):
     db.session.commit()
     flash('Usuário excluído com sucesso!', 'success')
     return redirect(url_for('users.list_users'))
+
+
+def _ensure_bulk_import_permission():
+    if not can_manage_user_bulk_import():
+        flash('Acesso negado. Somente admin e bibliotecário podem importar usuários em massa.', 'warning')
+        return False
+    return True
+
+
+def _is_valid_bulk_user_type(user_type: str) -> bool:
+    return user_type in {item[0] for item in ALLOWED_BULK_USER_TYPES}
+
+
+def _is_job_owner_or_allowed(job_data: dict) -> bool:
+    if not job_data:
+        return False
+    if current_user.userId == job_data.get('ownerUserId'):
+        return True
+    return can_manage_user_bulk_import()
+
+
+@bp.route('/users/import/bulk', methods=['GET', 'POST'])
+@login_required
+def bulk_user_import_select_type():
+    if not _ensure_bulk_import_permission():
+        return redirect(url_for('users.list_users'))
+
+    if request.method == 'POST':
+        selected_user_type = (request.form.get('user_type') or request.form.get('userType') or '').strip().lower()
+        if not _is_valid_bulk_user_type(selected_user_type):
+            flash('Tipo de usuário inválido para importação.', 'danger')
+            return render_template('users_bulk_import_type.html', user_types=ALLOWED_BULK_USER_TYPES)
+
+        return redirect(url_for('users.bulk_user_import_upload', user_type=selected_user_type))
+
+    return render_template('users_bulk_import_type.html', user_types=ALLOWED_BULK_USER_TYPES)
+
+
+@bp.route('/users/import/bulk/upload', methods=['GET', 'POST'])
+@login_required
+def bulk_user_import_upload():
+    if not _ensure_bulk_import_permission():
+        return redirect(url_for('users.list_users'))
+
+    selected_user_type = (request.args.get('user_type') or request.form.get('user_type') or '').strip().lower()
+    if not _is_valid_bulk_user_type(selected_user_type):
+        flash('Selecione um tipo de usuário válido antes de enviar o arquivo.', 'warning')
+        return redirect(url_for('users.bulk_user_import_select_type'))
+
+    if request.method == 'POST':
+        upload_file = request.files.get('importFile')
+        if not upload_file or not upload_file.filename:
+            flash('Selecione um arquivo CSV ou XLSX para continuar.', 'danger')
+            return render_template('users_bulk_import_upload.html', selected_user_type=selected_user_type)
+
+        extension = detect_extension(upload_file.filename)
+        if extension not in SUPPORTED_IMPORT_EXTENSIONS:
+            flash('Formato de arquivo inválido. Use CSV ou XLSX.', 'danger')
+            return render_template('users_bulk_import_upload.html', selected_user_type=selected_user_type)
+
+        jobs_root = os.path.join(current_app.instance_path, 'bulk_import_jobs')
+        uploads_root = os.path.join(jobs_root, 'uploads')
+        errors_root = os.path.join(jobs_root, 'errors')
+        os.makedirs(uploads_root, exist_ok=True)
+        os.makedirs(errors_root, exist_ok=True)
+
+        job_id = create_job(
+            owner_user_id=current_user.userId,
+            kind='user_bulk_create',
+            metadata={
+                'selectedUserType': selected_user_type,
+                'originalFilename': upload_file.filename,
+            },
+        )
+
+        source_path = os.path.join(uploads_root, f'{job_id}.{extension}')
+        error_report_path = os.path.join(errors_root, f'{job_id}_erros.xlsx')
+        upload_file.save(source_path)
+
+        app_obj = current_app._get_current_object()
+        worker = threading.Thread(
+            target=run_user_create_import_job,
+            args=(
+                app_obj,
+                job_id,
+                source_path,
+                extension,
+                selected_user_type,
+                current_user.userId,
+                error_report_path,
+            ),
+            daemon=True,
+        )
+        worker.start()
+
+        return redirect(url_for('users.bulk_user_import_progress', job_id=job_id))
+
+    required_fields = get_required_fields_for_user_type(selected_user_type)
+    required_fields_display = [get_bulk_field_label(field_name) for field_name in required_fields]
+    return render_template(
+        'users_bulk_import_upload.html',
+        selected_user_type=selected_user_type,
+        required_fields=required_fields_display,
+    )
+
+
+@bp.route('/users/import/bulk/template', methods=['GET'])
+@login_required
+def bulk_user_import_download_template():
+    if not _ensure_bulk_import_permission():
+        return redirect(url_for('users.list_users'))
+
+    selected_user_type = (request.args.get('user_type') or request.args.get('userType') or '').strip().lower()
+    output_format = (request.args.get('format') or 'xlsx').strip().lower()
+
+    if not _is_valid_bulk_user_type(selected_user_type):
+        flash('Selecione um tipo de usuário válido para baixar o modelo.', 'warning')
+        return redirect(url_for('users.bulk_user_import_select_type'))
+
+    if output_format not in SUPPORTED_IMPORT_EXTENSIONS:
+        flash('Formato inválido. Use CSV ou XLSX.', 'warning')
+        return redirect(url_for('users.bulk_user_import_upload', user_type=selected_user_type))
+
+    headers = list(USER_BULK_TEMPLATE_COLUMNS)
+    sample_rows = build_user_bulk_template_rows(selected_user_type)
+    content = build_template_bytes(output_format, headers, sample_rows)
+
+    mimetype = 'text/csv; charset=utf-8' if output_format == 'csv' else 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    return send_file(
+        io.BytesIO(content),
+        as_attachment=True,
+        download_name=f'modelo_importacao_usuarios_{selected_user_type}.{output_format}',
+        mimetype=mimetype,
+    )
+
+
+@bp.route('/users/import/bulk/progress/<job_id>', methods=['GET'])
+@login_required
+def bulk_user_import_progress(job_id):
+    if not _ensure_bulk_import_permission():
+        return redirect(url_for('users.list_users'))
+
+    job_data = get_job(job_id)
+    if not _is_job_owner_or_allowed(job_data):
+        abort(404)
+
+    return render_template('users_bulk_import_progress.html', job_id=job_id)
+
+
+@bp.route('/users/import/bulk/status/<job_id>', methods=['GET'])
+@login_required
+def bulk_user_import_status(job_id):
+    if not _ensure_bulk_import_permission():
+        return jsonify({'success': False, 'error': 'Acesso negado.'}), 403
+
+    job_data = get_job(job_id)
+    if not _is_job_owner_or_allowed(job_data):
+        return jsonify({'success': False, 'error': 'Job não encontrado.'}), 404
+
+    return jsonify({'success': True, 'job': job_data})
+
+
+@bp.route('/users/import/bulk/result/<job_id>', methods=['GET'])
+@login_required
+def bulk_user_import_result(job_id):
+    if not _ensure_bulk_import_permission():
+        return redirect(url_for('users.list_users'))
+
+    job_data = get_job(job_id)
+    if not _is_job_owner_or_allowed(job_data):
+        abort(404)
+
+    if job_data.get('status') not in {'completed', 'failed'}:
+        return redirect(url_for('users.bulk_user_import_progress', job_id=job_id))
+
+    return render_template('users_bulk_import_result.html', job=job_data)
+
+
+@bp.route('/users/import/bulk/errors/<job_id>', methods=['GET'])
+@login_required
+def bulk_user_import_download_errors(job_id):
+    if not _ensure_bulk_import_permission():
+        return redirect(url_for('users.list_users'))
+
+    job_data = get_job(job_id)
+    if not _is_job_owner_or_allowed(job_data):
+        abort(404)
+
+    report_path = job_data.get('errorReportPath')
+    if not report_path or not os.path.exists(report_path):
+        flash('Não há planilha de erros para este processamento.', 'warning')
+        return redirect(url_for('users.bulk_user_import_result', job_id=job_id))
+
+    return send_file(
+        report_path,
+        as_attachment=True,
+        download_name=f'importacao_usuarios_erros_{job_id}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
 
 
 # Configuration Management Routes

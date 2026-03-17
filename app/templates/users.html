@@ -29,6 +29,18 @@
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="">
                 <i class="fas fa-plus"></i> Novo Usuário
             </button>
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cogs"></i> Ações
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('users.bulk_user_import_select_type') }}">
+                            <i class="fas fa-file-import"></i> Importar usuários em massa
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedUserFilters" aria-expanded="{{ 'true' if advanced_open.value else 'false' }}" aria-controls="advancedUserFilters">
                 Filtros avançados
             </button>

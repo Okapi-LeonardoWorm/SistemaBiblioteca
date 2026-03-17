@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Resultado da Importação{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h3 mb-3">Resultado da Importação de Usuários</h1>
+
+    <div class="card p-3 mb-3">
+        <div>Status: <strong>{{ 'Concluído' if job.status == 'completed' else 'Falhou' }}</strong></div>
+        <div>Total de linhas no arquivo: <strong>{{ job.summary.totalRows }}</strong></div>
+        <div>Usuários criados com sucesso: <strong>{{ job.summary.successRows }}</strong></div>
+        <div>Linhas com erro: <strong>{{ job.summary.errorRows }}</strong></div>
+    </div>
+
+    {% if job.messages %}
+    <div class="alert alert-warning">
+        {% for message in job.messages %}
+        <div>{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('users.list_users') }}" class="btn btn-outline-secondary">Voltar para usuários</a>
+        {% if job.errorReportPath %}
+        <a href="{{ url_for('users.bulk_user_import_download_errors', job_id=job.jobId) }}" class="btn btn-primary">
+            Baixar planilha de erros
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

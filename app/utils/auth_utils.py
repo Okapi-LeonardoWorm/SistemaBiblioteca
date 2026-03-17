@@ -12,3 +12,9 @@ def get_config_bool(key: str) -> bool:
 
 def is_admin_user() -> bool:
     return bool(getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'userType', None) == 'admin')
+
+
+def can_manage_user_bulk_import() -> bool:
+    if not getattr(current_user, 'is_authenticated', False):
+        return False
+    return getattr(current_user, 'userType', None) in {'admin', 'bibliotecario'}

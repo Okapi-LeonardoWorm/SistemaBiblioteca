@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Importar Usuários em Massa
+{% endblock %}
+
+{% block content %}
+  <div class="container py-4">
+    <h1 class="h3 mb-3">Importar Usuários em Massa</h1>
+    <p class="text-muted">Etapa 1 de 3: selecione o tipo de usuário que será criado em massa.</p>
+
+    <form method="POST" class="card p-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+      <div class="mb-3">
+        <label for="userType" class="form-label">Tipo de usuário</label>
+        <select class="form-select" name="user_type" id="userType" required>
+          <option value="">Selecione...</option>
+          {% for value, label in user_types %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <div class="form-text mb-2">Baixe um modelo antes de preencher a planilha:</div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-outline-primary" formaction="{{ url_for('users.bulk_user_import_download_template') }}" formmethod="get" name="format" value="csv">Baixar modelo CSV</button>
+          <button type="submit" class="btn btn-outline-primary" formaction="{{ url_for('users.bulk_user_import_download_template') }}" formmethod="get" name="format" value="xlsx">Baixar modelo XLSX</button>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="{{ url_for('users.list_users') }}" class="btn btn-outline-secondary">Voltar</a>
+        <button type="submit" class="btn btn-primary">Continuar</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

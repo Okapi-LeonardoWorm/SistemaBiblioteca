@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Enviar Planilha de Usuários
+{% endblock %}
+
+{% block content %}
+  <div class="container py-4">
+    <h1 class="h3 mb-3">Importar Usuários em Massa</h1>
+    <p class="text-muted">
+      Etapa 2 de 3: envie a planilha (CSV ou XLSX) para criar usuários do tipo <strong>{{ selected_user_type }}</strong>.
+    </p>
+
+    <div class="card p-3 mb-3">
+      <div class="mb-2">Modelo de planilha:</div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('users.bulk_user_import_download_template', user_type=selected_user_type, format='csv') }}" download>Baixar modelo CSV</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('users.bulk_user_import_download_template', user_type=selected_user_type, format='xlsx') }}" download>Baixar modelo XLSX</a>
+      </div>
+      {% if required_fields %}
+        <div class="form-text mt-2">Campos obrigatórios para este tipo: {{ required_fields|join(', ') }}.</div>
+      {% endif %}
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="card p-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="user_type" value="{{ selected_user_type }}" />
+
+      <div class="mb-3">
+        <label for="importFile" class="form-label">Arquivo de importação</label>
+        <input type="file" class="form-control" id="importFile" name="importFile" accept=".csv,.xlsx" required />
+        <div class="form-text">A planilha deve conter código de identificação e senha em texto puro.</div>
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="{{ url_for('users.bulk_user_import_select_type') }}" class="btn btn-outline-secondary">Voltar</a>
+        <button type="submit" class="btn btn-primary">Iniciar importação</button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
