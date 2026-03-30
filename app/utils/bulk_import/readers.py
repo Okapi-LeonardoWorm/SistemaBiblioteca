@@ -26,6 +26,18 @@ def _sanitize_value(value):
     return value
 
 
+def _row_has_content(row: Dict[str, object]) -> bool:
+    for value in (row or {}).values():
+        if value is None:
+            continue
+        if isinstance(value, str):
+            if value.strip() == '':
+                continue
+            return True
+        return True
+    return False
+
+
 def _try_openpyxl_load_workbook():
     try:
         openpyxl = importlib.import_module('openpyxl')
@@ -199,7 +211,8 @@ def iter_rows(file_path: str, extension: str) -> Iterator[Tuple[int, Dict[str, o
                 normalized_row = {}
                 for header in headers:
                     normalized_row[header] = _sanitize_value((row or {}).get(header))
-                yield index, normalized_row
+                if _row_has_content(normalized_row):
+                    yield index, normalized_row
         return
 
     if ext == 'xlsx':
@@ -219,7 +232,8 @@ def iter_rows(file_path: str, extension: str) -> Iterator[Tuple[int, Dict[str, o
                     for col_index, header in enumerate(headers):
                         cell_value = row_values[col_index] if row_values and col_index < len(row_values) else ''
                         normalized_row[header] = _sanitize_value(cell_value)
-                    yield index, normalized_row
+                    if _row_has_content(normalized_row):
+                        yield index, normalized_row
             finally:
                 workbook.close()
             return
@@ -235,7 +249,8 @@ def iter_rows(file_path: str, extension: str) -> Iterator[Tuple[int, Dict[str, o
             for col_index, header in enumerate(headers):
                 cell_value = row_values[col_index] if row_values and col_index < len(row_values) else ''
                 normalized_row[header] = _sanitize_value(cell_value)
-            yield index, normalized_row
+            if _row_has_content(normalized_row):
+                yield index, normalized_row
         return
 
     raise ValueError(f'Extensão não suportada: {extension}')
