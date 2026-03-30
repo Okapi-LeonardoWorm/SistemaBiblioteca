@@ -1,6 +1,9 @@
 from datetime import date, datetime
+import io
+import os
+import threading
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 from sqlalchemy import or_
@@ -8,7 +11,21 @@ from sqlalchemy import or_
 from app import db
 from app.forms import BookForm
 from app.models import Book, KeyWord
-from app.utils import parse_normalized_tags
+from app.services import (
+    BOOK_BULK_REQUIRED_FIELDS_DISPLAY,
+    BOOK_BULK_TEMPLATE_COLUMNS,
+    build_book_bulk_template_rows,
+    create_job,
+    get_job,
+    run_book_create_import_job,
+)
+from app.utils import (
+    SUPPORTED_IMPORT_EXTENSIONS,
+    build_template_bytes,
+    can_manage_user_bulk_import,
+    detect_extension,
+    parse_normalized_tags,
+)
 
 bp = Blueprint('books', __name__)
 
@@ -42,6 +59,21 @@ def _normalize_book_date_inputs(form):
             form.acquisitionYear.data = None
     else:
         form.acquisitionDate.data = None
+
+
+def _ensure_book_bulk_import_permission():
+    if not can_manage_user_bulk_import():
+        flash('Acesso negado. Somente admin e bibliotecário podem importar livros em massa.', 'warning')
+        return False
+    return True
+
+
+def _is_book_job_owner_or_allowed(job_data: dict) -> bool:
+    if not job_data:
+        return False
+    if current_user.userId == job_data.get('ownerUserId'):
+        return True
+    return can_manage_user_bulk_import()
 
 @bp.route('/livros')
 @login_required
@@ -129,7 +161,9 @@ def livros():
 @login_required
 def get_book_form(book_id):
     if book_id:
-        book = Book.query.get_or_404(book_id)
+        book = db.session.get(Book, book_id)
+        if not book:
+            abort(404)
         form = BookForm(obj=book)
         if book.publishedDate:
             form.publishedDateMode.data = 'date'
@@ -194,7 +228,9 @@ def novo_livro():
 @bp.route('/livros/edit/<int:book_id>', methods=['POST'])
 @login_required
 def editar_livro(book_id):
-    book = Book.query.get_or_404(book_id)
+    book = db.session.get(Book, book_id)
+    if not book:
+        abort(404)
     form = BookForm(request.form)
     
     if form.validate():
@@ -261,9 +297,161 @@ def editar_livro(book_id):
 @bp.route('/excluir_livro/<int:id>', methods=['POST'])
 @login_required
 def excluir_livro(id):
-    livro = Book.query.get_or_404(id)
+    livro = db.session.get(Book, id)
+    if not livro:
+        abort(404)
     db.session.delete(livro)
     db.session.commit()
     flash('Livro excluído com sucesso!', 'success')
     return redirect(url_for('books.livros'))
+
+
+@bp.route('/livros/import/bulk', methods=['GET'])
+@login_required
+def bulk_book_import_entry():
+    return redirect(url_for('books.bulk_book_import_upload'))
+
+
+@bp.route('/livros/import/bulk/upload', methods=['GET', 'POST'])
+@login_required
+def bulk_book_import_upload():
+    if not _ensure_book_bulk_import_permission():
+        return redirect(url_for('books.livros'))
+
+    if request.method == 'POST':
+        upload_file = request.files.get('importFile')
+        if not upload_file or not upload_file.filename:
+            flash('Selecione um arquivo CSV ou XLSX para continuar.', 'danger')
+            return render_template('books_bulk_import_upload.html', required_fields=BOOK_BULK_REQUIRED_FIELDS_DISPLAY)
+
+        extension = detect_extension(upload_file.filename)
+        if extension not in SUPPORTED_IMPORT_EXTENSIONS:
+            flash('Formato de arquivo inválido. Use CSV ou XLSX.', 'danger')
+            return render_template('books_bulk_import_upload.html', required_fields=BOOK_BULK_REQUIRED_FIELDS_DISPLAY)
+
+        jobs_root = os.path.join(current_app.instance_path, 'bulk_import_jobs')
+        uploads_root = os.path.join(jobs_root, 'uploads')
+        errors_root = os.path.join(jobs_root, 'errors')
+        os.makedirs(uploads_root, exist_ok=True)
+        os.makedirs(errors_root, exist_ok=True)
+
+        job_id = create_job(
+            owner_user_id=current_user.userId,
+            kind='book_bulk_create',
+            metadata={
+                'originalFilename': upload_file.filename,
+            },
+        )
+
+        source_path = os.path.join(uploads_root, f'{job_id}.{extension}')
+        error_report_path = os.path.join(errors_root, f'{job_id}_erros.xlsx')
+        upload_file.save(source_path)
+
+        app_obj = current_app._get_current_object()
+        worker = threading.Thread(
+            target=run_book_create_import_job,
+            args=(
+                app_obj,
+                job_id,
+                source_path,
+                extension,
+                current_user.userId,
+                error_report_path,
+            ),
+            daemon=True,
+        )
+        worker.start()
+
+        return redirect(url_for('books.bulk_book_import_progress', job_id=job_id))
+
+    return render_template('books_bulk_import_upload.html', required_fields=BOOK_BULK_REQUIRED_FIELDS_DISPLAY)
+
+
+@bp.route('/livros/import/bulk/template', methods=['GET'])
+@login_required
+def bulk_book_import_download_template():
+    if not _ensure_book_bulk_import_permission():
+        return redirect(url_for('books.livros'))
+
+    output_format = (request.args.get('format') or 'xlsx').strip().lower()
+    if output_format not in SUPPORTED_IMPORT_EXTENSIONS:
+        flash('Formato inválido. Use CSV ou XLSX.', 'warning')
+        return redirect(url_for('books.bulk_book_import_upload'))
+
+    headers = list(BOOK_BULK_TEMPLATE_COLUMNS)
+    sample_rows = build_book_bulk_template_rows()
+    content = build_template_bytes(output_format, headers, sample_rows)
+
+    mimetype = 'text/csv; charset=utf-8' if output_format == 'csv' else 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    return send_file(
+        io.BytesIO(content),
+        as_attachment=True,
+        download_name=f'modelo_importacao_livros.{output_format}',
+        mimetype=mimetype,
+    )
+
+
+@bp.route('/livros/import/bulk/progress/<job_id>', methods=['GET'])
+@login_required
+def bulk_book_import_progress(job_id):
+    if not _ensure_book_bulk_import_permission():
+        return redirect(url_for('books.livros'))
+
+    job_data = get_job(job_id)
+    if not _is_book_job_owner_or_allowed(job_data):
+        abort(404)
+
+    return render_template('books_bulk_import_progress.html', job_id=job_id)
+
+
+@bp.route('/livros/import/bulk/status/<job_id>', methods=['GET'])
+@login_required
+def bulk_book_import_status(job_id):
+    if not _ensure_book_bulk_import_permission():
+        return jsonify({'success': False, 'error': 'Acesso negado.'}), 403
+
+    job_data = get_job(job_id)
+    if not _is_book_job_owner_or_allowed(job_data):
+        return jsonify({'success': False, 'error': 'Job não encontrado.'}), 404
+
+    return jsonify({'success': True, 'job': job_data})
+
+
+@bp.route('/livros/import/bulk/result/<job_id>', methods=['GET'])
+@login_required
+def bulk_book_import_result(job_id):
+    if not _ensure_book_bulk_import_permission():
+        return redirect(url_for('books.livros'))
+
+    job_data = get_job(job_id)
+    if not _is_book_job_owner_or_allowed(job_data):
+        abort(404)
+
+    if job_data.get('status') not in {'completed', 'failed'}:
+        return redirect(url_for('books.bulk_book_import_progress', job_id=job_id))
+
+    return render_template('books_bulk_import_result.html', job=job_data)
+
+
+@bp.route('/livros/import/bulk/errors/<job_id>', methods=['GET'])
+@login_required
+def bulk_book_import_download_errors(job_id):
+    if not _ensure_book_bulk_import_permission():
+        return redirect(url_for('books.livros'))
+
+    job_data = get_job(job_id)
+    if not _is_book_job_owner_or_allowed(job_data):
+        abort(404)
+
+    report_path = job_data.get('errorReportPath')
+    if not report_path or not os.path.exists(report_path):
+        flash('Não há planilha de erros para este processamento.', 'warning')
+        return redirect(url_for('books.bulk_book_import_result', job_id=job_id))
+
+    return send_file(
+        report_path,
+        as_attachment=True,
+        download_name=f'importacao_livros_erros_{job_id}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
 

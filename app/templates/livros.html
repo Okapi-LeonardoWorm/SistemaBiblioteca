@@ -29,6 +29,18 @@
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="">
                 <i class="fas fa-plus"></i> Novo Livro
             </button>
+            <div class="dropdown">
+                <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-cogs"></i> Ações
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="{{ url_for('books.bulk_book_import_entry') }}">
+                            <i class="fas fa-file-import"></i> Importar livros em massa
+                        </a>
+                    </li>
+                </ul>
+            </div>
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedBookFilters" aria-expanded="{{ 'true' if advanced_open.value else 'false' }}" aria-controls="advancedBookFilters">
                 Filtros avançados
             </button>

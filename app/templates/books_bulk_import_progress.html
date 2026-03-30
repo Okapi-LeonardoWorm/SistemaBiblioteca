@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  Processando Importação de Livros
+{% endblock %}
+
+{% block content %}
+  <div class="container py-4">
+    <h1 class="h3 mb-3">Importar Livros em Massa</h1>
+    <p class="text-muted">Etapa 2 de 2: processando arquivo. O avanço é atualizado em blocos de 10%.</p>
+
+    <div class="card p-3">
+      <div class="progress" role="progressbar" aria-label="Progresso da importação" aria-valuemin="0" aria-valuemax="100">
+        <div id="importProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">0%</div>
+      </div>
+
+      <div class="mt-3">
+        <div>
+          Total de linhas: <strong id="totalRows">0</strong>
+        </div>
+        <div>
+          Processadas: <strong id="processedRows">0</strong>
+        </div>
+        <div>
+          Sucesso: <strong id="successRows">0</strong>
+        </div>
+        <div>
+          Com erro: <strong id="errorRows">0</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const jobId = '{{ job_id }}'
+      const progressBar = document.getElementById('importProgressBar')
+    
+      function updateNumbers(summary) {
+        document.getElementById('totalRows').textContent = summary.totalRows || 0
+        document.getElementById('processedRows').textContent = summary.processedRows || 0
+        document.getElementById('successRows').textContent = summary.successRows || 0
+        document.getElementById('errorRows').textContent = summary.errorRows || 0
+      }
+    
+      function pollStatus() {
+        fetch(`/livros/import/bulk/status/${jobId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.success) {
+              setTimeout(pollStatus, 2000)
+              return
+            }
+    
+            const job = data.job || {}
+            const summary = job.summary || {}
+            const progress = job.progress || 0
+    
+            progressBar.style.width = `${progress}%`
+            progressBar.textContent = `${progress}%`
+            updateNumbers(summary)
+    
+            if (job.status === 'completed' || job.status === 'failed') {
+              window.location.href = `/livros/import/bulk/result/${jobId}`
+              return
+            }
+    
+            setTimeout(pollStatus, 1200)
+          })
+          .catch(() => {
+            setTimeout(pollStatus, 2000)
+          })
+      }
+    
+      pollStatus()
+    })
+  </script>
+{% endblock %}
