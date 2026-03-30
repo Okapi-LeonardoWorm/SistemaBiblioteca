@@ -389,5 +389,5 @@ def run_user_create_import_job(app, job_id: str, file_path: str, extension: str,
                     report_writer.close()
                 except Exception:
                     pass
-            add_job_message(job_id, f'Falha durante importacao: {exc}')
+            add_job_message(job_id, 'Falha durante a importacao.')
             update_job(job_id, status='failed', progress=100)

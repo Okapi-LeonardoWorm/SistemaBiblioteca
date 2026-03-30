@@ -1,4 +1,5 @@
 from tests.unit.base import BaseTestCase
+import io
 from flask import url_for
 from app.models import User, Book, Loan, KeyWord, StatusLoan, Configuration, ConfigSpec
 from app import db, bcrypt
@@ -114,7 +115,7 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json['success'])
 
-        updated = Book.query.get(book.bookId)
+        updated = db.session.get(Book, book.bookId)
         self.assertIsNone(updated.publishedDate)
         self.assertIsNone(updated.acquisitionDate)
         self.assertEqual(updated.publicationYear, 2015)
@@ -288,13 +289,13 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json['success'])
 
-        updated_user = User.query.get(user.userId)
+        updated_user = db.session.get(User, user.userId)
         self.assertEqual(updated_user.password, 'current_password')
 
     def test_bulk_import_route_allows_bibliotecario(self):
         """/users/import/bulk should allow bibliotecario users."""
         bibliotecario = User(
-            identificationCode='biblio1',
+            identificationCode='bibliotecario_teste',
             userCompleteName='Bibliotecario',
             password='abc123',
             userType='bibliotecario',
@@ -307,7 +308,7 @@ class TestCreationRoutes(BaseTestCase):
 
         self.client.get(url_for('auth.logout'), follow_redirects=True)
         self.client.post(url_for('auth.login'), data={
-            'username': 'biblio1',
+            'username': 'bibliotecario_teste',
             'password': 'abc123'
         }, follow_redirects=True)
 
@@ -318,7 +319,7 @@ class TestCreationRoutes(BaseTestCase):
     def test_bulk_import_route_denies_non_privileged_user(self):
         """/users/import/bulk should deny access for non admin/bibliotecario users."""
         aluno = User(
-            identificationCode='aluno1',
+            identificationCode='aluno_teste',
             userCompleteName='Aluno',
             password='abc123',
             userType='aluno',
@@ -331,7 +332,7 @@ class TestCreationRoutes(BaseTestCase):
 
         self.client.get(url_for('auth.logout'), follow_redirects=True)
         self.client.post(url_for('auth.login'), data={
-            'username': 'aluno1',
+            'username': 'aluno_teste',
             'password': 'abc123'
         }, follow_redirects=True)
 
@@ -358,6 +359,83 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', response.content_type)
 
+    def test_book_bulk_import_route_allows_bibliotecario(self):
+        """/livros/import/bulk/upload should allow bibliotecario users."""
+        bibliotecario = User(
+            identificationCode='biblio_book_bulk',
+            userCompleteName='Bibliotecario Livros',
+            password='abc123',
+            userType='bibliotecario',
+            birthDate=date(1991, 1, 1),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(bibliotecario)
+        db.session.commit()
+
+        self.client.get(url_for('auth.logout'), follow_redirects=True)
+        self.client.post(url_for('auth.login'), data={
+            'username': 'biblio_book_bulk',
+            'password': 'abc123'
+        }, follow_redirects=True)
+
+        response = self.client.get(url_for('books.bulk_book_import_upload'), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Importar Livros em Massa', response.get_data(as_text=True))
+
+    def test_book_bulk_import_route_denies_non_privileged_user(self):
+        """/livros/import/bulk/upload should deny access for non admin/bibliotecario users."""
+        aluno = User(
+            identificationCode='aluno_book_bulk',
+            userCompleteName='Aluno Livros',
+            password='abc123',
+            userType='aluno',
+            birthDate=date(2010, 1, 1),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(aluno)
+        db.session.commit()
+
+        self.client.get(url_for('auth.logout'), follow_redirects=True)
+        self.client.post(url_for('auth.login'), data={
+            'username': 'aluno_book_bulk',
+            'password': 'abc123'
+        }, follow_redirects=True)
+
+        response = self.client.get(url_for('books.bulk_book_import_upload'), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('Importar Livros em Massa', response.get_data(as_text=True))
+
+    def test_book_bulk_template_download_csv(self):
+        """/livros/import/bulk/template should return a CSV model."""
+        response = self.client.get(url_for('books.bulk_book_import_download_template', format='csv'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('text/csv', response.content_type)
+        self.assertIn('NomeLivro', response.get_data(as_text=True))
+
+    def test_book_bulk_template_download_xlsx(self):
+        """/livros/import/bulk/template should return an XLSX model."""
+        response = self.client.get(url_for('books.bulk_book_import_download_template', format='xlsx'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', response.content_type)
+
+    def test_book_bulk_upload_rejects_invalid_extension(self):
+        """/livros/import/bulk/upload should reject non csv/xlsx files."""
+        response = self.client.post(
+            url_for('books.bulk_book_import_upload'),
+            data={
+                'importFile': (io.BytesIO(b'conteudo invalido'), 'livros.txt')
+            },
+            content_type='multipart/form-data',
+            follow_redirects=True,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Formato de arquivo inválido', response.get_data(as_text=True))
+
     def test_edit_user_updates_password_when_provided(self):
         """/users/edit should hash and update password when a new one is provided."""
         user = User(
@@ -383,7 +461,7 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json['success'])
 
-        updated_user = User.query.get(user.userId)
+        updated_user = db.session.get(User, user.userId)
         self.assertNotEqual(updated_user.password, 'current_password')
         self.assertTrue(bcrypt.check_password_hash(updated_user.password, 'newpass123'))
 
@@ -414,7 +492,7 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json['success'])
 
-        updated_user = User.query.get(user.userId)
+        updated_user = db.session.get(User, user.userId)
         self.assertTrue(updated_user.pcd)
 
     def test_users_list_shows_pcd_icon_when_true(self):
