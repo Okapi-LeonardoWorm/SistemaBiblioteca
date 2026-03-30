@@ -1,6 +1,6 @@
 from datetime import date
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 
@@ -31,7 +31,9 @@ def palavras_chave():
 @login_required
 def get_keyword_form(keyword_id):
     if keyword_id:
-        keyword = KeyWord.query.get_or_404(keyword_id)
+        keyword = db.session.get(KeyWord, keyword_id)
+        if not keyword:
+            abort(404)
         form = KeyWordForm(obj=keyword)
     else:
         form = KeyWordForm()
@@ -80,7 +82,9 @@ def nova_palavra_chave():
 @bp.route('/palavras_chave/edit/<int:keyword_id>', methods=['POST'])
 @login_required
 def editar_palavra_chave(keyword_id):
-    keyword = KeyWord.query.get_or_404(keyword_id)
+    keyword = db.session.get(KeyWord, keyword_id)
+    if not keyword:
+        abort(404)
     form = KeyWordForm(request.form)
     if form.validate():
         normalized = normalize_tag(form.word.data or '')
@@ -103,7 +107,9 @@ def editar_palavra_chave(keyword_id):
 @bp.route('/excluir_palavra_chave/<int:id>', methods=['POST'])
 @login_required
 def excluir_palavra_chave(id):
-    palavra_chave = KeyWord.query.get_or_404(id)
+    palavra_chave = db.session.get(KeyWord, id)
+    if not palavra_chave:
+        abort(404)
     db.session.delete(palavra_chave)
     db.session.commit()
     flash('Palavra-chave excluída com sucesso!', 'success')

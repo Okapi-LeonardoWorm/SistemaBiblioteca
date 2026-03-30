@@ -1,3 +1,5 @@
+import warnings
+
 from flask import Flask, session
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
@@ -9,6 +11,18 @@ from flask_wtf.csrf import generate_csrf
 from markupsafe import Markup, escape
 from config import Config, TestingConfig
 from flask_session import Session
+
+try:
+    from sqlalchemy.exc import LegacyAPIWarning
+except Exception:
+    LegacyAPIWarning = Warning
+
+
+# Silence known third-party warnings to keep runtime/test output focused.
+warnings.filterwarnings('ignore', message=r'.*datetime\.datetime\.utcnow\(\) is deprecated.*')
+warnings.filterwarnings('ignore', category=LegacyAPIWarning, message=r'.*Query\.get\(\) method is considered legacy.*')
+warnings.simplefilter('ignore', DeprecationWarning)
+warnings.simplefilter('ignore', LegacyAPIWarning)
 
 
 
@@ -49,7 +63,7 @@ def createApp(config_name: str | None = None):
     @login_manager.user_loader
     def load_user(userId):
         from app.models import User
-        return User.query.get(int(userId))
+        return db.session.get(User, int(userId))
 
 
     @app.context_processor

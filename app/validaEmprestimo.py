@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from app import db
 from app.models import User # Importar o modelo User
 
 # verifica se a quantidade de livros solicitada é maior que 0
@@ -22,7 +23,6 @@ def v2(form):
 def v3(form, activeBookLoans, book):
     # Inicializa a quantidade disponível como a quantidade total de livros
     availableBooks = book.amount
-    print("availableBooks INI: ", availableBooks)
     # Itera sobre todos os empréstimos ativos
     for loan in activeBookLoans:
         loan_start = loan.loanDate.date() if hasattr(loan.loanDate, 'date') else loan.loanDate
@@ -34,23 +34,21 @@ def v3(form, activeBookLoans, book):
         
         if form.loanDate.data < loan_end and form.returnDate.data > loan_start: # Logica do GPT
             availableBooks -= loan.amount
-    print("availableBooks: END", availableBooks)
     
     # Verifica se a quantidade de livros disponíveis é suficiente para a quantidade de livros solicitada no empréstimo
     if form.amount.data <= availableBooks:
-        print("availableBooks: IF", form.amount.data <= availableBooks)
         return True
 
     return False
 
 # Nova função de validação para verificar se o userId existe
 def v4(form):
-    user = User.query.get(form.userId.data)
+    user = db.session.get(User, form.userId.data)
     return user is not None
 
 def validaEmprestimo(form, Loan, Book, StatusLoan):
     # Pega cadastro do livro
-    book = Book.query.get(form.bookId.data)
+    book = db.session.get(Book, form.bookId.data)
 
     if book:
         # Pesquisa todos os empréstimos ativos do livro

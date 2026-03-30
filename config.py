@@ -27,6 +27,7 @@ class Config:
 
 class TestingConfig(Config):
     TESTING = True
+    SESSION_TYPE = 'filesystem'
     SQLALCHEMY_DATABASE_URI = (
         os.environ.get('TEST_DATABASE_URL')
         or 'postgresql+psycopg2://biblioteca:biblioteca@localhost:5439/sistema_biblioteca_test'

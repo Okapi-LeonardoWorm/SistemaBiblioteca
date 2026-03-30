@@ -1,6 +1,18 @@
 import unittest
+import warnings
+
+from sqlalchemy.exc import LegacyAPIWarning
+
 from app import createApp, db
 from app.models import User, Book, Loan, KeyWord, StatusLoan
+
+
+# Keep test output focused on regressions in project code.
+warnings.filterwarnings('ignore', category=LegacyAPIWarning)
+warnings.filterwarnings('ignore', category=DeprecationWarning, module=r'flask_session\.sqlalchemy\.sqlalchemy')
+warnings.filterwarnings('ignore', message=r'.*datetime\.datetime\.utcnow\(\) is deprecated.*')
+warnings.filterwarnings('ignore', message=r'.*Query\.get\(\) method is considered legacy.*')
+warnings.filterwarnings('ignore', module=r'flask_sqlalchemy\.query')
 
 _TEST_APP = createApp(config_name="testing")
 

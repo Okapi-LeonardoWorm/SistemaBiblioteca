@@ -101,7 +101,7 @@ class TestLoanCancellation(unittest.TestCase):
         data = json.loads(response.data)
         self.assertTrue(data['success'])
         
-        updated_loan = Loan.query.get(loan.loanId)
+        updated_loan = db.session.get(Loan, loan.loanId)
         self.assertEqual(updated_loan.status, StatusLoan.CANCELLED)
 
     def test_cancel_future_loan_client_ahead(self):

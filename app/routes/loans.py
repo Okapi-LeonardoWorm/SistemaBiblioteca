@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, flash, jsonify, render_template, request
+from flask import Blueprint, abort, flash, jsonify, render_template, request
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 from sqlalchemy import or_
@@ -232,7 +232,9 @@ def emprestimos():
 @bp.route('/emprestimos/cancel/<int:loan_id>', methods=['POST'])
 @login_required
 def cancelar_emprestimo(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
+    loan = db.session.get(Loan, loan_id)
+    if not loan:
+        abort(404)
     
     if loan.status != StatusLoan.ACTIVE:
         return jsonify({'success': False, 'message': 'Apenas empréstimos ativos podem ser cancelados.'}), 400
@@ -266,7 +268,9 @@ def get_loan_form(loan_id):
     can_edit_final_note = False
     now = datetime.now()
     if loan_id:
-        loan = Loan.query.get_or_404(loan_id)
+        loan = db.session.get(Loan, loan_id)
+        if not loan:
+            abort(404)
         form = LoanForm(obj=loan)
         user = loan.user
         book = loan.book
@@ -357,7 +361,9 @@ def novo_emprestimo():
 @bp.route('/emprestimos/edit/<int:loan_id>', methods=['POST'])
 @login_required
 def editar_emprestimo(loan_id):
-    loan = Loan.query.get_or_404(loan_id)
+    loan = db.session.get(Loan, loan_id)
+    if not loan:
+        abort(404)
     raw_return_date = (request.form.get('returnDate') or '').strip()
     raw_initial_note = (request.form.get('initialNote') or '').strip()
     raw_final_note = (request.form.get('finalNote') or '').strip()
@@ -419,7 +425,9 @@ def informar_retorno_emprestimo(loan_id):
     - returnDate deve ser informada pelo usuário (YYYY-MM-DD)
     - empréstimo já finalizado (COMPLETED/LOST) não pode ser finalizado novamente
     """
-    loan = Loan.query.get_or_404(loan_id)
+    loan = db.session.get(Loan, loan_id)
+    if not loan:
+        abort(404)
 
     # Aceita tanto form-data quanto JSON
     raw_status = (request.form.get('status') or (request.get_json(silent=True) or {}).get('status') or '').strip().upper()

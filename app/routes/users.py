@@ -97,7 +97,9 @@ def list_users():
 @login_required
 def get_user_form(user_id):
     if user_id:
-        user = User.query.get_or_404(user_id)
+        user = db.session.get(User, user_id)
+        if not user:
+            abort(404)
         form = UserForm(obj=user, mode='edit', instance_id=user.userId)
     else:
         form = UserForm(mode='create')
@@ -140,7 +142,9 @@ def new_user():
 @bp.route('/users/edit/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
     form = UserForm(request.form, obj=user, mode='edit', instance_id=user.userId)
     if form.validate():
         # manual populate to avoid overwriting id fields
@@ -180,7 +184,9 @@ def check_identification_code():
 @bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
     db.session.delete(user)
     db.session.commit()
     flash('Usuário excluído com sucesso!', 'success')

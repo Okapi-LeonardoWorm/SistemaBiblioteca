@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 from sqlalchemy import or_
@@ -50,7 +50,9 @@ def get_config_form(config_id):
         return '<p class="text-danger">Acesso negado.</p>', 403
 
     if config_id:
-        config = Configuration.query.get_or_404(config_id)
+        config = db.session.get(Configuration, config_id)
+        if not config:
+            abort(404)
         form = ConfigForm(obj=config)
         spec = ConfigSpec.query.filter_by(key=config.key).first()
         if spec:
@@ -115,7 +117,9 @@ def editar_configuracao(config_id):
     if not is_admin_user():
         return jsonify({'success': False, 'errors': {'auth': ['Acesso negado.']}}), 403
 
-    config = Configuration.query.get_or_404(config_id)
+    config = db.session.get(Configuration, config_id)
+    if not config:
+        abort(404)
     form = ConfigForm(request.form)
     if not form.validate():
         return jsonify({'success': False, 'errors': form.errors})
