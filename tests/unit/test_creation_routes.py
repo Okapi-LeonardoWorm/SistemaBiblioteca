@@ -121,6 +121,198 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(updated.publicationYear, 2015)
         self.assertEqual(updated.acquisitionYear, 2016)
 
+    def test_delete_book_marks_deleted_flag(self):
+        """/excluir_livro should perform soft delete instead of physical deletion."""
+        book = Book(
+            bookName='Livro Soft Delete',
+            amount=1,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add(book)
+        db.session.commit()
+
+        response = self.client.post(
+            url_for('books.excluir_livro', id=book.bookId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        soft_deleted = db.session.get(Book, book.bookId)
+        self.assertIsNotNone(soft_deleted)
+        self.assertTrue(soft_deleted.deleted)
+
+    def test_deleted_book_is_hidden_from_livros_listing(self):
+        """/livros should not render books marked as deleted."""
+        active_book = Book(
+            bookName='Livro Ativo Visivel',
+            amount=1,
+            deleted=False,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        deleted_book = Book(
+            bookName='Livro Deletado Invisivel',
+            amount=1,
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add_all([active_book, deleted_book])
+        db.session.commit()
+
+        response = self.client.get(url_for('books.livros'))
+        content = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Livro Ativo Visivel', content)
+        self.assertNotIn('Livro Deletado Invisivel', content)
+
+    def test_deleted_book_is_hidden_from_api_search(self):
+        """/api/books/search should not return books marked as deleted."""
+        active_book = Book(
+            bookName='API Livro Ativo',
+            amount=1,
+            deleted=False,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        deleted_book = Book(
+            bookName='API Livro Deletado',
+            amount=1,
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add_all([active_book, deleted_book])
+        db.session.commit()
+
+        response = self.client.get(url_for('apis.api_search_books', q='API Livro'))
+        payload = response.get_json()
+
+        self.assertEqual(response.status_code, 200)
+        names = [item['bookName'] for item in payload['results']]
+        self.assertIn('API Livro Ativo', names)
+        self.assertNotIn('API Livro Deletado', names)
+
+    def test_deleted_book_form_can_be_opened(self):
+        """/livros/form/<id> should open for deleted books to allow editing/reactivation."""
+        book = Book(
+            bookName='Livro Form Deletado',
+            amount=1,
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add(book)
+        db.session.commit()
+
+        response = self.client.get(url_for('books.get_book_form', book_id=book.bookId))
+        content = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Livro Form Deletado', content)
+        self.assertIn('Reativar livro', content)
+
+    def test_edit_deleted_book_keeps_deleted_flag(self):
+        """Editing a deleted book should update fields without auto-reactivating it."""
+        book = Book(
+            bookName='Livro Edit Deletado',
+            amount=2,
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add(book)
+        db.session.commit()
+
+        response = self.client.post(url_for('books.editar_livro', book_id=book.bookId), data={
+            'bookName': 'Livro Edit Deletado Atualizado',
+            'authorName': 'Autor Atualizado',
+            'publisherName': '',
+            'amount': 5,
+            'publishedDateMode': 'year',
+            'publicationYear': 2019,
+            'acquisitionDateMode': 'year',
+            'acquisitionYear': 2020,
+            'description': 'Descricao atualizada',
+            'keyWords': 'teste; reativacao'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        updated = db.session.get(Book, book.bookId)
+        self.assertEqual(updated.bookName, 'Livro Edit Deletado Atualizado')
+        self.assertTrue(updated.deleted)
+
+    def test_reactivate_book_sets_deleted_false(self):
+        """/reativar_livro should reactivate soft-deleted books."""
+        book = Book(
+            bookName='Livro Reativar',
+            amount=1,
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add(book)
+        db.session.commit()
+
+        response = self.client.post(
+            url_for('books.reativar_livro', id=book.bookId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        reactivated = db.session.get(Book, book.bookId)
+        self.assertFalse(reactivated.deleted)
+
+    def test_reactivate_book_is_idempotent_when_already_active(self):
+        """/reativar_livro should return success when the book is already active."""
+        book = Book(
+            bookName='Livro Ja Ativo',
+            amount=1,
+            deleted=False,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add(book)
+        db.session.commit()
+
+        response = self.client.post(
+            url_for('books.reativar_livro', id=book.bookId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+        self.assertIn('já estava ativo', response.json['message'])
+
+        persisted = db.session.get(Book, book.bookId)
+        self.assertFalse(persisted.deleted)
+
     def test_create_users_via_register(self):
         """Test creation of different user types via the /register endpoint."""
         # 1. Admin creates a staff member
@@ -516,6 +708,115 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('PCD-LIST-001', content)
         self.assertIn('fa-wheelchair', content)
+
+    def test_delete_user_marks_deleted_flag(self):
+        """/users/delete should perform soft delete for users."""
+        user = User(
+            identificationCode='SOFT-DEL-USER',
+            userCompleteName='Soft Delete User',
+            password='password',
+            userType='aluno',
+            birthDate=date(2004, 4, 5),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        response = self.client.post(
+            url_for('users.delete_user', user_id=user.userId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        persisted = db.session.get(User, user.userId)
+        self.assertIsNotNone(persisted)
+        self.assertTrue(persisted.deleted)
+
+    def test_deleted_user_is_hidden_from_users_listing_and_api(self):
+        """Deleted users should not appear in /users list or /api/users/search."""
+        visible_user = User(
+            identificationCode='VISIBLE-USER',
+            userCompleteName='Visible User',
+            password='password',
+            userType='aluno',
+            deleted=False,
+            birthDate=date(2004, 4, 5),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        hidden_user = User(
+            identificationCode='HIDDEN-USER',
+            userCompleteName='Hidden User',
+            password='password',
+            userType='aluno',
+            deleted=True,
+            birthDate=date(2004, 4, 5),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add_all([visible_user, hidden_user])
+        db.session.commit()
+
+        list_response = self.client.get(url_for('users.list_users'))
+        list_content = list_response.get_data(as_text=True)
+        self.assertEqual(list_response.status_code, 200)
+        self.assertIn('VISIBLE-USER', list_content)
+        self.assertNotIn('HIDDEN-USER', list_content)
+
+        api_response = self.client.get(url_for('apis.api_search_users', q='USER'))
+        payload = api_response.get_json()
+        self.assertEqual(api_response.status_code, 200)
+        ids = [item['identificationCode'] for item in payload['results']]
+        self.assertIn('VISIBLE-USER', ids)
+        self.assertNotIn('HIDDEN-USER', ids)
+
+    def test_delete_keyword_marks_deleted_flag(self):
+        """/excluir_palavra_chave should perform soft delete for tags."""
+        keyword = KeyWord(
+            word='SOFTKEY',
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(keyword)
+        db.session.commit()
+
+        response = self.client.post(
+            url_for('keywords.excluir_palavra_chave', id=keyword.wordId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        persisted = db.session.get(KeyWord, keyword.wordId)
+        self.assertIsNotNone(persisted)
+        self.assertTrue(persisted.deleted)
+
+    def test_deleted_keyword_is_hidden_from_listing(self):
+        """/palavras_chave should not show tags marked as deleted."""
+        visible_keyword = KeyWord(
+            word='VISIBLE-TAG',
+            deleted=False,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        hidden_keyword = KeyWord(
+            word='HIDDEN-TAG',
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add_all([visible_keyword, hidden_keyword])
+        db.session.commit()
+
+        response = self.client.get(url_for('keywords.palavras_chave'))
+        content = response.get_data(as_text=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('VISIBLE-TAG', content)
+        self.assertNotIn('HIDDEN-TAG', content)
 
     def test_create_book_trims_text_fields(self):
         """/livros/new should trim trailing and leading spaces in text fields."""

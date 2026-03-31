@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'bootstrap5/pagination.html' import render_pagination %}
+{% from '_management_components.html' import mgmt_table_container, truncated_text, sortable_th %}
 
 {% block title %}Gerenciar Empréstimos{% endblock %}
 
@@ -9,17 +10,14 @@
 
 {% block content %}
 <div class="container py-4">
-    {% set advanced_open = namespace(value=false) %}
-    {% for value in filters.values() %}
-        {% if value %}
-            {% set advanced_open.value = true %}
-        {% endif %}
-    {% endfor %}
 
     <header class="management-header">
         <h1 class="h3">Gerenciar Empréstimos</h1>
         <form class="search-form" method="GET" action="{{ url_for('loans.emprestimos') }}">
             <input type="text" name="search" class="form-control search-input" placeholder="Buscar por livro ou usuário..." value="{{ search_term or '' }}">
+            <input type="hidden" name="include_deleted" value="{{ include_deleted_value }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
     </header>
@@ -29,13 +27,16 @@
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="">
                 <i class="fas fa-plus"></i> Novo Empréstimo
             </button>
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedLoanFilters" aria-expanded="{{ 'true' if advanced_open.value else 'false' }}" aria-controls="advancedLoanFilters">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedLoanFilters" aria-expanded="false" aria-controls="advancedLoanFilters">
                 Filtros avançados
             </button>
         </div>
         
         <form method="GET" action="{{ url_for('loans.emprestimos') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <input type="hidden" name="include_deleted" value="{{ include_deleted_value }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
             {% for key, value in filters.items() %}
             <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endfor %}
@@ -48,10 +49,12 @@
         </form>
     </div>
 
-    <div class="collapse mb-3{% if advanced_open.value %} show{% endif %}" id="advancedLoanFilters">
+    <div class="collapse mb-3" id="advancedLoanFilters">
         <form method="GET" action="{{ url_for('loans.emprestimos') }}" class="advanced-filters-card">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <input type="hidden" name="per_page" value="{{ per_page }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
 
             <div class="advanced-filters-grid">
                 <section class="advanced-filter-group">
@@ -187,52 +190,52 @@
             </div>
 
             <div class="advanced-filters-actions mt-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="loanIncludeDeleted" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %}>
+                    <label class="form-check-label" for="loanIncludeDeleted">Incluir excluídos</label>
+                </div>
                 <a href="{{ url_for('loans.emprestimos') }}" class="btn btn-outline-secondary">Limpar filtros</a>
                 <button type="submit" class="btn btn-primary">Aplicar filtros</button>
             </div>
         </form>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Livro</th>
-                    <th>Autor</th>
-                    <th>Data Publicação</th>
-                    <th>Usuário</th>
-                    <th>Data Empréstimo</th>
-                    <th>Data Devolução</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for loan in loans.items %}
-                <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}" data-loan-status="{{ loan.status.name }}" class="cursor-pointer">
-                    <td>
-                        <span class="fade-hover-text" data-full="{{ loan.book.bookName }}">{{ loan.book.bookName }}</span>
-                    </td>
-                    <td>
-                        <span class="fade-hover-text" data-full="{{ loan.book.authorName or 'N/A' }}">{{ loan.book.authorName or 'N/A' }}</span>
-                    </td>
-                    <td>{{ loan.book.publishedDate.strftime('%d/%m/%Y') if loan.book.publishedDate else 'N/A' }}</td>
-                    <td>{{ render_user_identifier(loan.user) }}</td>
-                    <td>{{ loan.loanDate.strftime('%d/%m/%Y') }}</td>
-                    <td>{{ loan.returnDate.strftime('%d/%m/%Y') }}</td>
-                    <td><span class="badge bg-{% if loan.status.name == 'ACTIVE' %}success{% elif loan.status.name == 'OVERDUE' %}danger{% else %}secondary{% endif %}">{{ loan.status.value }}</span></td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="text-center">Nenhum empréstimo encontrado.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {% call mgmt_table_container('table table-hover mgmt-table mgmt-table--fixed mgmt-table--loans') %}
+        <thead>
+            <tr>
+                {{ sortable_th('Livro', 'book', sort_links, sort_by, sort_dir, 'mgmt-col-loan-book') }}
+                {{ sortable_th('Usuário', 'user', sort_links, sort_by, sort_dir, 'mgmt-col-loan-user') }}
+                {{ sortable_th('Data Empréstimo', 'loan_date', sort_links, sort_by, sort_dir, 'mgmt-col-loan-loandate') }}
+                {{ sortable_th('Data Devolução', 'return_date', sort_links, sort_by, sort_dir, 'mgmt-col-loan-returndate') }}
+                {{ sortable_th('Status', 'status', sort_links, sort_by, sort_dir, 'mgmt-col-loan-status') }}
+                {% if include_deleted %}
+                {{ sortable_th('Deletado', 'deleted', sort_links, sort_by, sort_dir, 'mgmt-col-status') }}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in loans.items %}
+            <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}" data-loan-status="{{ loan.status.name }}" class="cursor-pointer">
+                <td class="mgmt-col-loan-book">{{ truncated_text(loan.book.bookName, 'N/A') }}</td>
+                <td class="mgmt-col-loan-user">{{ render_user_identifier(loan.user) }}</td>
+                <td class="mgmt-col-loan-loandate">{{ loan.loanDate.strftime('%d/%m/%Y') }}</td>
+                <td class="mgmt-col-loan-returndate">{{ loan.returnDate.strftime('%d/%m/%Y') }}</td>
+                <td class="mgmt-col-loan-status"><span class="badge bg-{% if loan.status.name == 'ACTIVE' %}success{% elif loan.status.name == 'OVERDUE' %}danger{% else %}secondary{% endif %}">{{ loan.status.value }}</span></td>
+                {% if include_deleted %}
+                <td class="mgmt-col-status">{{ 'Sim' if (loan.user.deleted or loan.book.deleted) else 'Não' }}</td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ 6 if include_deleted else 5 }}" class="text-center">Nenhum empréstimo encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    {% endcall %}
 
     <!-- Pagination -->
     <div class="mt-3">
-        {{ render_pagination(loans, search=search_term, per_page=per_page, **filters) }}
+        {{ render_pagination(loans, search=search_term, per_page=per_page, include_deleted=include_deleted_value, sort_by=sort_by, sort_dir=sort_dir, **filters) }}
     </div>
 
     <!-- Loan Modal -->
@@ -299,6 +302,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/management.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const loanModal = document.getElementById('loanModal');
@@ -307,58 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const loanReturnForm = document.getElementById('loanReturnForm');
     const loanReturnError = document.getElementById('loanReturnError');
 
-    // Tooltip com atraso para campos truncados (Livro/Autor)
-    let hoverTimer = null;
-    let hoverTooltipEl = null;
-    let hoverTargetEl = null;
-
-    function clearDelayedTooltip() {
-        if (hoverTimer) {
-            clearTimeout(hoverTimer);
-            hoverTimer = null;
-        }
-        if (hoverTooltipEl) {
-            hoverTooltipEl.remove();
-            hoverTooltipEl = null;
-        }
-        hoverTargetEl = null;
-    }
-
-    function showDelayedTooltip(targetEl) {
-        const fullText = (targetEl?.getAttribute('data-full') || targetEl?.textContent || '').trim();
-        if (!fullText) return;
-
-        const rect = targetEl.getBoundingClientRect();
-        const tooltip = document.createElement('div');
-        tooltip.className = 'delayed-hover-tooltip';
-        tooltip.textContent = fullText;
-        tooltip.style.left = `${window.scrollX + rect.left}px`;
-        tooltip.style.top = `${window.scrollY + rect.top}px`;
-        document.body.appendChild(tooltip);
-        hoverTooltipEl = tooltip;
-    }
-
-    document.querySelectorAll('.fade-hover-text').forEach((el) => {
-        el.addEventListener('mouseenter', function() {
-            clearDelayedTooltip();
-            hoverTargetEl = el;
-            hoverTimer = setTimeout(() => {
-                if (hoverTargetEl === el) {
-                    showDelayedTooltip(el);
-                }
-            }, 1000);
-        });
-
-        el.addEventListener('mouseleave', function() {
-            if (hoverTargetEl === el) {
-                clearDelayedTooltip();
-            }
-        });
-    });
-
-    // Evita tooltip "solta" em mudanças de contexto
-    document.addEventListener('scroll', clearDelayedTooltip, true);
-    loanModal?.addEventListener('show.bs.modal', clearDelayedTooltip);
+    window.ManagementUI?.initDelayedHoverTooltips(document);
+    loanModal?.addEventListener('show.bs.modal', window.ManagementUI?.clearDelayedHoverTooltips);
 
     loanModal.addEventListener('show.bs.modal', function (event) {
         const trigger = event.relatedTarget;

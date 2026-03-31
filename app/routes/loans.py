@@ -1,6 +1,6 @@
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, flash, jsonify, render_template, request
+from flask import Blueprint, abort, flash, jsonify, render_template, request, url_for
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 from sqlalchemy import or_
@@ -33,12 +33,36 @@ def _add_date_range_filter(query, column, start_raw, end_raw):
         query = query.filter(column <= datetime.combine(end_date, datetime.max.time()))
     return query
 
+
+def _build_sort_links(endpoint, base_params, sort_columns, current_sort_by, current_sort_dir):
+    links = {}
+    for key in sort_columns.keys():
+        params = {k: v for k, v in base_params.items() if v is not None and v != ''}
+        params['page'] = 1
+
+        if current_sort_by != key:
+            params['sort_by'] = key
+            params['sort_dir'] = 'asc'
+        elif current_sort_dir == 'asc':
+            params['sort_by'] = key
+            params['sort_dir'] = 'desc'
+        else:
+            params.pop('sort_by', None)
+            params.pop('sort_dir', None)
+
+        links[key] = url_for(endpoint, **params)
+    return links
+
 @bp.route('/emprestimos')
 @login_required
 def emprestimos():
     query = Loan.query
     created_by_user = aliased(User)
+    include_deleted = request.args.get('include_deleted') == '1'
+    include_deleted_value = '1' if include_deleted else ''
     search_term = (request.args.get('search') or '').strip()
+    sort_by = (request.args.get('sort_by') or '').strip()
+    sort_dir = (request.args.get('sort_dir') or '').strip().lower()
 
     advanced_filters = {
         'loan_date_start': (request.args.get('loan_date_start') or '').strip(),
@@ -100,6 +124,27 @@ def emprestimos():
     needs_created_user_join = bool(advanced_filters['loan_created_by'])
     needs_keyword_join = bool(advanced_filters['book_tags'])
 
+    sort_columns = {
+        'book': Book.bookName,
+        'user': User.identificationCode,
+        'loan_date': Loan.loanDate,
+        'return_date': Loan.returnDate,
+        'status': Loan.status,
+        'deleted': or_(User.deleted.is_(True), Book.deleted.is_(True)),
+    }
+    if sort_by not in sort_columns:
+        sort_by = ''
+    if sort_dir not in {'asc', 'desc'}:
+        sort_dir = ''
+
+    if sort_by == 'book':
+        needs_book_join = True
+    if sort_by == 'user':
+        needs_user_join = True
+    if sort_by == 'deleted':
+        needs_book_join = True
+        needs_user_join = True
+
     if needs_user_join:
         query = query.join(Loan.user)
     if needs_book_join:
@@ -108,6 +153,12 @@ def emprestimos():
         query = query.join(created_by_user, Loan.created_user)
     if needs_keyword_join:
         query = query.outerjoin(Book.keywords)
+
+    if not include_deleted:
+        query = query.filter(
+            Loan.user.has(User.deleted.is_(False)),
+            Loan.book.has(Book.deleted.is_(False)),
+        )
 
     if search_term:
         query = query.filter(
@@ -206,12 +257,33 @@ def emprestimos():
         if tags:
             query = query.filter(or_(*[KeyWord.word.ilike(f'%{tag}%') for tag in tags]))
 
-    if needs_user_join or needs_book_join or needs_created_user_join or needs_keyword_join:
+    # DISTINCT is only required when joining keywords (many-to-many),
+    # which can duplicate loans rows.
+    if needs_keyword_join:
         query = query.distinct()
+
+    if sort_by and sort_dir:
+        sort_column = sort_columns[sort_by]
+        if sort_dir == 'asc':
+            query = query.order_by(sort_column.asc().nullslast())
+        else:
+            query = query.order_by(sort_column.desc().nullslast())
+    else:
+        query = query.order_by(Loan.loanDate.desc())
 
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
-    loans_pagination = query.order_by(Loan.loanDate.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    loans_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    base_params = {
+        'search': search_term,
+        'per_page': per_page,
+        'include_deleted': include_deleted_value,
+        'sort_by': sort_by,
+        'sort_dir': sort_dir,
+        **advanced_filters,
+    }
+    sort_links = _build_sort_links('loans.emprestimos', base_params, sort_columns, sort_by, sort_dir)
 
     # Get cancellation limit from config (in minutes)
     config_entry = Configuration.query.filter_by(key='TEMPO_MAXIMO_PARA_CANCELAMENTO_DE_EMPRESTIMO').first()
@@ -226,7 +298,12 @@ def emprestimos():
         cancellation_limit_minutes=cancellation_limit_minutes,
         now=now,
         filters=advanced_filters,
-        status_options=StatusLoan
+        include_deleted=include_deleted,
+        include_deleted_value=include_deleted_value,
+        status_options=StatusLoan,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        sort_links=sort_links,
     )
 
 @bp.route('/emprestimos/cancel/<int:loan_id>', methods=['POST'])

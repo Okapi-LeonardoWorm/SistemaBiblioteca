@@ -75,11 +75,53 @@ def _is_book_job_owner_or_allowed(job_data: dict) -> bool:
         return True
     return can_manage_user_bulk_import()
 
+
+def _active_books_query():
+    return Book.query.filter_by(deleted=False)
+
+
+def _get_active_book_or_404(book_id):
+    book = _active_books_query().filter_by(bookId=book_id).first()
+    if not book:
+        abort(404)
+    return book
+
+
+def _get_book_or_404(book_id):
+    book = db.session.get(Book, book_id)
+    if not book:
+        abort(404)
+    return book
+
+
+def _build_sort_links(endpoint, base_params, sort_columns, current_sort_by, current_sort_dir):
+    links = {}
+    for key in sort_columns.keys():
+        params = {k: v for k, v in base_params.items() if v is not None and v != ''}
+        params['page'] = 1
+
+        if current_sort_by != key:
+            params['sort_by'] = key
+            params['sort_dir'] = 'asc'
+        elif current_sort_dir == 'asc':
+            params['sort_by'] = key
+            params['sort_dir'] = 'desc'
+        else:
+            params.pop('sort_by', None)
+            params.pop('sort_dir', None)
+
+        links[key] = url_for(endpoint, **params)
+    return links
+
 @bp.route('/livros')
 @login_required
 def livros():
-    query = Book.query
+    include_deleted = request.args.get('include_deleted') == '1'
+    include_deleted_value = '1' if include_deleted else ''
+    query = Book.query if include_deleted else _active_books_query()
     search_term = (request.args.get('search') or '').strip()
+    sort_by = (request.args.get('sort_by') or '').strip()
+    sort_dir = (request.args.get('sort_dir') or '').strip().lower()
 
     filters = {
         'book_author': (request.args.get('book_author') or '').strip(),
@@ -143,16 +185,52 @@ def livros():
     if needs_keywords_join:
         query = query.distinct()
 
+    sort_columns = {
+        'title': Book.bookName,
+        'author': Book.authorName,
+        'publisher': Book.publisherName,
+        'amount': Book.amount,
+        'deleted': Book.deleted,
+    }
+    if sort_by not in sort_columns:
+        sort_by = ''
+    if sort_dir not in {'asc', 'desc'}:
+        sort_dir = ''
+
+    if sort_by and sort_dir:
+        sort_column = sort_columns[sort_by]
+        if sort_dir == 'asc':
+            query = query.order_by(sort_column.asc().nullslast())
+        else:
+            query = query.order_by(sort_column.desc().nullslast())
+    else:
+        query = query.order_by(Book.bookId.desc())
+
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
     books_pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    base_params = {
+        'search': search_term,
+        'per_page': per_page,
+        'include_deleted': include_deleted_value,
+        'sort_by': sort_by,
+        'sort_dir': sort_dir,
+        **filters,
+    }
+    sort_links = _build_sort_links('books.livros', base_params, sort_columns, sort_by, sort_dir)
     
     return render_template(
         'livros.html',
         books=books_pagination,
         search_term=search_term,
         per_page=per_page,
-        filters=filters
+        filters=filters,
+        include_deleted=include_deleted,
+        include_deleted_value=include_deleted_value,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        sort_links=sort_links,
     )
 
 
@@ -160,10 +238,9 @@ def livros():
 @bp.route('/livros/form/<int:book_id>', methods=['GET'])
 @login_required
 def get_book_form(book_id):
+    book = None
     if book_id:
-        book = db.session.get(Book, book_id)
-        if not book:
-            abort(404)
+        book = _get_book_or_404(book_id)
         form = BookForm(obj=book)
         if book.publishedDate:
             form.publishedDateMode.data = 'date'
@@ -182,7 +259,7 @@ def get_book_form(book_id):
         form.keyWords.data = '; '.join([kw.word for kw in book.keywords])
     else:
         form = BookForm()
-    return render_template('_book_form.html', form=form, book_id=book_id)
+    return render_template('_book_form.html', form=form, book_id=book_id, book=book)
 
 
 @bp.route('/livros/new', methods=['POST'])
@@ -228,9 +305,7 @@ def novo_livro():
 @bp.route('/livros/edit/<int:book_id>', methods=['POST'])
 @login_required
 def editar_livro(book_id):
-    book = db.session.get(Book, book_id)
-    if not book:
-        abort(404)
+    book = _get_book_or_404(book_id)
     form = BookForm(request.form)
     
     if form.validate():
@@ -297,12 +372,46 @@ def editar_livro(book_id):
 @bp.route('/excluir_livro/<int:id>', methods=['POST'])
 @login_required
 def excluir_livro(id):
-    livro = db.session.get(Book, id)
-    if not livro:
-        abort(404)
-    db.session.delete(livro)
-    db.session.commit()
-    flash('Livro excluído com sucesso!', 'success')
+    livro = _get_book_or_404(id)
+
+    was_already_deleted = bool(livro.deleted)
+    if not livro.deleted:
+        livro.deleted = True
+        livro.lastUpdate = date.today()
+        livro.updatedBy = current_user.userId
+        db.session.add(livro)
+        db.session.commit()
+
+    is_async_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    message = 'Livro já estava marcado como excluído.' if was_already_deleted else 'Livro marcado como excluído com sucesso!'
+
+    if is_async_request:
+        return jsonify({'success': True, 'message': message})
+
+    flash(message, 'success')
+    return redirect(url_for('books.livros'))
+
+
+@bp.route('/reativar_livro/<int:id>', methods=['POST'])
+@login_required
+def reativar_livro(id):
+    livro = _get_book_or_404(id)
+
+    was_already_active = not bool(livro.deleted)
+    if livro.deleted:
+        livro.deleted = False
+        livro.lastUpdate = date.today()
+        livro.updatedBy = current_user.userId
+        db.session.add(livro)
+        db.session.commit()
+
+    is_async_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    message = 'Livro já estava ativo.' if was_already_active else 'Livro reativado com sucesso!'
+
+    if is_async_request:
+        return jsonify({'success': True, 'message': message})
+
+    flash(message, 'success')
     return redirect(url_for('books.livros'))
 
 

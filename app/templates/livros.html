@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'bootstrap5/pagination.html' import render_pagination %}
+{% from '_management_components.html' import mgmt_table_container, truncated_text, sortable_th %}
 
 {% block title %}Gerenciar Livros{% endblock %}
 
@@ -9,17 +10,14 @@
 
 {% block content %}
 <div class="container py-4">
-    {% set advanced_open = namespace(value=false) %}
-    {% for value in filters.values() %}
-        {% if value %}
-            {% set advanced_open.value = true %}
-        {% endif %}
-    {% endfor %}
 
     <header class="management-header">
         <h1 class="h3">Gerenciar Livros</h1>
         <form class="search-form" method="GET" action="{{ url_for('books.livros') }}">
             <input type="text" name="search" class="form-control search-input" placeholder="Buscar por título ou autor..." value="{{ search_term or '' }}">
+            <input type="hidden" name="include_deleted" value="{{ include_deleted_value }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
     </header>
@@ -41,13 +39,16 @@
                     </li>
                 </ul>
             </div>
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedBookFilters" aria-expanded="{{ 'true' if advanced_open.value else 'false' }}" aria-controls="advancedBookFilters">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedBookFilters" aria-expanded="false" aria-controls="advancedBookFilters">
                 Filtros avançados
             </button>
         </div>
         
         <form method="GET" action="{{ url_for('books.livros') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <input type="hidden" name="include_deleted" value="{{ include_deleted_value }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
             {% for key, value in filters.items() %}
             <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endfor %}
@@ -60,10 +61,12 @@
         </form>
     </div>
 
-    <div class="collapse mb-3{% if advanced_open.value %} show{% endif %}" id="advancedBookFilters">
+    <div class="collapse mb-3" id="advancedBookFilters">
         <form method="GET" action="{{ url_for('books.livros') }}" class="advanced-filters-card">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <input type="hidden" name="per_page" value="{{ per_page }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
 
             <div class="advanced-filters-grid">
                 <section class="advanced-filter-group">
@@ -126,66 +129,67 @@
             </div>
 
             <div class="advanced-filters-actions mt-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="bookIncludeDeleted" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %}>
+                    <label class="form-check-label" for="bookIncludeDeleted">Incluir excluídos</label>
+                </div>
                 <a href="{{ url_for('books.livros') }}" class="btn btn-outline-secondary">Limpar filtros</a>
                 <button type="submit" class="btn btn-primary">Aplicar filtros</button>
             </div>
         </form>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Título</th>
-                    <th>Autor</th>
-                    <th>Editora</th>
-                    <th>Quantidade</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for book in books.items %}
-                <tr data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
-                    <td>{{ book.bookName }}</td>
-                    <td>{{ book.authorName or 'N/A' }}</td>
-                    <td>{{ book.publisherName or 'N/A' }}</td>
-                    <td>{{ book.amount }}</td>
-                    <td>
-                        <form action="{{ url_for('books.excluir_livro', id=book.bookId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este livro?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
-                        </form>
-                    </td>
-                </tr>
-                <tr class="book-keywords-row" data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
-                    <td colspan="5">
-                        <div class="book-keywords-line">
-                            {% if book.keywords %}
-                                {% set visible_limit = 4 %}
-                                {% for keyword in book.keywords[:visible_limit] %}
-                                    <span class="badge text-bg-light border keyword-chip">{{ keyword.word }}</span>
-                                {% endfor %}
-                                {% if book.keywords|length > visible_limit %}
-                                    <span class="badge text-bg-light border keyword-chip keyword-chip-more">+{{ book.keywords|length }}</span>
-                                {% endif %}
-                            {% else %}
-                                <span class="text-muted small">Sem tags</span>
+    {% call mgmt_table_container('table table-hover mgmt-table mgmt-table--fixed mgmt-table--books') %}
+        <thead>
+            <tr>
+                {{ sortable_th('Título', 'title', sort_links, sort_by, sort_dir, 'mgmt-col-title') }}
+                {{ sortable_th('Autor', 'author', sort_links, sort_by, sort_dir, 'mgmt-col-author') }}
+                {{ sortable_th('Editora', 'publisher', sort_links, sort_by, sort_dir, 'mgmt-col-publisher') }}
+                {{ sortable_th('Qtd', 'amount', sort_links, sort_by, sort_dir, 'mgmt-col-quantity') }}
+                {% if include_deleted %}
+                {{ sortable_th('Deletado', 'deleted', sort_links, sort_by, sort_dir, 'mgmt-col-status') }}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books.items %}
+            <tr data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
+                <td class="mgmt-col-title">{{ truncated_text(book.bookName, 'N/A') }}</td>
+                <td class="mgmt-col-author">{{ truncated_text(book.authorName, 'N/A') }}</td>
+                <td class="mgmt-col-publisher">{{ truncated_text(book.publisherName, 'N/A') }}</td>
+                <td class="mgmt-col-quantity">{{ book.amount }}</td>
+                {% if include_deleted %}
+                <td class="mgmt-col-status">{{ 'Sim' if book.deleted else 'Não' }}</td>
+                {% endif %}
+            </tr>
+            <tr class="book-keywords-row" data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
+                <td colspan="{{ 5 if include_deleted else 4 }}">
+                    <div class="book-keywords-line">
+                        {% if book.keywords %}
+                            {% set visible_limit = 4 %}
+                            {% for keyword in book.keywords[:visible_limit] %}
+                                <span class="badge text-bg-light border keyword-chip">{{ keyword.word }}</span>
+                            {% endfor %}
+                            {% if book.keywords|length > visible_limit %}
+                                <span class="badge text-bg-light border keyword-chip keyword-chip-more">+{{ book.keywords|length }}</span>
                             {% endif %}
-                        </div>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="text-center">Nenhum livro encontrado.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        {% else %}
+                            <span class="text-muted small">Sem tags</span>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ 5 if include_deleted else 4 }}" class="text-center">Nenhum livro encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    {% endcall %}
 
     <!-- Pagination -->
     <div class="mt-3">
-        {{ render_pagination(books, search=search_term, per_page=per_page, **filters) }}
+        {{ render_pagination(books, search=search_term, per_page=per_page, include_deleted=include_deleted_value, sort_by=sort_by, sort_dir=sort_dir, **filters) }}
     </div>
 
     <!-- Book Modal -->
@@ -210,10 +214,14 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/management.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const bookModal = document.getElementById('bookModal');
     const saveBookBtn = document.getElementById('saveBookBtn');
+    const modalBody = bookModal.querySelector('.modal-body');
+
+    window.ManagementUI?.initDelayedHoverTooltips(document);
 
     function toggleDateModeFields(form, modeName, sectionName) {
         const selected = form.querySelector(`input[name="${modeName}"]:checked`)?.value || 'year';
@@ -259,6 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     bookModal.addEventListener('show.bs.modal', function (event) {
+        window.ManagementUI?.clearDelayedHoverTooltips();
         const trigger = event.relatedTarget;
         const bookId = trigger.getAttribute('data-book-id');
         const modalTitle = bookModal.querySelector('.modal-title');
@@ -275,6 +284,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalTitle.textContent = bookId ? 'Editar Livro' : 'Novo Livro';
                 modalBody.innerHTML = html;
                 initBookDateModeToggle(modalBody);
+                window.ManagementUI?.bindSoftDeleteAction(modalBody, {
+                    selector: '#deleteBookBtn',
+                    onSuccess: function() {
+                        window.location.reload();
+                    }
+                });
+                window.ManagementUI?.bindSoftDeleteAction(modalBody, {
+                    selector: '#restoreBookBtn',
+                    onSuccess: function() {
+                        window.location.reload();
+                    }
+                });
             })
             .catch(err => {
                 modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';

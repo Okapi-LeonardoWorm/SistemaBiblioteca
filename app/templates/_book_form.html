@@ -1,5 +1,10 @@
 <form id="bookModalForm" action="{{ url_for('books.novo_livro') if not book_id else url_for('books.editar_livro', book_id=book_id) }}" method="POST">
     {{ form.hidden_tag() }}
+    {% if book_id and book and book.deleted %}
+    <div class="alert alert-warning" role="alert">
+        Este livro está marcado como excluído. Você pode editar os dados e reativá-lo quando desejar.
+    </div>
+    {% endif %}
     <div class="mb-3">
         {{ form.bookName.label(class="form-label") }}
         {{ form.bookName(class="form-control") }}
@@ -64,4 +69,32 @@
         {{ form.description.label(class="form-label") }}
         {{ form.description(class="form-control", rows=3) }}
     </div>
+
+    {% if book_id and book and book.deleted %}
+    <div class="d-flex justify-content-end mt-3">
+        <button
+            type="button"
+            class="btn btn-outline-success"
+            id="restoreBookBtn"
+            data-delete-url="{{ url_for('books.reativar_livro', id=book_id) }}"
+            data-csrf-token="{{ csrf_token() }}"
+            data-confirm-message="Tem certeza que deseja reativar este livro?"
+        >
+            <i class="fas fa-undo"></i> Reativar livro
+        </button>
+    </div>
+    {% elif book_id %}
+    <div class="d-flex justify-content-end mt-3">
+        <button
+            type="button"
+            class="btn btn-outline-danger"
+            id="deleteBookBtn"
+            data-delete-url="{{ url_for('books.excluir_livro', id=book_id) }}"
+            data-csrf-token="{{ csrf_token() }}"
+            data-confirm-message="Tem certeza que deseja excluir este livro? Esta ação é lógica e o livro será apenas marcado como excluído."
+        >
+            <i class="fas fa-trash"></i> Excluir livro
+        </button>
+    </div>
+    {% endif %}
 </form>
