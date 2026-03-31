@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'bootstrap5/pagination.html' import render_pagination %}
+{% from '_management_components.html' import mgmt_table_container, truncated_text, sortable_th %}
 
 {% block title %}Gerenciar Usuários{% endblock %}
 
@@ -9,17 +10,14 @@
 
 {% block content %}
 <div class="container py-4">
-    {% set advanced_open = namespace(value=false) %}
-    {% for value in filters.values() %}
-        {% if value %}
-            {% set advanced_open.value = true %}
-        {% endif %}
-    {% endfor %}
 
     <header class="management-header">
         <h1 class="h3">Gerenciar Usuários</h1>
         <form class="search-form" method="GET" action="{{ url_for('users.list_users') }}">
             <input type="text" name="search" class="form-control search-input" placeholder="Buscar por nome ou código..." value="{{ search_term or '' }}">
+            <input type="hidden" name="include_deleted" value="{{ include_deleted_value }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
     </header>
@@ -41,7 +39,7 @@
                     </li>
                 </ul>
             </div>
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedUserFilters" aria-expanded="{{ 'true' if advanced_open.value else 'false' }}" aria-controls="advancedUserFilters">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedUserFilters" aria-expanded="false" aria-controls="advancedUserFilters">
                 Filtros avançados
             </button>
         </div>
@@ -49,6 +47,9 @@
         <!-- Items per page selector -->
         <form method="GET" action="{{ url_for('users.list_users') }}" class="d-flex align-items-center">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <input type="hidden" name="include_deleted" value="{{ include_deleted_value }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
             {% for key, value in filters.items() %}
             <input type="hidden" name="{{ key }}" value="{{ value }}">
             {% endfor %}
@@ -61,10 +62,12 @@
         </form>
     </div>
 
-    <div class="collapse mb-3{% if advanced_open.value %} show{% endif %}" id="advancedUserFilters">
+    <div class="collapse mb-3" id="advancedUserFilters">
         <form method="GET" action="{{ url_for('users.list_users') }}" class="advanced-filters-card">
             <input type="hidden" name="search" value="{{ search_term or '' }}">
             <input type="hidden" name="per_page" value="{{ per_page }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
+            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
 
             <div class="advanced-filters-grid">
                 <section class="advanced-filter-group">
@@ -123,49 +126,50 @@
             </div>
 
             <div class="advanced-filters-actions mt-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="userIncludeDeleted" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %}>
+                    <label class="form-check-label" for="userIncludeDeleted">Incluir excluídos</label>
+                </div>
                 <a href="{{ url_for('users.list_users') }}" class="btn btn-outline-secondary">Limpar filtros</a>
                 <button type="submit" class="btn btn-primary">Aplicar filtros</button>
             </div>
         </form>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Username</th>
-                    <th>Tipo</th>
-                    <th>Telefone</th>
-                    <th>Data de Nascimento</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for user in users.items %}
-                <tr data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="{{ user.userId }}">
-                    <td>{{ render_user_identifier(user) }}</td>
-                    <td>{{ user.userType }}</td>
-                    <td>{{ user.userPhone or 'N/A' }}</td>
-                    <td>{{ user.birthDate.strftime('%d/%m/%Y') if user.birthDate else 'N/A' }}</td>
-                    <td>
-                        <form action="{{ url_for('users.delete_user', user_id=user.userId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="text-center">Nenhum usuário encontrado.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {% call mgmt_table_container('table table-hover mgmt-table mgmt-table--fixed mgmt-table--users') %}
+        <thead>
+            <tr>
+                {{ sortable_th('Username', 'username', sort_links, sort_by, sort_dir, 'mgmt-col-user-username') }}
+                {{ sortable_th('Tipo', 'type', sort_links, sort_by, sort_dir, 'mgmt-col-user-type') }}
+                {{ sortable_th('Telefone', 'phone', sort_links, sort_by, sort_dir, 'mgmt-col-user-phone') }}
+                {{ sortable_th('Data de Nascimento', 'birth', sort_links, sort_by, sort_dir, 'mgmt-col-user-birth') }}
+                {% if include_deleted %}
+                {{ sortable_th('Deletado', 'deleted', sort_links, sort_by, sort_dir, 'mgmt-col-status') }}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users.items %}
+            <tr data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="{{ user.userId }}">
+                <td class="mgmt-col-user-username"><span class="fade-hover-text" data-full="{{ user.identificationCode }}">{{ render_user_identifier(user) }}</span></td>
+                <td class="mgmt-col-user-type">{{ truncated_text(user.userType, 'N/A') }}</td>
+                <td class="mgmt-col-user-phone">{{ truncated_text(user.userPhone, 'N/A') }}</td>
+                <td class="mgmt-col-user-birth">{{ user.birthDate.strftime('%d/%m/%Y') if user.birthDate else 'N/A' }}</td>
+                {% if include_deleted %}
+                <td class="mgmt-col-status">{{ 'Sim' if user.deleted else 'Não' }}</td>
+                {% endif %}
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="{{ 5 if include_deleted else 4 }}" class="text-center">Nenhum usuário encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    {% endcall %}
 
     <!-- Pagination -->
     <div class="mt-3">
-        {{ render_pagination(users, search=search_term, per_page=per_page, **filters) }}
+        {{ render_pagination(users, search=search_term, per_page=per_page, include_deleted=include_deleted_value, sort_by=sort_by, sort_dir=sort_dir, **filters) }}
     </div>
 
     <!-- User Modal -->
@@ -190,18 +194,22 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/management.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const userModal = document.getElementById('userModal');
     const saveUserBtn = document.getElementById('saveUserBtn');
+    const modalBody = userModal.querySelector('.modal-body');
+
+    window.ManagementUI?.initDelayedHoverTooltips(document);
 
     userModal.addEventListener('show.bs.modal', function (event) {
+        window.ManagementUI?.clearDelayedHoverTooltips();
         const trigger = event.relatedTarget;
         // For table rows, the trigger is the <tr> itself. For the "New User" button, it's the button.
         const userId = trigger.getAttribute('data-user-id');
         const modalTitle = userModal.querySelector('.modal-title');
-        const modalBody = userModal.querySelector('.modal-body');
-        
+
         // Reset modal
         modalTitle.textContent = 'Carregando...';
         modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
@@ -213,6 +221,12 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(html => {
                 modalTitle.textContent = userId ? 'Editar Usuário' : 'Novo Usuário';
                 modalBody.innerHTML = html;
+                window.ManagementUI?.bindSoftDeleteAction(modalBody, {
+                    selector: '#deleteUserBtn',
+                    onSuccess: function() {
+                        window.location.reload();
+                    }
+                });
             })
             .catch(err => {
                 modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';

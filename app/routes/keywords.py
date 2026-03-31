@@ -11,10 +11,21 @@ from app.utils import normalize_tag, parse_normalized_tags
 
 bp = Blueprint('keywords', __name__)
 
+
+def _active_keywords_query():
+    return KeyWord.query.filter_by(deleted=False)
+
+
+def _get_active_keyword_or_404(keyword_id):
+    keyword = _active_keywords_query().filter_by(wordId=keyword_id).first()
+    if not keyword:
+        abort(404)
+    return keyword
+
 @bp.route('/palavras_chave')
 @login_required
 def palavras_chave():
-    query = KeyWord.query
+    query = _active_keywords_query()
     search_term = request.args.get('search', '')
     if search_term:
         query = query.filter(KeyWord.word.ilike(f'%{search_term}%'))
@@ -31,9 +42,7 @@ def palavras_chave():
 @login_required
 def get_keyword_form(keyword_id):
     if keyword_id:
-        keyword = db.session.get(KeyWord, keyword_id)
-        if not keyword:
-            abort(404)
+        keyword = _get_active_keyword_or_404(keyword_id)
         form = KeyWordForm(obj=keyword)
     else:
         form = KeyWordForm()
@@ -82,9 +91,7 @@ def nova_palavra_chave():
 @bp.route('/palavras_chave/edit/<int:keyword_id>', methods=['POST'])
 @login_required
 def editar_palavra_chave(keyword_id):
-    keyword = db.session.get(KeyWord, keyword_id)
-    if not keyword:
-        abort(404)
+    keyword = _get_active_keyword_or_404(keyword_id)
     form = KeyWordForm(request.form)
     if form.validate():
         normalized = normalize_tag(form.word.data or '')
@@ -110,9 +117,22 @@ def excluir_palavra_chave(id):
     palavra_chave = db.session.get(KeyWord, id)
     if not palavra_chave:
         abort(404)
-    db.session.delete(palavra_chave)
-    db.session.commit()
-    flash('Palavra-chave excluída com sucesso!', 'success')
+
+    was_already_deleted = bool(palavra_chave.deleted)
+    if not palavra_chave.deleted:
+        palavra_chave.deleted = True
+        palavra_chave.lastUpdate = date.today()
+        palavra_chave.updatedBy = current_user.userId
+        db.session.add(palavra_chave)
+        db.session.commit()
+
+    is_async_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    message = 'Tag já estava marcada como excluída.' if was_already_deleted else 'Tag marcada como excluída com sucesso!'
+
+    if is_async_request:
+        return jsonify({'success': True, 'message': message})
+
+    flash(message, 'success')
     return redirect(url_for('keywords.palavras_chave'))
 
 

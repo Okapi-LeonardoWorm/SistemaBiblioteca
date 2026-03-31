@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% from 'bootstrap5/pagination.html' import render_pagination %}
+{% from '_management_components.html' import mgmt_table_container, truncated_text %}
 
 {% block title %}Gerenciar Tags{% endblock %}
 
@@ -33,33 +34,24 @@
         </form>
     </div>
 
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Tag</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for keyword in keywords.items %}
-                <tr data-bs-toggle="modal" data-bs-target="#keywordModal" data-keyword-id="{{ keyword.wordId }}">
-                    <td>{{ keyword.word }}</td>
-                    <td>
-                        <form action="{{ url_for('keywords.excluir_palavra_chave', id=keyword.wordId) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir esta tag?');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Excluir</button>
-                        </form>
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="2" class="text-center">Nenhuma tag encontrada.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+    {% call mgmt_table_container('table table-hover mgmt-table mgmt-table--fixed mgmt-table--keywords') %}
+        <thead>
+            <tr>
+                <th class="mgmt-col-keyword-word">Tag</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for keyword in keywords.items %}
+            <tr data-bs-toggle="modal" data-bs-target="#keywordModal" data-keyword-id="{{ keyword.wordId }}">
+                <td class="mgmt-col-keyword-word">{{ truncated_text(keyword.word, 'N/A') }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="1" class="text-center">Nenhuma tag encontrada.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    {% endcall %}
 
     <!-- Pagination -->
     <div class="mt-3">
@@ -88,10 +80,14 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/management.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const keywordModal = document.getElementById('keywordModal');
     const saveKeywordBtn = document.getElementById('saveKeywordBtn');
+    const modalBody = keywordModal.querySelector('.modal-body');
+
+    window.ManagementUI?.initDelayedHoverTooltips(document);
     
     function saveKeyword() {
         const form = document.getElementById('keywordModalForm');
@@ -117,10 +113,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     keywordModal.addEventListener('show.bs.modal', function (event) {
+        window.ManagementUI?.clearDelayedHoverTooltips();
         const trigger = event.relatedTarget;
         const keywordId = trigger.getAttribute('data-keyword-id');
         const modalTitle = keywordModal.querySelector('.modal-title');
-        const modalBody = keywordModal.querySelector('.modal-body');
         
         modalTitle.textContent = 'Carregando...';
         modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
@@ -132,6 +128,12 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(html => {
                 modalTitle.textContent = keywordId ? 'Editar Tag' : 'Nova Tag';
                 modalBody.innerHTML = html;
+                window.ManagementUI?.bindSoftDeleteAction(modalBody, {
+                    selector: '#deleteKeywordBtn',
+                    onSuccess: function() {
+                        window.location.reload();
+                    }
+                });
                 // Prevenir submit padrão e Enter para evitar navegação para JSON
                 const formEl = document.getElementById('keywordModalForm');
                 if (formEl) {

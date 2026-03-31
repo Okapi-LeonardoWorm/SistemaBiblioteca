@@ -5,4 +5,19 @@
         {{ form.word(class="form-control", placeholder="Ex.: Ficção, Aventura; Clássico") }}
         <div class="form-text">Você pode informar várias tags separadas por vírgula (,) ou ponto e vírgula (;).</div>
     </div>
+
+    {% if keyword_id %}
+    <div class="d-flex justify-content-end mt-3">
+        <button
+            type="button"
+            class="btn btn-outline-danger"
+            id="deleteKeywordBtn"
+            data-delete-url="{{ url_for('keywords.excluir_palavra_chave', id=keyword_id) }}"
+            data-csrf-token="{{ csrf_token() }}"
+            data-confirm-message="Tem certeza que deseja excluir esta tag? Esta ação é lógica e a tag será apenas marcada como excluída."
+        >
+            <i class="fas fa-trash"></i> Excluir tag
+        </button>
+    </div>
+    {% endif %}
 </form>

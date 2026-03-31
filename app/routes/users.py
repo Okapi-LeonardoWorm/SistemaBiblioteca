@@ -32,6 +32,37 @@ ALLOWED_BULK_USER_TYPES = [
 ]
 
 
+def _active_users_query():
+    return User.query.filter_by(deleted=False)
+
+
+def _get_active_user_or_404(user_id):
+    user = _active_users_query().filter_by(userId=user_id).first()
+    if not user:
+        abort(404)
+    return user
+
+
+def _build_sort_links(endpoint, base_params, sort_columns, current_sort_by, current_sort_dir):
+    links = {}
+    for key in sort_columns.keys():
+        params = {k: v for k, v in base_params.items() if v is not None and v != ''}
+        params['page'] = 1
+
+        if current_sort_by != key:
+            params['sort_by'] = key
+            params['sort_dir'] = 'asc'
+        elif current_sort_dir == 'asc':
+            params['sort_by'] = key
+            params['sort_dir'] = 'desc'
+        else:
+            params.pop('sort_by', None)
+            params.pop('sort_dir', None)
+
+        links[key] = url_for(endpoint, **params)
+    return links
+
+
 def _parse_int(value):
     try:
         if value is None or value == '':
@@ -43,8 +74,12 @@ def _parse_int(value):
 @bp.route('/users')
 @login_required
 def list_users():
-    query = User.query
+    include_deleted = request.args.get('include_deleted') == '1'
+    include_deleted_value = '1' if include_deleted else ''
+    query = User.query if include_deleted else _active_users_query()
     search_term = (request.args.get('search') or '').strip()
+    sort_by = (request.args.get('sort_by') or '').strip()
+    sort_dir = (request.args.get('sort_dir') or '').strip().lower()
 
     filters = {
         'user_code': (request.args.get('user_code') or '').strip(),
@@ -86,20 +121,60 @@ def list_users():
     if filters['user_class']:
         query = query.filter(User.className.ilike(f"%{filters['user_class']}%"))
 
+    sort_columns = {
+        'username': User.identificationCode,
+        'type': User.userType,
+        'phone': User.userPhone,
+        'birth': User.birthDate,
+        'deleted': User.deleted,
+    }
+    if sort_by not in sort_columns:
+        sort_by = ''
+    if sort_dir not in {'asc', 'desc'}:
+        sort_dir = ''
+
+    if sort_by and sort_dir:
+        sort_column = sort_columns[sort_by]
+        if sort_dir == 'asc':
+            query = query.order_by(sort_column.asc().nullslast())
+        else:
+            query = query.order_by(sort_column.desc().nullslast())
+    else:
+        query = query.order_by(User.userId.desc())
+
     page = request.args.get(get_page_parameter(), type=int, default=1)
     per_page = request.args.get('per_page', type=int, default=20)
     users = query.paginate(page=page, per_page=per_page, error_out=False)
+
+    base_params = {
+        'search': search_term,
+        'per_page': per_page,
+        'include_deleted': include_deleted_value,
+        'sort_by': sort_by,
+        'sort_dir': sort_dir,
+        **filters,
+    }
+    sort_links = _build_sort_links('users.list_users', base_params, sort_columns, sort_by, sort_dir)
     
-    return render_template('users.html', users=users, search_term=search_term, per_page=per_page, filters=filters)
+    return render_template(
+        'users.html',
+        users=users,
+        search_term=search_term,
+        per_page=per_page,
+        filters=filters,
+        include_deleted=include_deleted,
+        include_deleted_value=include_deleted_value,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        sort_links=sort_links,
+    )
 
 @bp.route('/users/form', defaults={'user_id': None}, methods=['GET'])
 @bp.route('/users/form/<int:user_id>', methods=['GET'])
 @login_required
 def get_user_form(user_id):
     if user_id:
-        user = db.session.get(User, user_id)
-        if not user:
-            abort(404)
+        user = _get_active_user_or_404(user_id)
         form = UserForm(obj=user, mode='edit', instance_id=user.userId)
     else:
         form = UserForm(mode='create')
@@ -142,9 +217,7 @@ def new_user():
 @bp.route('/users/edit/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
-    user = db.session.get(User, user_id)
-    if not user:
-        abort(404)
+    user = _get_active_user_or_404(user_id)
     form = UserForm(request.form, obj=user, mode='edit', instance_id=user.userId)
     if form.validate():
         # manual populate to avoid overwriting id fields
@@ -187,9 +260,22 @@ def delete_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
         abort(404)
-    db.session.delete(user)
-    db.session.commit()
-    flash('Usuário excluído com sucesso!', 'success')
+
+    was_already_deleted = bool(user.deleted)
+    if not user.deleted:
+        user.deleted = True
+        user.lastUpdate = date.today()
+        user.updatedBy = current_user.userId
+        db.session.add(user)
+        db.session.commit()
+
+    is_async_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    message = 'Usuário já estava marcado como excluído.' if was_already_deleted else 'Usuário marcado como excluído com sucesso!'
+
+    if is_async_request:
+        return jsonify({'success': True, 'message': message})
+
+    flash(message, 'success')
     return redirect(url_for('users.list_users'))
 
 

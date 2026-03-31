@@ -65,6 +65,21 @@
         {{ form.pcd(class="form-check-input") }}
         {{ form.pcd.label(class="form-check-label") }}
     </div>
+
+    {% if user_id %}
+    <div class="d-flex justify-content-end mt-3">
+        <button
+            type="button"
+            class="btn btn-outline-danger"
+            id="deleteUserBtn"
+            data-delete-url="{{ url_for('users.delete_user', user_id=user_id) }}"
+            data-csrf-token="{{ csrf_token() }}"
+            data-confirm-message="Tem certeza que deseja excluir este usuário? Esta ação é lógica e o usuário será apenas marcado como excluído."
+        >
+            <i class="fas fa-trash"></i> Excluir usuário
+        </button>
+    </div>
+    {% endif %}
     <script>
     (function() {
         function onlyDigits(s) { return (s||'').replace(/\D+/g, ''); }
