@@ -44,13 +44,13 @@ def v3(form, activeBookLoans, book):
 # Nova função de validação para verificar se o userId existe
 def v4(form):
     user = db.session.get(User, form.userId.data)
-    return user is not None
+    return user is not None and not getattr(user, 'deleted', False)
 
 def validaEmprestimo(form, Loan, Book, StatusLoan):
     # Pega cadastro do livro
     book = db.session.get(Book, form.bookId.data)
 
-    if book:
+    if book and not getattr(book, 'deleted', False):
         # Pesquisa todos os empréstimos ativos do livro
         activeBookLoans = Loan.query.filter_by(bookId=form.bookId.data, status=StatusLoan.ACTIVE).all()
 

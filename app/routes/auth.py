@@ -54,7 +54,7 @@ def login():
     if form.validate_on_submit():
         usernameStr = form.username.data.strip().lower()
         # Agora o login utiliza o identificationCode no lugar de username
-        user = User.query.filter_by(identificationCode=usernameStr).first()
+        user = User.query.filter_by(identificationCode=usernameStr, deleted=False).first()
         valid_password = False
         if user:
             try:

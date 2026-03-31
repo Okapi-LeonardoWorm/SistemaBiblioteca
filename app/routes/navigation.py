@@ -20,8 +20,12 @@ def dashboard():
     # KPIs
     total_books = db.session.query(func.sum(Book.amount)).scalar() or 0
     total_loans_active = Loan.query.filter_by(status=StatusLoan.ACTIVE).count()
-    total_students = User.query.filter(func.lower(User.userType).in_(['aluno', 'student'])).count()
+    total_students = User.query.filter(
+        User.deleted.is_(False),
+        func.lower(User.userType).in_(['aluno', 'student'])
+    ).count()
     total_staff = User.query.filter(
+        User.deleted.is_(False),
         func.lower(User.userType).in_(['colaborador', 'bibliotecario', 'bibliotecário', 'staff'])
     ).count()
     overdue_loans_count = Loan.query.filter(Loan.returnDate < date.today(), Loan.status == StatusLoan.ACTIVE).count()
@@ -60,6 +64,8 @@ def dashboard():
         func.count(KeyWordBook.wordId).label('usage_count')
     ).join(
         KeyWordBook, KeyWord.wordId == KeyWordBook.wordId
+    ).filter(
+        KeyWord.deleted.is_(False)
     ).group_by(
         KeyWord.wordId, KeyWord.word
     ).order_by(

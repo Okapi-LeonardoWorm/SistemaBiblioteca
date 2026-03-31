@@ -20,6 +20,7 @@ class User(db.Model, UserMixin):
     lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
+    deleted = db.Column(db.Boolean, nullable=False, default=False)
 
     # Novos campos para unificar com Alunos
     userPhone = db.Column(db.String, nullable=True)
@@ -75,6 +76,7 @@ class Book(db.Model):
     lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    deleted = db.Column(db.Boolean, nullable=False, default=False)
     
     # Relacionamento com keywords
     keywords = db.relationship('KeyWord', secondary='KeyWordBooks', backref='books')
@@ -107,6 +109,7 @@ class KeyWord(db.Model):
     lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
     createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
     updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    deleted = db.Column(db.Boolean, nullable=False, default=False)
 
 
 class StatusLoan(enum.Enum):

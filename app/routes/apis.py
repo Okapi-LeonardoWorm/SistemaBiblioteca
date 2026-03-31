@@ -18,6 +18,7 @@ def api_search_users():
     if not q:
         return jsonify({'results': []})
     users = (User.query
+             .filter(User.deleted.is_(False))
              .filter(or_(
                  User.identificationCode.ilike(f"%{q}%"),
                  User.userCompleteName.ilike(f"%{q}%")
@@ -55,6 +56,7 @@ def api_search_books():
     if not q:
         return jsonify({'results': []})
     books = (Book.query
+             .filter(Book.deleted.is_(False))
              .filter(or_(
                  Book.bookName.ilike(f"%{q}%"),
                  Book.authorName.ilike(f"%{q}%"),

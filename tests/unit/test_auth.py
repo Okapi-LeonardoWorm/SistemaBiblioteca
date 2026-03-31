@@ -53,6 +53,20 @@ class TestAuth(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Usuário ou senha inválidos', response.get_data(as_text=True))
 
+    def test_deleted_user_cannot_login(self):
+        """Users marked as deleted must not authenticate."""
+        user = User.query.filter_by(username='testuser').first()
+        user.deleted = True
+        db.session.commit()
+
+        response = self.client.post(url_for('auth.login'), data={
+            'username': 'testuser',
+            'password': 'testpassword'
+        }, follow_redirects=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Usuário ou senha inválidos', response.get_data(as_text=True))
+
     def test_login_accepts_username_with_extra_spaces(self):
         """Login should normalize username removendo espaços nas extremidades."""
         response = self.client.post(url_for('auth.login'), data={
