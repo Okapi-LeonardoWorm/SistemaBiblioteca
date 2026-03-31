@@ -1,0 +1,34 @@
+{% macro mgmt_table_container(table_classes='table table-hover mgmt-table') -%}
+<div class="table-responsive management-table-shell">
+    <table class="{{ table_classes }}">
+        {{ caller() }}
+    </table>
+</div>
+{%- endmacro %}
+
+{% macro truncated_text(value, fallback='N/A') -%}
+{% set text_value = value if value else fallback %}
+<span class="fade-hover-text" data-full="{{ text_value }}">{{ text_value }}</span>
+{%- endmacro %}
+
+{% macro sortable_th(label, key, sort_links, sort_by, sort_dir, th_class='') -%}
+{% set is_active = sort_by == key %}
+{% set aria_sort = 'none' %}
+{% if is_active and sort_dir == 'asc' %}
+    {% set aria_sort = 'ascending' %}
+{% elif is_active and sort_dir == 'desc' %}
+    {% set aria_sort = 'descending' %}
+{% endif %}
+<th class="{{ th_class }}" aria-sort="{{ aria_sort }}">
+    <a href="{{ sort_links[key] }}" class="text-decoration-none text-reset d-inline-flex align-items-center gap-1">
+        <span>{{ label }}</span>
+        {% if is_active and sort_dir == 'asc' %}
+            <i class="fas fa-sort-up" aria-hidden="true"></i>
+        {% elif is_active and sort_dir == 'desc' %}
+            <i class="fas fa-sort-down" aria-hidden="true"></i>
+        {% else %}
+            <i class="fas fa-sort" aria-hidden="true"></i>
+        {% endif %}
+    </a>
+</th>
+{%- endmacro %}

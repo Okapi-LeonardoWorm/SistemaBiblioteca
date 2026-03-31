@@ -50,6 +50,90 @@
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
 }
 
+.management-table-shell {
+    max-width: 100%;
+}
+
+.mgmt-table {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.mgmt-table--fixed {
+    table-layout: fixed;
+}
+
+.mgmt-table--fixed th,
+.mgmt-table--fixed td {
+    vertical-align: middle;
+}
+
+/* Reusable fixed-width column profile for books table.
+   Percentages intentionally sum to 100% to avoid hidden table area. */
+.mgmt-table--books .mgmt-col-title {
+    width: 44%;
+}
+
+.mgmt-table--books .mgmt-col-author {
+    width: 24%;
+}
+
+.mgmt-table--books .mgmt-col-publisher {
+    width: 22%;
+}
+
+.mgmt-table--books .mgmt-col-quantity {
+    width: 10%;
+    text-align: center;
+}
+
+.mgmt-table--fixed .fade-hover-text {
+    display: block;
+    max-width: 100%;
+}
+
+.mgmt-table--users .mgmt-col-user-username {
+    width: 34%;
+}
+
+.mgmt-table--users .mgmt-col-user-type {
+    width: 20%;
+}
+
+.mgmt-table--users .mgmt-col-user-phone {
+    width: 24%;
+}
+
+.mgmt-table--users .mgmt-col-user-birth {
+    width: 22%;
+}
+
+.mgmt-table--keywords .mgmt-col-keyword-word {
+    width: 100%;
+}
+
+.mgmt-table--loans .mgmt-col-loan-book {
+    width: 30%;
+}
+
+.mgmt-table--loans .mgmt-col-loan-user {
+    width: 26%;
+}
+
+.mgmt-table--loans .mgmt-col-loan-loandate {
+    width: 16%;
+}
+
+.mgmt-table--loans .mgmt-col-loan-returndate {
+    width: 16%;
+}
+
+.mgmt-table--loans .mgmt-col-loan-status {
+    width: 12%;
+    text-align: center;
+}
+
+
 .table tr {
     cursor: pointer;
 }
@@ -133,5 +217,72 @@
 
     .advanced-filter-group:last-child {
         grid-column: span 2;
+    }
+}
+
+@media (max-width: 1023.98px) {
+    .management-table-shell {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mgmt-table--books,
+    .mgmt-table--users,
+    .mgmt-table--loans {
+        min-width: 1024px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .mgmt-table--books .mgmt-col-title {
+        width: 42%;
+    }
+
+    .mgmt-table--books .mgmt-col-author {
+        width: 24%;
+    }
+
+    .mgmt-table--books .mgmt-col-publisher {
+        width: 20%;
+    }
+
+    .mgmt-table--books .mgmt-col-quantity {
+        width: 14%;
+    }
+
+    .mgmt-table--users .mgmt-col-user-username {
+        width: 34%;
+    }
+
+    .mgmt-table--users .mgmt-col-user-type {
+        width: 22%;
+    }
+
+    .mgmt-table--users .mgmt-col-user-phone {
+        width: 24%;
+    }
+
+    .mgmt-table--users .mgmt-col-user-birth {
+        width: 20%;
+    }
+
+    .mgmt-table--loans .mgmt-col-loan-book {
+        width: 30%;
+    }
+
+    .mgmt-table--loans .mgmt-col-loan-user {
+        width: 26%;
+    }
+
+    .mgmt-table--loans .mgmt-col-loan-loandate {
+        width: 16%;
+    }
+
+    .mgmt-table--loans .mgmt-col-loan-returndate {
+        width: 16%;
+    }
+
+    .mgmt-table--loans .mgmt-col-loan-status {
+        width: 12%;
     }
 }
