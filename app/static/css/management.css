@@ -193,6 +193,60 @@
     overflow-y: auto;
 }
 
+.user-history-panel .history-summary-card {
+    border: 1px solid #e6e8eb;
+}
+
+.history-status-menu {
+    min-width: 280px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.history-table-wrap {
+    border: 1px solid #e8ecef;
+    border-radius: 0.5rem;
+}
+
+.history-loan-row {
+    cursor: pointer;
+}
+
+.history-loan-row td {
+    vertical-align: middle;
+}
+
+.history-book-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.history-book-table th:nth-child(1),
+.history-book-table td:nth-child(1) {
+    width: 20%;
+}
+
+.history-book-table th:nth-child(2),
+.history-book-table td:nth-child(2) {
+    width: 28%;
+}
+
+.history-book-table th:nth-child(3),
+.history-book-table td:nth-child(3),
+.history-book-table th:nth-child(4),
+.history-book-table td:nth-child(4) {
+    width: 17%;
+}
+
+.history-book-table th:nth-child(5),
+.history-book-table td:nth-child(5) {
+    width: 18%;
+}
+
+.history-book-table .fade-hover-text {
+    max-width: 100%;
+}
+
 /* Desktop Styles */
 @media (min-width: 768px) {
     .management-header {

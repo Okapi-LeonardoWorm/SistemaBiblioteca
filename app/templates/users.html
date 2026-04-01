@@ -174,7 +174,7 @@
 
     <!-- User Modal -->
     <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="userModalLabel">Carregando...</h5>
@@ -187,6 +187,67 @@
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="saveUserBtn">Salvar</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Modal (reused from loans screen) -->
+    <div class="modal fade" id="loanModal" tabindex="-1" aria-labelledby="loanModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loanModalLabel">Carregando...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Form will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveLoanBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Return Loan Modal -->
+    <div class="modal fade" id="loanReturnModal" tabindex="-1" aria-labelledby="loanReturnModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loanReturnModalLabel">Informar retorno do empréstimo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="loanReturnForm">
+                    <div class="modal-body">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" id="returnLoanId" name="loanId">
+
+                        <div class="mb-3">
+                            <label for="returnDateInput" class="form-label">Data de retorno</label>
+                            <input type="date" class="form-control" id="returnDateInput" name="returnDate" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="returnStatusInput" class="form-label">Situação do empréstimo</label>
+                            <select class="form-select" id="returnStatusInput" name="status" required>
+                                <option value="COMPLETED">Concluído</option>
+                                <option value="LOST">Livro Perdido</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="returnFinalNoteInput" class="form-label">Observação Final</label>
+                            <textarea class="form-control" id="returnFinalNoteInput" name="finalNote" rows="3" placeholder="Observações finais sobre o empréstimo (opcional)"></textarea>
+                        </div>
+
+                        <div class="alert alert-danger d-none" id="loanReturnError"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Confirmar retorno</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -233,6 +294,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.reload();
                     }
                 });
+
+                const historyPanel = modalBody.querySelector('#userLoanHistoryPanel');
+                if (historyPanel && userId) {
+                    window.ManagementUI?.initUserLoanHistoryBackref({
+                        root: historyPanel,
+                        userId: userId,
+                        modalId: 'loanModal',
+                        closeModalId: 'userModal'
+                    });
+                }
             })
             .catch(err => {
                 modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
@@ -267,6 +338,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Ocorreu um erro ao salvar.');
             });
         }
+    });
+
+    window.ManagementUI?.initLoanModalWorkflow({
+        modalId: 'loanModal',
+        saveBtnId: 'saveLoanBtn',
+        returnModalId: 'loanReturnModal',
+        returnFormId: 'loanReturnForm',
+        returnErrorId: 'loanReturnError'
     });
 });
 </script>

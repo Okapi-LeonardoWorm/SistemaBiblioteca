@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import login_required
 from sqlalchemy import or_
 
-from app.models import Book, User
+from app.models import Book, Loan, StatusLoan, User
 from app.utils import available_copies_for_range, calc_age, parse_date
 
 bp = Blueprint('apis', __name__)
@@ -81,4 +81,126 @@ def api_search_books():
             'keywords': [kw.word for kw in getattr(b, 'keywords', [])]
         })
     return jsonify({'results': results})
+
+
+@bp.route('/api/users/<int:user_id>/loan-history')
+@login_required
+def api_user_loan_history(user_id):
+    user = User.query.filter_by(userId=user_id).first()
+    if not user:
+        return jsonify({'success': False, 'message': 'Usuário não encontrado.'}), 404
+
+    query = Loan.query.join(Loan.book).filter(Loan.userId == user_id)
+
+    search_term = (request.args.get('q') or '').strip()
+    if search_term:
+        query = query.filter(Book.bookName.ilike(f"%{search_term}%"))
+
+    raw_statuses = request.args.getlist('statuses')
+    requested_statuses = []
+    for status_name in raw_statuses:
+        name = (status_name or '').strip().upper()
+        if name in StatusLoan.__members__:
+            requested_statuses.append(StatusLoan[name])
+
+    if requested_statuses:
+        query = query.filter(Loan.status.in_(requested_statuses))
+
+    loans = query.order_by(Loan.loanDate.desc()).all()
+
+    total_borrowed = Loan.query.filter(
+        Loan.userId == user_id,
+        Loan.status != StatusLoan.CANCELLED,
+    ).count()
+    total_returned = Loan.query.filter(
+        Loan.userId == user_id,
+        Loan.status == StatusLoan.COMPLETED,
+    ).count()
+
+    return jsonify({
+        'success': True,
+        'summary': {
+            'total_borrowed': total_borrowed,
+            'total_returned': total_returned,
+        },
+        'status_options': [
+            {'name': status.name, 'label': status.value}
+            for status in StatusLoan
+        ],
+        'items': [
+            {
+                'loanId': loan.loanId,
+                'bookName': loan.book.bookName if loan.book else None,
+                'loanDate': loan.loanDate.isoformat() if loan.loanDate else None,
+                'returnDate': loan.returnDate.isoformat() if loan.returnDate else None,
+                'statusName': loan.status.name if loan.status else None,
+                'statusLabel': loan.status.value if loan.status else None,
+            }
+            for loan in loans
+        ],
+    })
+
+
+@bp.route('/api/books/<int:book_id>/loan-history')
+@login_required
+def api_book_loan_history(book_id):
+    book = Book.query.filter_by(bookId=book_id).first()
+    if not book:
+        return jsonify({'success': False, 'message': 'Livro não encontrado.'}), 404
+
+    query = Loan.query.join(Loan.user).filter(Loan.bookId == book_id)
+
+    search_term = (request.args.get('q') or '').strip()
+    if search_term:
+        query = query.filter(
+            or_(
+                User.identificationCode.ilike(f"%{search_term}%"),
+                User.userCompleteName.ilike(f"%{search_term}%"),
+            )
+        )
+
+    raw_statuses = request.args.getlist('statuses')
+    requested_statuses = []
+    for status_name in raw_statuses:
+        name = (status_name or '').strip().upper()
+        if name in StatusLoan.__members__:
+            requested_statuses.append(StatusLoan[name])
+
+    if requested_statuses:
+        query = query.filter(Loan.status.in_(requested_statuses))
+
+    loans = query.order_by(Loan.loanDate.desc()).all()
+
+    total_borrowed = Loan.query.filter(
+        Loan.bookId == book_id,
+        Loan.status != StatusLoan.CANCELLED,
+    ).count()
+    total_returned = Loan.query.filter(
+        Loan.bookId == book_id,
+        Loan.status == StatusLoan.COMPLETED,
+    ).count()
+
+    return jsonify({
+        'success': True,
+        'summary': {
+            'total_borrowed': total_borrowed,
+            'total_returned': total_returned,
+        },
+        'status_options': [
+            {'name': status.name, 'label': status.value}
+            for status in StatusLoan
+        ],
+        'items': [
+            {
+                'loanId': loan.loanId,
+                'userCode': loan.user.identificationCode if loan.user else None,
+                'userName': loan.user.userCompleteName if loan.user else None,
+                'loanDate': loan.loanDate.isoformat() if loan.loanDate else None,
+                'returnDate': loan.returnDate.isoformat() if loan.returnDate else None,
+                'statusName': loan.status.name if loan.status else None,
+                'statusLabel': loan.status.value if loan.status else None,
+            }
+            for loan in loans
+        ],
+    })
 

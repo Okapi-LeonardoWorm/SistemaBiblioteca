@@ -1,5 +1,20 @@
 <form id="userModalForm" action="{{ url_for('users.new_user') if not user_id else url_for('users.edit_user', user_id=user_id) }}" method="POST">
     {{ form.hidden_tag() }}
+    <ul class="nav nav-tabs mb-3" id="userModalTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="user-data-tab" data-bs-toggle="tab" data-bs-target="#user-data-pane" type="button" role="tab" aria-controls="user-data-pane" aria-selected="true">
+                Dados
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if not user_id %}disabled{% endif %}" id="user-history-tab" data-bs-toggle="tab" data-bs-target="#user-history-pane" type="button" role="tab" aria-controls="user-history-pane" aria-selected="false" {% if not user_id %}tabindex="-1" aria-disabled="true"{% endif %}>
+                Histórico
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="userModalTabContent">
+    <div class="tab-pane fade show active" id="user-data-pane" role="tabpanel" aria-labelledby="user-data-tab" tabindex="0">
     {% if user_id and user and user.deleted %}
     <div class="alert alert-warning" role="alert">
         Este usuário está marcado como excluído. Você pode editar os dados e reativá-lo quando desejar.
@@ -98,6 +113,65 @@
         </button>
     </div>
     {% endif %}
+    </div>
+
+    <div class="tab-pane fade" id="user-history-pane" role="tabpanel" aria-labelledby="user-history-tab" tabindex="0">
+        {% if user_id %}
+        <div id="userLoanHistoryPanel" class="user-history-panel" data-user-id="{{ user_id }}">
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <div class="card history-summary-card">
+                        <div class="card-body py-2">
+                            <div class="text-muted small">Livros retirados</div>
+                            <div class="h4 mb-0" data-history-summary="borrowed">0</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card history-summary-card">
+                        <div class="card-body py-2">
+                            <div class="text-muted small">Livros devolvidos</div>
+                            <div class="h4 mb-0" data-history-summary="returned">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span data-history-status-label>Todos os status</span>
+                    </button>
+                    <ul class="dropdown-menu p-2 history-status-menu" data-history-status-menu></ul>
+                </div>
+
+                <div class="flex-grow-1" style="min-width: 220px;">
+                    <input type="text" class="form-control" data-history-search placeholder="Pesquisar por nome do livro...">
+                </div>
+            </div>
+
+            <div class="table-responsive history-table-wrap">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Livro</th>
+                            <th>Data Retirada</th>
+                            <th>Data Devolução</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody data-history-rows></tbody>
+                </table>
+            </div>
+            <div class="text-center text-muted small mt-2 d-none" data-history-empty>Nenhum empréstimo encontrado.</div>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            Salve o usuário para habilitar o histórico de retiradas.
+        </div>
+        {% endif %}
+    </div>
+    </div>
     <script>
     (function() {
         function onlyDigits(s) { return (s||'').replace(/\D+/g, ''); }
