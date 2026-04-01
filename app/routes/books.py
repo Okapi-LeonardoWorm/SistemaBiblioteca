@@ -290,7 +290,13 @@ def novo_livro():
         keywords_list = parse_normalized_tags(form.keyWords.data)
         
         for keyword_str in keywords_list:
-            keyword_obj = KeyWord.query.filter_by(word=keyword_str).first()
+            keyword_obj = KeyWord.query.filter_by(word=keyword_str, deleted=False).first()
+            if not keyword_obj:
+                keyword_obj = KeyWord.query.filter_by(word=keyword_str, deleted=True).first()
+                if keyword_obj:
+                    keyword_obj.deleted = False
+                    keyword_obj.lastUpdate = date.today()
+                    keyword_obj.updatedBy = current_user.userId
             if not keyword_obj:
                 keyword_obj = KeyWord(word=keyword_str, creationDate=date.today(), lastUpdate=date.today(), createdBy=current_user.userId, updatedBy=current_user.userId)
                 db.session.add(keyword_obj)
@@ -352,7 +358,13 @@ def editar_livro(book_id):
         
         for keyword_str in new_keywords_str:
             if keyword_str not in old_keywords_str:
-                keyword_obj = KeyWord.query.filter_by(word=keyword_str).first()
+                keyword_obj = KeyWord.query.filter_by(word=keyword_str, deleted=False).first()
+                if not keyword_obj:
+                    keyword_obj = KeyWord.query.filter_by(word=keyword_str, deleted=True).first()
+                    if keyword_obj:
+                        keyword_obj.deleted = False
+                        keyword_obj.lastUpdate = date.today()
+                        keyword_obj.updatedBy = current_user.userId
                 if not keyword_obj:
                     keyword_obj = KeyWord(word=keyword_str, creationDate=date.today(), lastUpdate=date.today(), createdBy=current_user.userId, updatedBy=current_user.userId)
                     db.session.add(keyword_obj)

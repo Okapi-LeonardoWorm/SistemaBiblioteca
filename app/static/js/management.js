@@ -73,13 +73,34 @@ window.ManagementUI = window.ManagementUI || {};
         }
 
         button.dataset.softDeleteBound = '1';
-        button.addEventListener('click', function () {
+        button.addEventListener('click', async function () {
             const url = button.dataset.deleteUrl;
             const csrfToken = button.dataset.csrfToken;
-            const confirmMessage = button.dataset.confirmMessage || 'Tem certeza que deseja excluir este item?';
+            const usageUrl = button.dataset.usageUrl;
+            let confirmMessage = button.dataset.confirmMessage || 'Tem certeza que deseja excluir este item?';
 
             if (!url || !csrfToken) {
                 return;
+            }
+
+            if (usageUrl) {
+                try {
+                    const usageResponse = await fetch(usageUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    const usagePayload = await usageResponse.json();
+                    if (usagePayload?.success) {
+                        const count = Number(usagePayload.usage_count) || 0;
+                        const noun = count === 1 ? 'livro' : 'livros';
+                        confirmMessage = `Esta tag está sendo usada em ${count} ${noun}, tem certeza que deseja excluir?`;
+                    }
+                } catch (_) {
+                    window.alert('Nao foi possivel consultar o uso da tag. Tente novamente.');
+                    return;
+                }
             }
 
             if (!window.confirm(confirmMessage)) {

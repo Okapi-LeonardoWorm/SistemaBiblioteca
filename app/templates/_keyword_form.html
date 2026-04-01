@@ -13,6 +13,7 @@
             class="btn btn-outline-danger"
             id="deleteKeywordBtn"
             data-delete-url="{{ url_for('keywords.excluir_palavra_chave', id=keyword_id) }}"
+            data-usage-url="{{ url_for('keywords.keyword_usage', id=keyword_id) }}"
             data-csrf-token="{{ csrf_token() }}"
             data-confirm-message="Tem certeza que deseja excluir esta tag? Esta ação é lógica e a tag será apenas marcada como excluída."
         >

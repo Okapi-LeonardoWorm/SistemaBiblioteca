@@ -1,7 +1,7 @@
 from tests.unit.base import BaseTestCase
 import io
 from flask import url_for
-from app.models import User, Book, Loan, KeyWord, StatusLoan, Configuration, ConfigSpec
+from app.models import User, Book, Loan, KeyWord, KeyWordBook, StatusLoan, Configuration, ConfigSpec
 from app import db, bcrypt
 from datetime import date, timedelta
 
@@ -933,6 +933,123 @@ class TestCreationRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('VISIBLE-TAG', content)
         self.assertNotIn('HIDDEN-TAG', content)
+
+    def test_keyword_usage_counts_distinct_books_not_book_amount(self):
+        """Keyword usage endpoint should count book-tag relations, not book amount."""
+        keyword = KeyWord(
+            word='USAGE-TAG',
+            deleted=False,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        book = Book(
+            bookName='Livro Com Muitos Exemplares',
+            amount=15,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add_all([keyword, book])
+        db.session.commit()
+
+        book.keywords.append(keyword)
+        db.session.commit()
+
+        response = self.client.get(url_for('keywords.keyword_usage', id=keyword.wordId))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+        self.assertEqual(response.json['usage_count'], 1)
+
+    def test_delete_keyword_removes_relationships_with_books(self):
+        """/excluir_palavra_chave should soft-delete tag and clear KeyWordBooks relations."""
+        keyword = KeyWord(
+            word='REL-TAG',
+            deleted=False,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        book = Book(
+            bookName='Livro Relacao Tag',
+            amount=2,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+            creationDate=date.today(),
+            lastUpdate=date.today(),
+        )
+        db.session.add_all([keyword, book])
+        db.session.commit()
+
+        book.keywords.append(keyword)
+        db.session.commit()
+        self.assertEqual(KeyWordBook.query.filter_by(wordId=keyword.wordId).count(), 1)
+
+        response = self.client.post(
+            url_for('keywords.excluir_palavra_chave', id=keyword.wordId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        persisted = db.session.get(KeyWord, keyword.wordId)
+        self.assertTrue(persisted.deleted)
+        self.assertEqual(KeyWordBook.query.filter_by(wordId=keyword.wordId).count(), 0)
+
+    def test_create_keyword_reactivates_soft_deleted_tag(self):
+        """/palavras_chave/new should reactivate a soft-deleted tag with the same normalized name."""
+        keyword = KeyWord(
+            word='TAG-REATIVAR',
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(keyword)
+        db.session.commit()
+
+        response = self.client.post(url_for('keywords.nova_palavra_chave'), data={
+            'word': 'tag-reativar'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+        self.assertEqual(response.json['created'], 0)
+        self.assertEqual(response.json['reactivated'], 1)
+
+        refreshed = db.session.get(KeyWord, keyword.wordId)
+        self.assertFalse(refreshed.deleted)
+        self.assertEqual(KeyWord.query.filter_by(word='TAG-REATIVAR').count(), 1)
+
+    def test_create_book_reactivates_soft_deleted_keyword(self):
+        """/livros/new should reactivate soft-deleted keyword before associating it to the book."""
+        keyword = KeyWord(
+            word='REUSE-TAG',
+            deleted=True,
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(keyword)
+        db.session.commit()
+
+        response = self.client.post(url_for('books.novo_livro'), data={
+            'bookName': 'Livro Reuso Tag',
+            'amount': 1,
+            'publishedDateMode': 'year',
+            'acquisitionDateMode': 'year',
+            'keyWords': 'reuse-tag'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        refreshed_keyword = db.session.get(KeyWord, keyword.wordId)
+        self.assertFalse(refreshed_keyword.deleted)
+
+        created_book = Book.query.filter_by(bookName='Livro Reuso Tag').first()
+        self.assertIsNotNone(created_book)
+        self.assertEqual(len(created_book.keywords), 1)
+        self.assertEqual(created_book.keywords[0].wordId, keyword.wordId)
 
     def test_create_book_trims_text_fields(self):
         """/livros/new should trim trailing and leading spaces in text fields."""

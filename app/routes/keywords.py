@@ -3,10 +3,11 @@ from datetime import date
 from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
+from sqlalchemy import func
 
 from app import db
 from app.forms import KeyWordForm
-from app.models import KeyWord
+from app.models import KeyWord, KeyWordBook
 from app.utils import normalize_tag, parse_normalized_tags
 
 bp = Blueprint('keywords', __name__)
@@ -49,6 +50,22 @@ def get_keyword_form(keyword_id):
     return render_template('_keyword_form.html', form=form, keyword_id=keyword_id)
 
 
+@bp.route('/api/palavras_chave/<int:id>/usage', methods=['GET'])
+@login_required
+def keyword_usage(id):
+    keyword = db.session.get(KeyWord, id)
+    if not keyword:
+        abort(404)
+
+    usage_count = db.session.query(
+        func.count(func.distinct(KeyWordBook.bookId))
+    ).filter(
+        KeyWordBook.wordId == id
+    ).scalar() or 0
+
+    return jsonify({'success': True, 'usage_count': int(usage_count)})
+
+
 @bp.route('/palavras_chave/new', methods=['POST'])
 @login_required
 def nova_palavra_chave():
@@ -59,14 +76,28 @@ def nova_palavra_chave():
         if not parts:
             return jsonify({'success': False, 'errors': {'word': ['Informe ao menos uma tag válida.']}})
 
-        # buscar existentes
-        existing = {kw.word for kw in KeyWord.query.filter(KeyWord.word.in_(parts)).all()}
-        to_create = [p for p in parts if p not in existing]
-
         created = 0
-        for w in to_create:
+        ignored = 0
+        reactivated = 0
+        existing_keywords = {
+            kw.word: kw for kw in KeyWord.query.filter(KeyWord.word.in_(parts)).all()
+        }
+
+        for word in parts:
+            existing = existing_keywords.get(word)
+            if existing:
+                if existing.deleted:
+                    existing.deleted = False
+                    existing.lastUpdate = date.today()
+                    existing.updatedBy = current_user.userId
+                    db.session.add(existing)
+                    reactivated += 1
+                else:
+                    ignored += 1
+                continue
+
             kw = KeyWord(
-                word=w,
+                word=word,
                 creationDate=date.today(),
                 lastUpdate=date.today(),
                 createdBy=current_user.userId,
@@ -74,17 +105,28 @@ def nova_palavra_chave():
             )
             db.session.add(kw)
             created += 1
-        if created:
+
+        if created or reactivated:
             db.session.commit()
+
         msg = 'Tags processadas com sucesso.'
-        if created and existing:
-            msg = f'{created} nova(s) tag(s) criada(s); {len(existing)} já existia(m) e foram ignoradas.'
-        elif created and not existing:
+        if created and ignored and reactivated:
+            msg = f'{created} nova(s) tag(s) criada(s); {reactivated} tag(s) reativada(s); {ignored} já existia(m) e foram ignoradas.'
+        elif created and ignored:
+            msg = f'{created} nova(s) tag(s) criada(s); {ignored} já existia(m) e foram ignoradas.'
+        elif created and reactivated:
+            msg = f'{created} nova(s) tag(s) criada(s); {reactivated} tag(s) reativada(s).'
+        elif created and not ignored and not reactivated:
             msg = f'{created} nova(s) tag(s) criada(s).'
-        elif not created and existing:
+        elif reactivated and ignored:
+            msg = f'{reactivated} tag(s) reativada(s); {ignored} já existia(m) e foram ignoradas.'
+        elif reactivated and not ignored:
+            msg = f'{reactivated} tag(s) reativada(s).'
+        elif not created and not reactivated and ignored:
             msg = 'Todas as tags já existiam; nada foi criado.'
+
         flash(msg, 'success')
-        return jsonify({'success': True, 'created': created, 'ignored': len(existing)})
+        return jsonify({'success': True, 'created': created, 'ignored': ignored, 'reactivated': reactivated})
     return jsonify({'success': False, 'errors': form.errors})
 
 
@@ -120,6 +162,7 @@ def excluir_palavra_chave(id):
 
     was_already_deleted = bool(palavra_chave.deleted)
     if not palavra_chave.deleted:
+        KeyWordBook.query.filter_by(wordId=palavra_chave.wordId).delete(synchronize_session=False)
         palavra_chave.deleted = True
         palavra_chave.lastUpdate = date.today()
         palavra_chave.updatedBy = current_user.userId
