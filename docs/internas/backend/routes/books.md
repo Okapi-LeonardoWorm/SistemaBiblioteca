@@ -18,6 +18,7 @@ Documentar o blueprint books, cobrindo CRUD logico, filtros de listagem e import
    - Suporta include_deleted para visualizar soft deleted.
 2. GET /livros/form e GET /livros/form/<book_id>
    - Renderiza formulario parcial para criacao/edicao.
+   - Em modo edicao, exibe aba Historico com dashboard e listagem de emprestimos do livro.
 3. POST /livros/new
    - Cria livro e associa palavras-chave.
 4. POST /livros/edit/<book_id>
@@ -46,6 +47,11 @@ Documentar o blueprint books, cobrindo CRUD logico, filtros de listagem e import
 - Keywords sao normalizadas por parse_normalized_tags.
 - update evita commit quando nenhuma alteracao real e detectada.
 - jobs de importacao usam controle de ownership e permissao por perfil.
+- No historico do modal de livro:
+   - filtros mantem padrao de status multiplo + busca textual;
+   - busca textual considera nome e codigo do usuario;
+   - listagem traz codigo do usuario, nome completo, datas e status;
+   - item clicavel abre o modal de edicao de emprestimo existente.
 
 ## Controle de acesso
 
@@ -74,3 +80,4 @@ Documentar o blueprint books, cobrindo CRUD logico, filtros de listagem e import
 
 - Extrair trechos de filtro e ordenacao para componente reutilizavel caso reaproveitado em outros dominios.
 - Se houver escala horizontal, migrar estado de job para backend compartilhado.
+- Priorizar reuso da infraestrutura de backref no frontend para qualquer nova listagem relacionada em modais.

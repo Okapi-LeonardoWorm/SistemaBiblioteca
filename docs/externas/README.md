@@ -10,6 +10,8 @@ Primeira trilha de conteudo criada em `operacao-diaria/`.
 
 - operacao-diaria/README.md
 - operacao-diaria/usuarios/casos-de-uso.md
+- operacao-diaria/usuarios/historico-de-emprestimos.md
 - operacao-diaria/livros/casos-de-uso.md
+- operacao-diaria/livros/historico-de-emprestimos.md
 - operacao-diaria/emprestimos/casos-de-uso.md
 - operacao-diaria/tags/casos-de-uso.md

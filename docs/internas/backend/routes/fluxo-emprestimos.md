@@ -18,6 +18,7 @@ Detalhar o fluxo de emprestimos como referencia para manutencao, depuracao e evo
 - Inclusao e edicao de emprestimo.
 - Cancelamento de emprestimo.
 - Informacao de retorno e exclusao.
+- Abertura do modal de edicao de emprestimo a partir dos historicos em usuarios e livros.
 
 ## Fluxo de listagem
 
@@ -43,6 +44,7 @@ Detalhar o fluxo de emprestimos como referencia para manutencao, depuracao e evo
 - Join condicional melhora performance em comparacao com join sempre ativo.
 - Distinct e ativado apenas quando necessario (join N:N com keywords).
 - Base params preserva estado de filtro/ordenacao na navegacao.
+- Modais de usuarios e livros reutilizam o mesmo fluxo de edicao de emprestimo, evitando duplicacao de interface e regras.
 
 ## Troubleshooting direcionado
 

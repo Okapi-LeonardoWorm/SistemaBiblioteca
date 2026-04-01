@@ -24,6 +24,16 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
      - loanDate: data de inicio para disponibilidade (opcional)
      - returnDate: data fim para disponibilidade (opcional)
    - Retorno: lista de livros ativos com disponibilidade calculada para o periodo.
+3. GET /api/users/<user_id>/loan-history
+    - Parametros:
+       - q: busca por nome do livro (opcional)
+       - statuses: lista de status do emprestimo (opcional, repetivel)
+    - Retorno: historico de emprestimos do usuario para consumo em modal de edicao.
+4. GET /api/books/<book_id>/loan-history
+    - Parametros:
+       - q: busca por nome ou codigo do usuario (opcional)
+       - statuses: lista de status do emprestimo (opcional, repetivel)
+    - Retorno: historico de emprestimos do livro para consumo em modal de edicao.
 
 ## Contrato de resposta
 
@@ -32,6 +42,15 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
 - Campos derivados:
   - users.search inclui age calculada.
   - books.search inclui available e lista de keywords.
+- Endpoints de historico retornam:
+   - success: boolean
+   - summary:
+      - total_borrowed
+      - total_returned
+   - status_options: lista com name e label do enum StatusLoan
+   - items: lista de emprestimos serializados
+      - user-history: loanId, bookName, loanDate, returnDate, statusName, statusLabel
+      - book-history: loanId, userCode, userName, loanDate, returnDate, statusName, statusLabel
 
 ## Controle de acesso
 
@@ -42,6 +61,10 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
 - Apenas registros nao deletados sao retornados.
 - limit e convertido para inteiro com fallback seguro.
 - available usa available_copies_for_range com status ACTIVE dos emprestimos.
+- Endpoints de historico validam user_id/book_id e retornam 404 se nao encontrados.
+- Filtro de statuses aceita apenas valores existentes em StatusLoan.
+- total_borrowed dos historicos desconsidera emprestimos CANCELLED.
+- total_returned considera status COMPLETED.
 
 ## Riscos e pontos de atencao
 
@@ -60,6 +83,10 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
    - verificar parse de loanDate/returnDate e status de emprestimos ativos.
 3. Latencia em autocomplete:
    - revisar indices, tamanho de limit e padrao de ilike.
+4. Historico vazio com dados aparentes:
+   - verificar filtro de status selecionado e termo de busca q.
+5. Divergencia no dashboard do historico:
+   - lembrar que retirados nao contabiliza CANCELLED e devolvidos contabiliza COMPLETED.
 
 ## Diretriz de evolucao
 

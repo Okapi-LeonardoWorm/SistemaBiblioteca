@@ -63,6 +63,23 @@ Atualizar dados de livro existente.
 
 Livro atualizado com sucesso.
 
+### Historico de emprestimos no modal
+
+- Na edicao de livro, use a aba Historico para consultar todos os emprestimos daquele livro.
+- O mini dashboard mostra:
+  - Retiradas
+  - Devolucoes
+- Filtros disponiveis:
+  - Dropdown de status com opcao Todos e selecao multipla
+  - Busca por nome ou codigo do usuario
+- Colunas da listagem:
+  - Codigo do usuario
+  - Nome completo
+  - Data de emprestimo
+  - Data de retorno
+  - Status
+- Ao clicar em uma linha do historico, o sistema abre o modal de edicao do emprestimo correspondente.
+
 ## UC-LIV-03: Excluir livro (logico)
 
 ### Objetivo

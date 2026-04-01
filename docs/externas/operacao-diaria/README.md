@@ -26,6 +26,7 @@ Cada caso de uso segue o mesmo formato:
 
 - Cadastrar usuario
 - Editar usuario
+- Consultar historico de emprestimos no usuario
 - Excluir usuario (exclusao logica)
 - Reativar usuario
 - Importar usuarios em massa
@@ -34,6 +35,7 @@ Cada caso de uso segue o mesmo formato:
 
 - Cadastrar livro
 - Editar livro
+- Consultar historico de emprestimos no livro
 - Excluir livro (exclusao logica)
 - Reativar livro
 
@@ -56,6 +58,8 @@ Cada caso de uso segue o mesmo formato:
 
 - acesso-inicial.md
 - usuarios/casos-de-uso.md
+- usuarios/historico-de-emprestimos.md
 - livros/casos-de-uso.md
+- livros/historico-de-emprestimos.md
 - emprestimos/casos-de-uso.md
 - tags/casos-de-uso.md

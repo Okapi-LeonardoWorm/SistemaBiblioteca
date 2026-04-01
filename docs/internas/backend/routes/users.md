@@ -17,6 +17,7 @@ Documentar o blueprint users para administracao de usuarios, ciclo de vida (soft
    - Listagem paginada com busca, filtros e ordenacao.
 2. GET /users/form e GET /users/form/<user_id>
    - Formulario parcial de criacao/edicao.
+   - Em modo edicao, exibe aba Historico com dashboard e listagem de emprestimos do usuario.
 3. POST /users/new
    - Cria usuario com hash de senha.
 4. POST /users/edit/<user_id>
@@ -51,6 +52,10 @@ Documentar o blueprint users para administracao de usuarios, ciclo de vida (soft
 - Campos obrigatorios mudam por tipo de usuario.
 - Senha em criacao manual usa hash e fallback default quando ausente.
 - Soft delete preserva historico e integridade de referencias.
+- No historico do modal de usuario:
+   - filtro por status e busca por nome do livro sao aplicados via API interna;
+   - item clicavel abre o modal de edicao de emprestimo existente;
+   - contagem de retirados desconsidera emprestimos CANCELLED.
 
 ## Controle de acesso
 
@@ -80,3 +85,4 @@ Documentar o blueprint users para administracao de usuarios, ciclo de vida (soft
 
 - Consolidar politicas de senha em servico unico quando houver requisitos de seguranca adicionais.
 - Manter compatibilidade de identificationCode como identificador principal de login.
+- Reutilizar o padrao de backref de historico para novas telas, evitando duplicacao de modais de emprestimo.

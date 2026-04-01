@@ -69,6 +69,17 @@ Quando houver mudanca de dados cadastrais, perfil ou informacoes complementares.
 3. Para manter senha atual, deixe campo senha em branco.
 4. Clique em Salvar.
 
+### Historico de emprestimos no modal
+
+- Na edicao de usuario, use a aba Historico para consultar retiradas e devolucoes.
+- O mini dashboard mostra:
+  - Livros retirados
+  - Livros devolvidos
+- Filtros disponiveis:
+  - Dropdown de status com opcao Todos e selecao multipla
+  - Busca por nome do livro
+- Ao clicar em uma linha do historico, o sistema abre o modal de edicao do emprestimo correspondente.
+
 ### Como preencher os campos
 
 - Mesmas regras do cadastro.

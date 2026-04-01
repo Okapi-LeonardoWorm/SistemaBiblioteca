@@ -60,6 +60,12 @@ Quando for necessario ajustar devolucao prevista ou observacoes permitidas.
 2. Altere os campos permitidos.
 3. Clique em Salvar.
 
+### Entradas alternativas para abrir a edicao
+
+- Alem da tela Gerenciar Emprestimos, a edicao tambem pode ser aberta pelos historicos:
+   - Aba Historico no modal de edicao de usuario
+   - Aba Historico no modal de edicao de livro
+
 ### Regras importantes
 
 - Livro, usuario, quantidade e data inicial nao sao alterados nesta edicao.

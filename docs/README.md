@@ -12,4 +12,7 @@ Esta pasta centraliza toda a documentacao do projeto em duas categorias:
 
 ## Escopo inicial
 
-A primeira fase desta trilha cobre o backend em `docs/internas/backend` com foco em arquitetura, modelos, rotas, servicos, utilitarios e troubleshooting.
+A trilha interna cobre backend e frontend:
+
+- Backend em `docs/internas/backend` com foco em arquitetura, modelos, rotas, servicos, utilitarios e troubleshooting.
+- Frontend em `docs/internas/frontend` com foco em componentes reutilizaveis, contratos de integracao com API e padroes de UX.

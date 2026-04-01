@@ -40,6 +40,7 @@ Documentar a organizacao de interface HTTP por blueprint e orientar evolucao seg
    - configuracoes funcionais do sistema.
 8. apis:
    - endpoints de consulta para integracoes/client-side.
+   - inclui buscas de autocomplete e historicos relacionados (usuarios e livros) para modais de gestao.
 9. audit_logs:
    - consulta de trilha de auditoria.
 10. admin_sessions:

@@ -11,3 +11,4 @@ Documentacao interna voltada a equipe tecnica.
 ## Mapa
 
 - backend/: arquitetura e operacao do backend Flask.
+- frontend/: componentes de interface, contratos com APIs e padroes de reuso.
