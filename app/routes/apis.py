@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import login_required
 from sqlalchemy import or_
 
-from app.models import Book, Loan, StatusLoan, User
+from app.models import Book, KeyWord, Loan, StatusLoan, User
 from app.utils import available_copies_for_range, calc_age, parse_date
 
 bp = Blueprint('apis', __name__)
@@ -201,6 +201,47 @@ def api_book_loan_history(book_id):
                 'statusLabel': loan.status.value if loan.status else None,
             }
             for loan in loans
+        ],
+    })
+
+
+@bp.route('/api/keywords/<int:keyword_id>/book-history')
+@login_required
+def api_keyword_book_history(keyword_id):
+    keyword = KeyWord.query.filter_by(wordId=keyword_id, deleted=False).first()
+    if not keyword:
+        return jsonify({'success': False, 'message': 'Tag não encontrada.'}), 404
+
+    base_query = Book.query.join(Book.keywords).filter(
+        KeyWord.wordId == keyword_id,
+        Book.deleted.is_(False),
+    )
+
+    search_term = (request.args.get('q') or '').strip()
+    filtered_query = base_query
+    if search_term:
+        filtered_query = filtered_query.filter(
+            or_(
+                Book.bookName.ilike(f"%{search_term}%"),
+                Book.authorName.ilike(f"%{search_term}%"),
+            )
+        )
+
+    books = filtered_query.order_by(Book.bookName.asc()).all()
+    total_books = base_query.count()
+
+    return jsonify({
+        'success': True,
+        'summary': {
+            'total_books': total_books,
+        },
+        'items': [
+            {
+                'bookId': book.bookId,
+                'bookName': book.bookName,
+                'authorName': book.authorName,
+            }
+            for book in books
         ],
     })
 

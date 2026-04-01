@@ -193,6 +193,150 @@ window.ManagementUI = window.ManagementUI || {};
         modalInstance.show();
     }
 
+    function openBookModal(bookId, options = {}) {
+        const modalId = options.modalId || 'bookModal';
+        const closeModalId = options.closeModalId;
+        const modalEl = document.getElementById(modalId);
+        if (!modalEl || !bookId) {
+            return;
+        }
+
+        if (closeModalId) {
+            const closeModalEl = document.getElementById(closeModalId);
+            const closeModalInstance = closeModalEl ? bootstrap.Modal.getInstance(closeModalEl) : null;
+            closeModalInstance?.hide();
+        }
+
+        modalEl.dataset.bookId = String(bookId);
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalInstance.show();
+    }
+
+    function initBookModalWorkflow(options = {}) {
+        const modalId = options.modalId || 'bookModal';
+        const saveBtnId = options.saveBtnId || 'saveBookBtn';
+
+        const bookModal = document.getElementById(modalId);
+        const saveBookBtn = document.getElementById(saveBtnId);
+
+        if (!bookModal || !saveBookBtn) {
+            return;
+        }
+
+        if (bookModal.dataset.workflowBound === '1') {
+            return;
+        }
+        bookModal.dataset.workflowBound = '1';
+
+        function toggleDateModeFields(form, modeName, sectionName) {
+            const selected = form.querySelector(`input[name="${modeName}"]:checked`)?.value || 'year';
+            const yearContainer = form.querySelector(`[data-mode-container="${sectionName}"][data-mode-value="year"]`);
+            const dateContainer = form.querySelector(`[data-mode-container="${sectionName}"][data-mode-value="date"]`);
+
+            const yearInput = yearContainer ? yearContainer.querySelector('input') : null;
+            const dateInput = dateContainer ? dateContainer.querySelector('input') : null;
+
+            if (yearContainer) {
+                yearContainer.style.display = selected === 'year' ? '' : 'none';
+            }
+            if (dateContainer) {
+                dateContainer.style.display = selected === 'date' ? '' : 'none';
+            }
+
+            if (yearInput) {
+                yearInput.disabled = selected !== 'year';
+            }
+            if (dateInput) {
+                dateInput.disabled = selected !== 'date';
+            }
+        }
+
+        function initBookDateModeToggle(scope) {
+            const form = scope.querySelector('#bookModalForm');
+            if (!form) {
+                return;
+            }
+
+            const syncPublished = function () { toggleDateModeFields(form, 'publishedDateMode', 'published'); };
+            const syncAcquisition = function () { toggleDateModeFields(form, 'acquisitionDateMode', 'acquisition'); };
+
+            form.querySelectorAll('input[name="publishedDateMode"]').forEach(function (input) {
+                input.addEventListener('change', syncPublished);
+            });
+            form.querySelectorAll('input[name="acquisitionDateMode"]').forEach(function (input) {
+                input.addEventListener('change', syncAcquisition);
+            });
+
+            syncPublished();
+            syncAcquisition();
+        }
+
+        bookModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            const triggerBookId = trigger?.getAttribute('data-book-id');
+            const bookId = triggerBookId || bookModal.dataset.bookId || '';
+            const modalTitle = bookModal.querySelector('.modal-title');
+            const modalBody = bookModal.querySelector('.modal-body');
+
+            if (!modalBody || !modalTitle) {
+                return;
+            }
+
+            modalTitle.textContent = 'Carregando...';
+            modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            const formUrl = bookId ? `/livros/form/${bookId}` : '/livros/form';
+            fetch(formUrl)
+                .then(function (response) { return response.text(); })
+                .then(function (html) {
+                    modalTitle.textContent = bookId ? 'Editar Livro' : 'Novo Livro';
+                    modalBody.innerHTML = html;
+                    initBookDateModeToggle(modalBody);
+                    bindSoftDeleteAction(modalBody, {
+                        selector: '#deleteBookBtn',
+                        onSuccess: function () {
+                            window.location.reload();
+                        },
+                    });
+                    bindSoftDeleteAction(modalBody, {
+                        selector: '#restoreBookBtn',
+                        onSuccess: function () {
+                            window.location.reload();
+                        },
+                    });
+                })
+                .catch(function () {
+                    modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
+                });
+        });
+
+        saveBookBtn.addEventListener('click', function () {
+            const form = document.getElementById('bookModalForm');
+            if (!form) {
+                return;
+            }
+
+            const formData = new FormData(form);
+            const actionUrl = form.getAttribute('action');
+
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+            })
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (data.success) {
+                        window.location.reload();
+                        return;
+                    }
+                    window.alert('Erro de validação: ' + JSON.stringify(data.errors));
+                })
+                .catch(function () {
+                    window.alert('Ocorreu um erro ao salvar.');
+                });
+        });
+    }
+
     function initLoanModalWorkflow(options = {}) {
         const modalId = options.modalId || 'loanModal';
         const saveBtnId = options.saveBtnId || 'saveLoanBtn';
@@ -703,8 +847,107 @@ window.ManagementUI = window.ManagementUI || {};
         fetchHistory();
     }
 
+    function initKeywordBookBackref(options = {}) {
+        const root = options.root;
+        const keywordId = options.keywordId;
+        const modalId = options.modalId || 'bookModal';
+        const closeModalId = options.closeModalId || 'keywordModal';
+
+        if (!root || !keywordId) {
+            return;
+        }
+
+        const totalBooksEl = root.querySelector('[data-keyword-books-total]');
+        const searchInput = root.querySelector('[data-keyword-book-search]');
+        const rowsContainer = root.querySelector('[data-keyword-book-rows]');
+        const emptyEl = root.querySelector('[data-keyword-book-empty]');
+
+        if (!totalBooksEl || !searchInput || !rowsContainer || !emptyEl) {
+            return;
+        }
+
+        if (root.dataset.keywordBooksBound === '1') {
+            return;
+        }
+        root.dataset.keywordBooksBound = '1';
+
+        let debounceHandle = null;
+
+        function buildUrl() {
+            const params = new URLSearchParams();
+            const q = (searchInput.value || '').trim();
+            if (q) {
+                params.append('q', q);
+            }
+            return `/api/keywords/${keywordId}/book-history?${params.toString()}`;
+        }
+
+        function renderRows(items) {
+            if (!Array.isArray(items) || items.length === 0) {
+                rowsContainer.innerHTML = '';
+                emptyEl.classList.remove('d-none');
+                return;
+            }
+
+            emptyEl.classList.add('d-none');
+            rowsContainer.innerHTML = items.map(function (item) {
+                const fullBookName = item.bookName || 'N/A';
+                const fullAuthorName = item.authorName || 'N/A';
+                return `
+                    <tr class="history-keyword-book-row" data-book-id="${item.bookId}">
+                        <td><span class="fade-hover-text" data-full="${fullBookName}">${fullBookName}</span></td>
+                        <td><span class="fade-hover-text" data-full="${fullAuthorName}">${fullAuthorName}</span></td>
+                    </tr>
+                `;
+            }).join('');
+
+            initDelayedHoverTooltips(root);
+        }
+
+        async function fetchBooks() {
+            try {
+                const response = await fetch(buildUrl());
+                const payload = await response.json();
+                if (!response.ok || !payload?.success) {
+                    throw new Error('Erro ao carregar livros da tag.');
+                }
+
+                totalBooksEl.textContent = String(payload.summary?.total_books ?? 0);
+                renderRows(payload.items || []);
+            } catch (_err) {
+                rowsContainer.innerHTML = '';
+                emptyEl.classList.remove('d-none');
+                emptyEl.textContent = 'Erro ao carregar livros da tag.';
+            }
+        }
+
+        searchInput.addEventListener('input', function () {
+            if (debounceHandle) {
+                clearTimeout(debounceHandle);
+            }
+            debounceHandle = setTimeout(fetchBooks, 300);
+        });
+
+        rowsContainer.addEventListener('click', function (event) {
+            const row = event.target.closest('.history-keyword-book-row');
+            if (!row) {
+                return;
+            }
+            const bookId = row.getAttribute('data-book-id');
+            openBookModal(bookId, {
+                modalId: modalId,
+                closeModalId: closeModalId,
+            });
+        });
+
+        fetchBooks();
+    }
+
     namespace.openLoanModal = openLoanModal;
+    namespace.openBookModal = openBookModal;
+    namespace.initBookModalWorkflow = initBookModalWorkflow;
     namespace.initLoanModalWorkflow = initLoanModalWorkflow;
     namespace.initUserLoanHistoryBackref = initUserLoanHistoryBackref;
     namespace.initBookLoanHistoryBackref = initBookLoanHistoryBackref;
+    namespace.initKeywordBookBackref = initKeywordBookBackref;
 })(window.ManagementUI);

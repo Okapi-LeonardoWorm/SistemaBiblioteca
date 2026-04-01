@@ -60,7 +60,7 @@
 
     <!-- Keyword Modal -->
     <div class="modal fade" id="keywordModal" tabindex="-1" aria-labelledby="keywordModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="keywordModalLabel">Carregando...</h5>
@@ -72,6 +72,23 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                     <button type="button" class="btn btn-primary" id="saveKeywordBtn">Salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Modal (reused) -->
+    <div class="modal fade" id="bookModal" tabindex="-1" aria-labelledby="bookModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookModalLabel">Carregando...</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveBookBtn">Salvar</button>
                 </div>
             </div>
         </div>
@@ -134,6 +151,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.reload();
                     }
                 });
+
+                const booksPanel = modalBody.querySelector('#keywordBookHistoryPanel');
+                if (booksPanel && keywordId) {
+                    window.ManagementUI?.initKeywordBookBackref({
+                        root: booksPanel,
+                        keywordId: keywordId,
+                        modalId: 'bookModal',
+                        closeModalId: 'keywordModal'
+                    });
+                }
+
                 // Prevenir submit padrão e Enter para evitar navegação para JSON
                 const formEl = document.getElementById('keywordModalForm');
                 if (formEl) {
@@ -156,6 +184,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     saveKeywordBtn.addEventListener('click', function() {
         saveKeyword();
+    });
+
+    window.ManagementUI?.initBookModalWorkflow({
+        modalId: 'bookModal',
+        saveBtnId: 'saveBookBtn'
     });
 });
 </script>

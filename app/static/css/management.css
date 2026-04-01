@@ -247,6 +247,29 @@
     max-width: 100%;
 }
 
+.history-keyword-books-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.history-keyword-books-table th:nth-child(1),
+.history-keyword-books-table td:nth-child(1) {
+    width: 58%;
+}
+
+.history-keyword-books-table th:nth-child(2),
+.history-keyword-books-table td:nth-child(2) {
+    width: 42%;
+}
+
+.history-keyword-books-table .fade-hover-text {
+    max-width: 100%;
+}
+
+.history-keyword-book-row {
+    cursor: pointer;
+}
+
 /* Desktop Styles */
 @media (min-width: 768px) {
     .management-header {

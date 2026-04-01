@@ -1,5 +1,20 @@
 <form id="keywordModalForm" action="{{ url_for('keywords.nova_palavra_chave') if not keyword_id else url_for('keywords.editar_palavra_chave', keyword_id=keyword_id) }}" method="POST">
     {{ form.hidden_tag() }}
+    <ul class="nav nav-tabs mb-3" id="keywordModalTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="keyword-data-tab" data-bs-toggle="tab" data-bs-target="#keyword-data-pane" type="button" role="tab" aria-controls="keyword-data-pane" aria-selected="true">
+                Dados
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link {% if not keyword_id %}disabled{% endif %}" id="keyword-books-tab" data-bs-toggle="tab" data-bs-target="#keyword-books-pane" type="button" role="tab" aria-controls="keyword-books-pane" aria-selected="false" {% if not keyword_id %}tabindex="-1" aria-disabled="true"{% endif %}>
+                Livros
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="keywordModalTabContent">
+    <div class="tab-pane fade show active" id="keyword-data-pane" role="tabpanel" aria-labelledby="keyword-data-tab" tabindex="0">
     <div class="mb-3">
         <label class="form-label">{{ form.word.label.text }} <small class="text-muted">(separe por vírgula ou ponto e vírgula; múltiplas tags de uma vez)</small></label>
         {{ form.word(class="form-control", placeholder="Ex.: Ficção, Aventura; Clássico") }}
@@ -21,4 +36,44 @@
         </button>
     </div>
     {% endif %}
+    </div>
+
+    <div class="tab-pane fade" id="keyword-books-pane" role="tabpanel" aria-labelledby="keyword-books-tab" tabindex="0">
+        {% if keyword_id %}
+        <div id="keywordBookHistoryPanel" class="keyword-book-history-panel" data-keyword-id="{{ keyword_id }}">
+            <div class="row g-2 mb-3">
+                <div class="col-12">
+                    <div class="card history-summary-card">
+                        <div class="card-body py-2">
+                            <div class="text-muted small">Quantidade de livros</div>
+                            <div class="h4 mb-0" data-keyword-books-total>0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <input type="text" class="form-control" data-keyword-book-search placeholder="Pesquisar por nome do livro ou autor...">
+            </div>
+
+            <div class="table-responsive history-table-wrap">
+                <table class="table table-sm table-hover align-middle mb-0 history-keyword-books-table">
+                    <thead>
+                        <tr>
+                            <th>Livro</th>
+                            <th>Autor</th>
+                        </tr>
+                    </thead>
+                    <tbody data-keyword-book-rows></tbody>
+                </table>
+            </div>
+            <div class="text-center text-muted small mt-2 d-none" data-keyword-book-empty>Nenhum livro encontrado para esta tag.</div>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            Salve a tag para habilitar a aba Livros.
+        </div>
+        {% endif %}
+    </div>
+    </div>
 </form>
