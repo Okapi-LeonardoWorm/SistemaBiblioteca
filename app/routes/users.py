@@ -43,6 +43,13 @@ def _get_active_user_or_404(user_id):
     return user
 
 
+def _get_user_or_404(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+    return user
+
+
 def _build_sort_links(endpoint, base_params, sort_columns, current_sort_by, current_sort_dir):
     links = {}
     for key in sort_columns.keys():
@@ -173,12 +180,13 @@ def list_users():
 @bp.route('/users/form/<int:user_id>', methods=['GET'])
 @login_required
 def get_user_form(user_id):
+    user = None
     if user_id:
-        user = _get_active_user_or_404(user_id)
+        user = _get_user_or_404(user_id)
         form = UserForm(obj=user, mode='edit', instance_id=user.userId)
     else:
         form = UserForm(mode='create')
-    return render_template('_user_form.html', form=form, user_id=user_id)
+    return render_template('_user_form.html', form=form, user_id=user_id, user=user)
 
 @bp.route('/users/new', methods=['POST'])
 @login_required
@@ -217,7 +225,7 @@ def new_user():
 @bp.route('/users/edit/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
-    user = _get_active_user_or_404(user_id)
+    user = _get_user_or_404(user_id)
     form = UserForm(request.form, obj=user, mode='edit', instance_id=user.userId)
     if form.validate():
         # manual populate to avoid overwriting id fields
@@ -257,9 +265,7 @@ def check_identification_code():
 @bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
-    user = db.session.get(User, user_id)
-    if not user:
-        abort(404)
+    user = _get_user_or_404(user_id)
 
     was_already_deleted = bool(user.deleted)
     if not user.deleted:
@@ -271,6 +277,29 @@ def delete_user(user_id):
 
     is_async_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     message = 'Usuário já estava marcado como excluído.' if was_already_deleted else 'Usuário marcado como excluído com sucesso!'
+
+    if is_async_request:
+        return jsonify({'success': True, 'message': message})
+
+    flash(message, 'success')
+    return redirect(url_for('users.list_users'))
+
+
+@bp.route('/users/reactivate/<int:user_id>', methods=['POST'])
+@login_required
+def reactivate_user(user_id):
+    user = _get_user_or_404(user_id)
+
+    was_already_active = not bool(user.deleted)
+    if user.deleted:
+        user.deleted = False
+        user.lastUpdate = date.today()
+        user.updatedBy = current_user.userId
+        db.session.add(user)
+        db.session.commit()
+
+    is_async_request = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    message = 'Usuário já estava ativo.' if was_already_active else 'Usuário reativado com sucesso!'
 
     if is_async_request:
         return jsonify({'success': True, 'message': message})

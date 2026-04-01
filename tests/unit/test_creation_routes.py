@@ -773,6 +773,122 @@ class TestCreationRoutes(BaseTestCase):
         self.assertIn('VISIBLE-USER', ids)
         self.assertNotIn('HIDDEN-USER', ids)
 
+    def test_deleted_user_form_can_be_opened(self):
+        """/users/form/<id> should open for deleted users to allow editing/reactivation."""
+        user = User(
+            identificationCode='FORM-DELETED-USER',
+            userCompleteName='Deleted Form User',
+            password='password',
+            userType='aluno',
+            deleted=True,
+            birthDate=date(2004, 4, 5),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        response = self.client.get(url_for('users.get_user_form', user_id=user.userId))
+        content = response.get_data(as_text=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('FORM-DELETED-USER', content)
+        self.assertIn('Reativar usuário', content)
+
+    def test_edit_deleted_user_keeps_deleted_flag(self):
+        """Editing a deleted user should not auto-reactivate the account."""
+        user = User(
+            identificationCode='EDIT-DELETED-USER',
+            userCompleteName='Deleted Edit User',
+            password='password',
+            userType='aluno',
+            deleted=True,
+            birthDate=date(2004, 4, 5),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        response = self.client.post(url_for('users.edit_user', user_id=user.userId), data={
+            'identificationCode': 'EDIT-DELETED-USER',
+            'userCompleteName': 'Deleted Edit User Updated',
+            'userType': 'aluno',
+            'birthDate': '2004-04-05',
+            'userPhone': '(11) 99999-9999',
+            'cpf': '123.456.789-00',
+            'rg': '12.345.678-9',
+            'gradeNumber': 8,
+            'className': 'A',
+            'guardianName1': 'Guardiao 1',
+            'guardianPhone1': '(11) 98888-7777',
+            'guardianName2': '',
+            'guardianPhone2': '',
+            'notes': 'Atualizado',
+            'pcd': 'y',
+            'password': '',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        updated = db.session.get(User, user.userId)
+        self.assertEqual(updated.userCompleteName, 'Deleted Edit User Updated')
+        self.assertTrue(updated.deleted)
+
+    def test_reactivate_user_sets_deleted_false(self):
+        """/users/reactivate should reactivate soft-deleted users."""
+        user = User(
+            identificationCode='REACTIVATE-USER',
+            userCompleteName='Reactivate User',
+            password='password',
+            userType='aluno',
+            deleted=True,
+            birthDate=date(2004, 4, 5),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        response = self.client.post(
+            url_for('users.reactivate_user', user_id=user.userId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+
+        reactivated = db.session.get(User, user.userId)
+        self.assertFalse(reactivated.deleted)
+
+    def test_reactivate_user_is_idempotent_when_already_active(self):
+        """/users/reactivate should return success when user is already active."""
+        user = User(
+            identificationCode='ACTIVE-USER-IDEMPOTENT',
+            userCompleteName='Active User',
+            password='password',
+            userType='aluno',
+            deleted=False,
+            birthDate=date(2004, 4, 5),
+            createdBy=self.admin_user.userId,
+            updatedBy=self.admin_user.userId,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        response = self.client.post(
+            url_for('users.reactivate_user', user_id=user.userId),
+            headers={'X-Requested-With': 'XMLHttpRequest'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['success'])
+        self.assertIn('já estava ativo', response.json['message'])
+
+        persisted = db.session.get(User, user.userId)
+        self.assertFalse(persisted.deleted)
+
     def test_delete_keyword_marks_deleted_flag(self):
         """/excluir_palavra_chave should perform soft delete for tags."""
         keyword = KeyWord(

@@ -227,6 +227,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.reload();
                     }
                 });
+                window.ManagementUI?.bindSoftDeleteAction(modalBody, {
+                    selector: '#restoreUserBtn',
+                    onSuccess: function() {
+                        window.location.reload();
+                    }
+                });
             })
             .catch(err => {
                 modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
