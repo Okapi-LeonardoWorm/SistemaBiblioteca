@@ -29,14 +29,14 @@ Quando um novo titulo entra no acervo.
   - Ano: informe ano com 4 digitos.
   - Data: selecione a data.
 - Aquisicao: escolha Ano ou Data.
-- Tags: opcional; separar por ponto e virgula (;).
+- Tags: opcional; separar por virgula (,) ou ponto e virgula (;).
 - Descricao: opcional.
 
 ### Erros comuns e como resolver
 
 - Quantidade invalida: usar valor inteiro maior ou igual a 1.
 - Ano fora de padrao: informar ano com 4 digitos.
-- Tags mal formatadas: separar corretamente por ponto e virgula.
+- Tags mal formatadas: separar corretamente por virgula ou ponto e virgula.
 
 ### Resultado esperado
 

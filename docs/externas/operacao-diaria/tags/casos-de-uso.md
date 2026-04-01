@@ -86,3 +86,23 @@ Marcar tag como excluida sem remover historico.
 ### Resultado esperado
 
 Tag marcada como excluida e removida da listagem padrao.
+
+## UC-TAG-05: Recuperacao de tag
+
+### Objetivo
+
+Orientar como proceder quando uma tag excluida precisa voltar a uso.
+
+### Regra atual
+
+Nao ha fluxo de reativacao de tag disponivel na tela operacional.
+
+### Orientacao
+
+1. Verifique se a tag realmente foi excluida por engano.
+2. Se precisar reutilizar rapidamente, crie nova tag com nome equivalente (seguindo padrao de nomenclatura da equipe).
+3. Para recuperar a tag original excluida, registrar solicitacao administrativa para tratamento no sistema.
+
+### Resultado esperado
+
+Equipe operacional sabe exatamente como agir mesmo sem botao de reativacao de tag.

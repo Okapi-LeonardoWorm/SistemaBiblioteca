@@ -18,12 +18,17 @@ Cada caso de uso segue o mesmo formato:
 
 ## Matriz de fluxos
 
+### Acesso
+
+- Realizar login e iniciar navegacao
+
 ### Usuarios
 
 - Cadastrar usuario
 - Editar usuario
 - Excluir usuario (exclusao logica)
 - Reativar usuario
+- Importar usuarios em massa
 
 ### Livros
 
@@ -45,9 +50,11 @@ Cada caso de uso segue o mesmo formato:
 - Cadastrar varias tags de uma vez
 - Editar tag
 - Excluir tag (exclusao logica)
+- Recuperacao de tag (orientacao operacional)
 
 ## Navegacao rapida
 
+- acesso-inicial.md
 - usuarios/casos-de-uso.md
 - livros/casos-de-uso.md
 - emprestimos/casos-de-uso.md

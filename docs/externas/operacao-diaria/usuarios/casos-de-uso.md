@@ -140,3 +140,38 @@ Quando um usuario volta a precisar de acesso.
 ### Resultado esperado
 
 Usuario volta ao estado ativo e aparece normalmente na listagem padrao.
+
+## UC-USU-05: Importar usuarios em massa
+
+### Objetivo
+
+Cadastrar varios usuarios em uma unica operacao por arquivo.
+
+### Quando usar
+
+Quando houver grande volume de usuarios para cadastrar.
+
+### Pre-requisitos
+
+- Estar logado com perfil autorizado.
+- Acessar Gerenciar Usuarios.
+
+### Passo a passo
+
+1. Na tela de usuarios, abra Acoes > Importar usuarios em massa.
+2. Selecione o tipo de usuario para o lote.
+3. Baixe o modelo (CSV ou XLSX).
+4. Preencha o arquivo conforme as colunas obrigatorias do tipo selecionado.
+5. Envie o arquivo na tela de upload.
+6. Acompanhe o progresso.
+7. Ao final, revise o resultado e baixe a planilha de erros, se existir.
+
+### Erros comuns e como resolver
+
+- Tipo de usuario invalido: voltar e escolher um tipo permitido.
+- Formato invalido: usar apenas CSV ou XLSX.
+- Campos obrigatorios faltando: corrigir o arquivo conforme o modelo.
+
+### Resultado esperado
+
+Usuarios validos importados e inconsistencias registradas para correcao.

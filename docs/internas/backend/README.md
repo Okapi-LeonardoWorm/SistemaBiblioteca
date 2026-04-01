@@ -20,16 +20,18 @@ Documenta a arquitetura e o funcionamento interno do backend Flask do Sistema Bi
 4. data/modelo-de-dados.md
 5. data/auditoria-e-rastreabilidade.md
 6. routes/blueprints-e-endpoints.md
-7. routes/auth.md
-8. routes/books.md
-9. routes/users.md
-10. routes/configs.md
-11. routes/admin-sessions.md
-12. routes/apis.md
-13. routes/audit-logs.md
-14. routes/fluxo-emprestimos.md
-15. services/processamento-em-lote.md
-16. utils/utilitarios-backend.md
+7. routes/navigation.md
+8. routes/auth.md
+9. routes/books.md
+10. routes/keywords.md
+11. routes/users.md
+12. routes/configs.md
+13. routes/admin-sessions.md
+14. routes/apis.md
+15. routes/audit-logs.md
+16. routes/fluxo-emprestimos.md
+17. services/processamento-em-lote.md
+18. utils/utilitarios-backend.md
 
 ## Fonte de verdade
 
