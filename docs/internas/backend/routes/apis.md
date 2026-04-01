@@ -34,6 +34,10 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
        - q: busca por nome ou codigo do usuario (opcional)
        - statuses: lista de status do emprestimo (opcional, repetivel)
     - Retorno: historico de emprestimos do livro para consumo em modal de edicao.
+5. GET /api/keywords/<keyword_id>/book-history
+    - Parametros:
+       - q: busca por nome do livro ou nome do autor (opcional)
+    - Retorno: listagem de livros associados a uma tag para consumo em modal de edicao.
 
 ## Contrato de resposta
 
@@ -51,6 +55,12 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
    - items: lista de emprestimos serializados
       - user-history: loanId, bookName, loanDate, returnDate, statusName, statusLabel
       - book-history: loanId, userCode, userName, loanDate, returnDate, statusName, statusLabel
+- Endpoint de livros por tag retorna:
+   - success: boolean
+   - summary:
+      - total_books
+   - items: lista de livros serializados
+      - keyword-book-history: bookId, bookName, authorName
 
 ## Controle de acesso
 
@@ -62,9 +72,11 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
 - limit e convertido para inteiro com fallback seguro.
 - available usa available_copies_for_range com status ACTIVE dos emprestimos.
 - Endpoints de historico validam user_id/book_id e retornam 404 se nao encontrados.
+- Endpoint de livros por tag valida keyword_id e retorna 404 se nao encontrado.
 - Filtro de statuses aceita apenas valores existentes em StatusLoan.
 - total_borrowed dos historicos desconsidera emprestimos CANCELLED.
 - total_returned considera status COMPLETED.
+- Endpoint de livros por tag considera apenas livros ativos (Book.deleted = False).
 
 ## Riscos e pontos de atencao
 
@@ -87,6 +99,8 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
    - verificar filtro de status selecionado e termo de busca q.
 5. Divergencia no dashboard do historico:
    - lembrar que retirados nao contabiliza CANCELLED e devolvidos contabiliza COMPLETED.
+6. Livros esperados nao aparecem no historico da tag:
+   - verificar se o livro esta ativo e se a busca q nao esta filtrando indevidamente por livro/autor.
 
 ## Diretriz de evolucao
 

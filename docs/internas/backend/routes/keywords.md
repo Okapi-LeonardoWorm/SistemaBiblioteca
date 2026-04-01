@@ -18,6 +18,7 @@ Documentar o blueprint keywords para gerenciamento de tags usadas na classificac
 2. GET /palavras_chave/form e GET /palavras_chave/form/<keyword_id>
    - Requer login.
    - Renderiza formulario de criacao/edicao de tag.
+   - Em modo edicao, exibe aba Livros com dashboard e listagem de livros associados a tag.
 3. POST /palavras_chave/new
    - Requer login.
    - Cria uma ou varias tags em unica submissao.
@@ -34,6 +35,11 @@ Documentar o blueprint keywords para gerenciamento de tags usadas na classificac
 - Tags sao normalizadas antes de salvar.
 - Tags duplicadas sao ignoradas na criacao multipla.
 - Exclusao e logica, preservando historico e referencias.
+- Na aba Livros do modal de tags:
+   - dashboard exibe quantidade total de livros associados a tag.
+   - filtro usa apenas busca textual por nome do livro e nome do autor.
+   - listagem exibe colunas Livro e Autor.
+   - clique em linha abre o modal de edicao do livro correspondente.
 
 ## Riscos e pontos de atencao
 
@@ -50,8 +56,11 @@ Documentar o blueprint keywords para gerenciamento de tags usadas na classificac
    - verificar se o novo nome conflita com tag existente.
 3. Tag ausente na listagem:
    - pode estar marcada como excluida.
+4. Aba Livros vazia para tag esperada:
+   - verificar associacao da tag com livros ativos e termos de busca aplicados.
 
 ## Diretriz de evolucao
 
 - Definir politica de governanca de vocabulario para reduzir redundancia.
 - Avaliar fluxo dedicado de reativacao se a operacao exigir recuperacao frequente.
+- Reutilizar componentes de backref no frontend para manter consistencia entre modais de usuarios, livros e tags.

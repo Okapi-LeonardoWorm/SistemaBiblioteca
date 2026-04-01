@@ -2,7 +2,7 @@
 
 ## Escopo
 
-Documenta componentes de interface e padroes de reuso no frontend, com foco em integracao com APIs internas e consistencia de UX.
+Documenta componentes de interface e padroes de reuso no frontend, com foco em integracao com APIs internas e consistencia de UX para usuarios, livros e tags.
 
 ## Dominios
 

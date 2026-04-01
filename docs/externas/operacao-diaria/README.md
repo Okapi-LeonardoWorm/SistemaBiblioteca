@@ -51,6 +51,7 @@ Cada caso de uso segue o mesmo formato:
 - Cadastrar tag
 - Cadastrar varias tags de uma vez
 - Editar tag
+- Consultar livros por tag
 - Excluir tag (exclusao logica)
 - Recuperacao de tag (orientacao operacional)
 
@@ -63,3 +64,4 @@ Cada caso de uso segue o mesmo formato:
 - livros/historico-de-emprestimos.md
 - emprestimos/casos-de-uso.md
 - tags/casos-de-uso.md
+- tags/livros-por-tag.md

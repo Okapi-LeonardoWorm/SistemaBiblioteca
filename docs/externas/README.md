@@ -15,3 +15,4 @@ Primeira trilha de conteudo criada em `operacao-diaria/`.
 - operacao-diaria/livros/historico-de-emprestimos.md
 - operacao-diaria/emprestimos/casos-de-uso.md
 - operacao-diaria/tags/casos-de-uso.md
+- operacao-diaria/tags/livros-por-tag.md

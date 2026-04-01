@@ -71,6 +71,18 @@ Ajustar nome de uma tag existente.
 
 Tag atualizada com sucesso.
 
+### Livros no modal de edicao
+
+- Na edicao de tag, use a aba Livros para consultar quais livros utilizam aquela tag.
+- O dashboard mostra apenas:
+	- Quantidade de livros
+- Filtro disponivel:
+	- Busca por nome do livro ou nome do autor
+- Colunas exibidas:
+	- Livro
+	- Autor
+- Ao clicar em uma linha, o sistema abre o modal de edicao do livro correspondente.
+
 ## UC-TAG-04: Excluir tag (logico)
 
 ### Objetivo

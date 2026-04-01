@@ -54,6 +54,11 @@ Atualizar dados de livro existente.
 2. Altere os campos necessarios.
 3. Clique em Salvar.
 
+### Entradas alternativas para abrir a edicao
+
+- Alem da tela Gerenciar Livros, a edicao tambem pode ser aberta por:
+  - Aba Livros no modal de edicao de Tags
+
 ### Regras importantes
 
 - Se nada for alterado, o sistema pode informar que nao houve alteracao.
