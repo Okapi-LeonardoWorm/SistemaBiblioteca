@@ -3,6 +3,16 @@ from flask_login import login_required
 from sqlalchemy import or_
 
 from app.models import Book, KeyWord, Loan, StatusLoan, User
+from app.services.dashboard_service import (
+    get_drilldown_details,
+    get_acervo_data,
+    get_dashboard_kpis,
+    get_devolucoes_data,
+    get_engajamento,
+    get_popularidade,
+    get_top_tags,
+    get_ultimos_emprestimos,
+)
 from app.utils import available_copies_for_range, calc_age, parse_date
 
 bp = Blueprint('apis', __name__)
@@ -244,4 +254,146 @@ def api_keyword_book_history(keyword_id):
             for book in books
         ],
     })
+
+
+@bp.route('/api/dashboard/kpis')
+@login_required
+def api_dashboard_kpis():
+    data = get_dashboard_kpis()
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/devolucoes')
+@login_required
+def api_dashboard_devolucoes():
+    quick_filter = (request.args.get('quick_filter') or 'today').strip().lower()
+    student_query = (request.args.get('student') or '').strip()
+    try:
+        page = int(request.args.get('page', 1))
+    except ValueError:
+        page = 1
+    try:
+        per_page = int(request.args.get('per_page', 10))
+    except ValueError:
+        per_page = 10
+
+    data = get_devolucoes_data(
+        quick_filter=quick_filter,
+        student_query=student_query,
+        page=page,
+        per_page=per_page,
+    )
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/tags-top')
+@login_required
+def api_dashboard_tags_top():
+    try:
+        limit = int(request.args.get('limit', 10))
+    except ValueError:
+        limit = 10
+    data = get_top_tags(limit=limit)
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/ultimos-emprestimos')
+@login_required
+def api_dashboard_ultimos_emprestimos():
+    try:
+        limit = int(request.args.get('limit', 10))
+    except ValueError:
+        limit = 10
+    data = get_ultimos_emprestimos(limit=limit)
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/engajamento')
+@login_required
+def api_dashboard_engajamento():
+    period = (request.args.get('period') or 'all').strip().lower()
+    serie = (request.args.get('serie') or '').strip()
+    turma = (request.args.get('turma') or '').strip()
+    periodo_escolar = (request.args.get('periodo') or '').strip().lower()
+    try:
+        top_limit = int(request.args.get('top_limit', 10))
+    except ValueError:
+        top_limit = 10
+
+    data = get_engajamento(
+        period=period,
+        serie=serie or None,
+        turma=turma or None,
+        periodo_escolar=periodo_escolar or None,
+        top_limit=top_limit,
+    )
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/popularidade')
+@login_required
+def api_dashboard_popularidade():
+    range_name = (request.args.get('range') or 'anual').strip().lower()
+    serie = (request.args.get('serie') or '').strip()
+    turma = (request.args.get('turma') or '').strip()
+    periodo_escolar = (request.args.get('periodo') or '').strip().lower()
+    try:
+        limit = int(request.args.get('limit', 10))
+    except ValueError:
+        limit = 10
+
+    data = get_popularidade(
+        range_name=range_name,
+        serie=serie or None,
+        turma=turma or None,
+        periodo_escolar=periodo_escolar or None,
+        limit=limit,
+    )
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/acervo')
+@login_required
+def api_dashboard_acervo():
+    try:
+        days_lost = int(request.args.get('days_lost', 30))
+    except ValueError:
+        days_lost = 30
+    try:
+        limit = int(request.args.get('limit', 20))
+    except ValueError:
+        limit = 20
+
+    data = get_acervo_data(days_lost=days_lost, limit=limit)
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/drilldown')
+@login_required
+def api_dashboard_drilldown():
+    source = (request.args.get('source') or '').strip().lower()
+    label = (request.args.get('label') or '').strip()
+    key = request.args.get('key')
+    period = (request.args.get('period') or 'all').strip().lower()
+    range_name = (request.args.get('range') or 'anual').strip().lower()
+    serie = (request.args.get('serie') or '').strip()
+    turma = (request.args.get('turma') or '').strip()
+    periodo_escolar = (request.args.get('periodo') or '').strip().lower()
+    try:
+        limit = int(request.args.get('limit', 50))
+    except ValueError:
+        limit = 50
+
+    data = get_drilldown_details(
+        source,
+        label=label or None,
+        key=key,
+        period=period,
+        range_name=range_name,
+        serie=serie or None,
+        turma=turma or None,
+        periodo_escolar=periodo_escolar or None,
+        limit=limit,
+    )
+    return jsonify({'success': True, 'data': data})
 

@@ -12,7 +12,7 @@
     <header class="management-header">
         <h1 class="h3">Gerenciar Configurações</h1>
         <form class="search-form" method="GET" action="{{ url_for('configs.configuracoes') }}">
-            <input type="text" name="search" class="form-control" placeholder="Buscar por chave ou descrição..." value="{{ search_term or '' }}">
+            <input type="text" name="search" class="form-control" placeholder="Buscar por chave ou descrição..." value="{{ search_term }}">
             <button type="submit" class="btn btn-primary">Buscar</button>
         </form>
     </header>
@@ -23,7 +23,7 @@
         </button>
 
         <form method="GET" action="{{ url_for('configs.configuracoes') }}" class="d-flex align-items-center">
-            <input type="hidden" name="search" value="{{ search_term or '' }}">
+            <input type="hidden" name="search" value="{{ search_term }}">
             <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
             <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
                 <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>

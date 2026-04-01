@@ -12,12 +12,52 @@ from app.utils import build_or_update_spec_from_form, is_admin_user, validate_co
 
 bp = Blueprint('configs', __name__)
 
+
+def _ensure_dashboard_lost_threshold_config():
+    key = 'DASHBOARD_LOST_THRESHOLD_DAYS'
+    spec = ConfigSpec.query.filter_by(key=key).first()
+    if not spec:
+        spec = ConfigSpec(
+            key=key,
+            valueType='integer',
+            minValue=1,
+            maxValue=365,
+            required=True,
+            defaultValue='30',
+            description='Dias para classificar extravio no painel de acervo.',
+            creationDate=datetime.now(),
+            lastUpdate=datetime.now(),
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
+        )
+        db.session.add(spec)
+
+    config = Configuration.query.filter_by(key=key).first()
+    if not config:
+        config = Configuration(
+            key=key,
+            value='30',
+            description='Limiar de atraso (dias) para extravio no dashboard.',
+            creationDate=datetime.now(),
+            lastUpdate=datetime.now(),
+            createdBy=current_user.userId,
+            updatedBy=current_user.userId,
+        )
+        db.session.add(config)
+
+    if db.session.new:
+        db.session.commit()
+
+    return config
+
 @bp.route('/configuracoes')
 @login_required
 def configuracoes():
     if not is_admin_user():
         flash('Acesso negado. Você precisa ser um administrador.', 'warning')
         return redirect(url_for('navigation.menu'))
+
+    dashboard_lost_config = _ensure_dashboard_lost_threshold_config()
 
     query = Configuration.query
     search_term = (request.args.get('search') or '').strip()
@@ -39,7 +79,14 @@ def configuracoes():
         specs = ConfigSpec.query.filter(ConfigSpec.key.in_(keys)).all()
         specs_by_key = {spec.key: spec for spec in specs}
 
-    return render_template('configuracoes.html', configs=configs, search_term=search_term, per_page=per_page, specs_by_key=specs_by_key)
+    return render_template(
+        'configuracoes.html',
+        configs=configs,
+        search_term=search_term,
+        per_page=per_page,
+        specs_by_key=specs_by_key,
+        dashboard_lost_config=dashboard_lost_config,
+    )
 
 
 @bp.route('/configuracoes/form', defaults={'config_id': None}, methods=['GET'])

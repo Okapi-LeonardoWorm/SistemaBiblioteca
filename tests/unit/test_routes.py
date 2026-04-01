@@ -405,6 +405,13 @@ class TestRoutes(BaseTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('Gerenciar Configurações', response.get_data(as_text=True))
 
+    def test_configuracoes_route_ensures_dashboard_lost_threshold(self):
+        """Configs page should ensure and expose dashboard lost threshold key."""
+        response = self.client.get(url_for('configs.configuracoes'))
+        self.assertEqual(response.status_code, 200)
+        content = response.get_data(as_text=True)
+        self.assertIn('DASHBOARD_LOST_THRESHOLD_DAYS', content)
+
     def test_return_loan_rejects_invalid_status(self):
         """Return endpoint should reject statuses other than COMPLETED and LOST."""
         student = User(

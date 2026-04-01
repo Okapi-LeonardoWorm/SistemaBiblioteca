@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-{% from 'bootstrap5/pagination.html' import render_pagination %}
 
 {% block title %}
   Dashboard Administrativo
@@ -10,173 +9,218 @@
 {% endblock %}
 
 {% block content %}
-  <div class="container-fluid py-4">
-    <!-- Header -->
+  <div class="container-fluid py-4 dashboard-root" id="dashboardApp">
     <header class="dashboard-header mb-4">
-      <h2>Dashboard Administrativo</h2>
+      <div>
+        <h2 class="mb-1">Painel da Biblioteca Escolar</h2>
+        <p class="mb-0 text-muted">Operação diária, indicadores pedagógicos e saúde do acervo em tempo real.</p>
+      </div>
     </header>
 
-    <div class="row">
-      <!-- Loan List -->
-      <div class="col-lg-8">
-        <h3 class="section-title">Empréstimos com Devolução Próxima</h3>
-        <div class="filter-buttons btn-group mb-3">
-          <a href="{{ url_for('navigation.dashboard', filter='today') }}" class="btn btn-outline-primary {% if loan_filter == 'today' %}active{% endif %}">Hoje</a>
-          <a href="{{ url_for('navigation.dashboard', filter='week') }}" class="btn btn-outline-primary {% if loan_filter == 'week' %}active{% endif %}">Esta Semana</a>
-          <a href="{{ url_for('navigation.dashboard', filter='all') }}" class="btn btn-outline-primary {% if loan_filter == 'all' %}active{% endif %}">Todos</a>
-          <a href="{{ url_for('navigation.dashboard', filter='overdue') }}" class="btn btn-outline-danger position-relative {% if loan_filter == 'overdue' %}active{% endif %}">
-            Atrasados{% if overdue_loans_count > 0 %}
-              <span class="overdue-badge">{{ overdue_loans_count }}</span>
-            {% endif %}
-          </a>
-        </div>
+    <section class="kpi-grid" id="kpiGrid">
+      <article class="kpi-card" data-kpi="total_books">
+        <div class="kpi-label">Total de Livros</div>
+        <div class="kpi-value">--</div>
+      </article>
+      <article class="kpi-card" data-kpi="total_active_loans">
+        <div class="kpi-label">Livros Emprestados</div>
+        <div class="kpi-value">--</div>
+      </article>
+      <article class="kpi-card" data-kpi="total_students">
+        <div class="kpi-label">Total de Alunos</div>
+        <div class="kpi-value">--</div>
+      </article>
+      <article class="kpi-card" data-kpi="total_collaborators">
+        <div class="kpi-label">Total de Colaboradores</div>
+        <div class="kpi-value">--</div>
+      </article>
+    </section>
 
-        <div class="loan-list-card">
-          <div class="list-group loan-list-group">
-            {% for loan in loans.items %}
-              <a href="#" class="list-group-item list-group-item-action loan-list-item" data-bs-toggle="modal" data-bs-target="#loanDetailsModal" data-loan-id="{{ loan.loanId }}" data-book-name="{{ loan.book.bookName }}" data-user-name="{{ loan.user.userCompleteName or loan.user.username }}" data-user-code="{{ loan.user.username }}" data-user-pcd="{{ '1' if loan.user.pcd else '0' }}" data-loan-date="{{ loan.loanDate.isoformat() }}" data-return-date="{{ loan.returnDate.isoformat() }}" data-amount="{{ loan.amount }}" data-status="{{ loan.status.name }}">
-                <div class="loan-list-top">
-                  <span class="loan-label">Livro</span>
-                  <span class="loan-date-badge">Devolução: {{ loan.returnDate.strftime('%d/%m/%Y') }}</span>
-                </div>
-                <div class="loan-book-name">{{ loan.book.bookName }}</div>
-                <div class="loan-user-line">
-                  <strong>Usuário:</strong> {{ render_user_identifier(loan.user) }}
-                </div>
-              </a>
-            {% else %}
-              <div class="list-group-item loan-empty-item">Nenhum empréstimo encontrado para este filtro.</div>
-            {% endfor %}
+    <section class="panel-block mt-4">
+      <div class="panel-head">
+        <h3>1. Painel de Devoluções</h3>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-outline-secondary quick-filter active" data-quick-filter="today">Hoje</button>
+          <button class="btn btn-outline-secondary quick-filter" data-quick-filter="week">Esta semana</button>
+          <button class="btn btn-outline-secondary quick-filter" data-quick-filter="pending">Pendentes</button>
+          <button class="btn btn-outline-danger quick-filter" data-quick-filter="overdue">Atrasados <span class="badge rounded-pill text-bg-danger" id="overdueBadge">0</span></button>
+        </div>
+      </div>
+
+      <div class="devolution-kpis" id="devolutionKpis">
+        <div class="mini-kpi">
+          <span>Hoje</span><strong data-kpi="today">--</strong>
+        </div>
+        <div class="mini-kpi">
+          <span>Semana</span><strong data-kpi="week">--</strong>
+        </div>
+        <div class="mini-kpi">
+          <span>Pendentes</span><strong data-kpi="pending">--</strong>
+        </div>
+        <div class="mini-kpi mini-kpi-danger">
+          <span>Atrasados</span><strong data-kpi="overdue">--</strong>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <input class="form-control filter-student" id="filterStudent" placeholder="Buscar aluno por nome ou código" />
+      </div>
+
+      <div class="table-responsive panel-table-wrap">
+        <table class="table align-middle mb-0" id="devolucoesTable">
+          <thead>
+            <tr>
+              <th>Livro</th>
+              <th>Aluno</th>
+              <th>Data Prevista</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <small id="devolucoesPageInfo" class="text-muted">Página --</small>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-outline-secondary" id="devolucoesPrev">Anterior</button>
+          <button class="btn btn-sm btn-outline-secondary" id="devolucoesNext">Próxima</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="row g-4 mt-1">
+      <div class="col-xl-4">
+        <div class="panel-block h-100">
+          <div class="panel-head">
+            <h3>3. Últimos Livros Retirados</h3>
+            <select class="form-select form-select-sm w-auto" id="recentLimit">
+              <option value="10">10</option>
+              <option value="20">20</option>
+            </select>
           </div>
+          <div id="recentTimeline" class="timeline-list"></div>
         </div>
-
-        <!-- Pagination for loans -->
-        <div class="mt-3">{{ render_pagination(loans) }}</div>
       </div>
 
-      <!-- Recently Loaned Books -->
-      <div class="col-lg-4">
-        <h3 class="section-title">Últimos Livros Retirados</h3>
-        <div class="recent-books-card">
-          <div class="list-group recent-books-list">
-            {% for info in recent_books %}
-              <div class="list-group-item recent-books-item">
-                <div class="recent-books-name">{{ info.book.bookName }}</div>
-                <span class="badge bg-secondary recent-books-badge">Retirados: {{ info.amount }}</span>
-              </div>
-            {% else %}
-              <div class="list-group-item recent-books-empty">Nenhum livro emprestado recentemente.</div>
-            {% endfor %}
+      <div class="col-xl-8">
+        <div class="panel-block h-100">
+          <div class="panel-head">
+            <h3>4. Top 10 Tags Mais Utilizadas</h3>
           </div>
+          <div id="tagsTopChart" class="chart-host"></div>
         </div>
-        <!-- Pagination for recent books -->
-        <div class="mt-3">{{ render_pagination(recent_books_pagination, page_parameter='recent_books_page') }}</div>
       </div>
-    </div>
+    </section>
 
-    <!-- KPIs -->
-    <div class="row mt-4">
-      <div class="col-md-3 col-sm-6">
-        <div class="kpi-card">
-          <div class="kpi-value">{{ total_books }}</div>
-          <div class="kpi-label">Livros na Biblioteca</div>
+    <section class="panel-block mt-4">
+      <div class="panel-head">
+        <h3>5. Engajamento por Série, Turma e Período</h3>
+        <div class="related-filters">
+          <select id="filterPeriodoTempo" class="form-select form-select-sm">
+            <option value="today">Hoje</option>
+            <option value="week">Semana</option>
+            <option value="month">Mês</option>
+            <option value="all" selected>Todos</option>
+          </select>
+          <input id="filterSerie" class="form-control form-control-sm" placeholder="Série" />
+          <input id="filterTurma" class="form-control form-control-sm" placeholder="Turma" />
+          <select id="filterPeriodoEscolar" class="form-select form-select-sm">
+            <option value="">Período escolar</option>
+            <option value="manha">Manhã</option>
+            <option value="tarde">Tarde</option>
+          </select>
         </div>
       </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="kpi-card">
-          <div class="kpi-value">{{ total_loans_active }}</div>
-          <div class="kpi-label">Livros Emprestados</div>
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <div id="engajamentoTurmaChart" class="chart-host"></div>
+        </div>
+        <div class="col-lg-4">
+          <div id="engajamentoSerieChart" class="chart-host"></div>
+        </div>
+        <div class="col-lg-4">
+          <div id="engajamentoPeriodoChart" class="chart-host"></div>
         </div>
       </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="kpi-card">
-          <div class="kpi-value">{{ total_students }}</div>
-          <div class="kpi-label">Alunos Cadastrados</div>
-        </div>
+      <div class="mt-3">
+        <h4 class="sub-title">Top alunos leitores</h4>
+        <ul id="topAlunosList" class="top-list"></ul>
       </div>
-      <div class="col-md-3 col-sm-6">
-        <div class="kpi-card">
-          <div class="kpi-value">{{ total_staff }}</div>
-          <div class="kpi-label">Colaboradores</div>
-        </div>
-      </div>
-    </div>
+    </section>
 
-    <div class="row mt-4">
-      <div class="col-md-6">
-        <div class="keyword-analytics-card">
-          <h3 class="section-title mb-3">Top 10 tags mais utilizadas</h3>
-
-          {% if keyword_top10 %}
-            <div class="table-responsive keyword-top-scroll">
-              <table class="table table-sm table-striped keyword-top-table mb-0">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Tag</th>
-                    <th>Ocorrências</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for item in keyword_top10 %}
-                    <tr>
-                      <td>{{ loop.index }}</td>
-                      <td>{{ item.word }}</td>
-                      <td>{{ item.count }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          {% else %}
-            <div class="alert alert-secondary mb-0">Ainda não há tags vinculadas a livros.</div>
-          {% endif %}
+    <section class="row g-4 mt-1">
+      <div class="col-xl-7">
+        <div class="panel-block h-100">
+          <div class="panel-head">
+            <h3>6. Popularidade do Acervo</h3>
+            <select id="popularidadeRange" class="form-select form-select-sm w-auto">
+              <option value="mensal">Mensal</option>
+              <option value="semestral">Semestral</option>
+              <option value="anual" selected>Anual</option>
+            </select>
+          </div>
+          <div id="popularidadeLivrosChart" class="chart-host"></div>
         </div>
       </div>
-    </div>
+      <div class="col-xl-5">
+        <div class="panel-block h-100">
+          <div class="panel-head">
+            <h3>Distribuição por Tags</h3>
+          </div>
+          <div id="popularidadeTagsChart" class="chart-host"></div>
+        </div>
+      </div>
+    </section>
 
-    <!-- Modal: detalhes do empréstimo -->
-    <div class="modal fade" id="loanDetailsModal" tabindex="-1" aria-labelledby="loanDetailsModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
+    <section class="panel-block mt-4">
+      <div class="panel-head">
+        <h3>7. Saúde do Acervo</h3>
+        <div class="d-flex align-items-center gap-2">
+          <label for="acervoLostDays" class="small text-muted">Dias para extravio</label>
+          <input type="number" min="1" class="form-control form-control-sm w-auto" id="acervoLostDays" value="30" />
+        </div>
+      </div>
+      <div class="acervo-kpi mb-3">
+        Livros perdidos/sem devolução prolongada: <strong id="acervoLostCount">--</strong>
+      </div>
+      <div class="table-responsive panel-table-wrap">
+        <table class="table align-middle mb-0" id="acervoTable">
+          <thead>
+            <tr>
+              <th>Livro</th>
+              <th>Último usuário</th>
+              <th>Empréstimo</th>
+              <th>Atraso</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="modal fade" id="loanModal" tabindex="-1" aria-labelledby="loanModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="loanDetailsModalLabel">Detalhes do Empréstimo</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <h5 class="modal-title" id="loanModalLabel">Carregando...</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
           </div>
           <div class="modal-body">
-            <p>
-              <strong>Livro:</strong> <span id="detailBookName"></span>
-            </p>
-            <p>
-              <strong>Usuário:</strong> <span id="detailUserName"></span> (<span id="detailUserCode"></span>)
-            </p>
-            <p>
-              <strong>Quantidade:</strong> <span id="detailAmount"></span>
-            </p>
-            <p>
-              <strong>Data Empréstimo:</strong> <span id="detailLoanDate"></span>
-            </p>
-            <p>
-              <strong>Data Prevista Retorno:</strong> <span id="detailReturnDate"></span>
-            </p>
-            <p>
-              <strong>Status:</strong> <span id="detailStatus"></span>
-            </p>
+            <!-- Form will be loaded here -->
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-            <button type="button" class="btn btn-primary" id="openReturnModalBtn">Informar retorno</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="saveLoanBtn">Salvar</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal: informar retorno -->
     <div class="modal fade" id="loanReturnModal" tabindex="-1" aria-labelledby="loanReturnModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="loanReturnModalLabel">Informar Retorno</h5>
+            <h5 class="modal-title" id="loanReturnModalLabel">Informar retorno do empréstimo</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <form id="loanReturnForm">
@@ -206,7 +250,7 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-success">Confirmar</button>
+              <button type="submit" class="btn btn-success">Confirmar retorno</button>
             </div>
           </form>
         </div>
@@ -216,93 +260,8 @@
 {% endblock %}
 
 {% block scripts %}
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const detailsModalEl = document.getElementById('loanDetailsModal')
-      const returnModalEl = document.getElementById('loanReturnModal')
-      const openReturnBtn = document.getElementById('openReturnModalBtn')
-      const returnForm = document.getElementById('loanReturnForm')
-      const returnError = document.getElementById('loanReturnError')
-    
-      function formatDateBR(isoDate) {
-        if (!isoDate) return ''
-        const [y, m, d] = isoDate.split('-')
-        if (!y || !m || !d) return isoDate
-        return `${d}/${m}/${y}`
-      }
-    
-      function statusLabel(status) {
-        if (status === 'ACTIVE') return 'Ativo'
-        if (status === 'OVERDUE') return 'Atrasado'
-        if (status === 'COMPLETED') return 'Concluído'
-        if (status === 'LOST') return 'Perdido'
-        return status || ''
-      }
-    
-      detailsModalEl?.addEventListener('show.bs.modal', function (event) {
-        const trigger = event.relatedTarget
-        if (!trigger) return
-    
-        const data = trigger.dataset
-        document.getElementById('detailBookName').textContent = data.bookName || ''
-        document.getElementById('detailUserName').textContent = data.userName || ''
-        const userCodeEl = document.getElementById('detailUserCode')
-        if (userCodeEl) {
-          if (data.userPcd === '1') {
-            userCodeEl.innerHTML = '<i class="fas fa-wheelchair me-1 text-primary" aria-label="Usuario PCD" title="Usuario PCD"></i>' + (data.userCode || '')
-          } else {
-            userCodeEl.textContent = data.userCode || ''
-          }
-        }
-        document.getElementById('detailAmount').textContent = data.amount || ''
-        document.getElementById('detailLoanDate').textContent = formatDateBR(data.loanDate)
-        document.getElementById('detailReturnDate').textContent = formatDateBR(data.returnDate)
-        document.getElementById('detailStatus').textContent = statusLabel(data.status)
-    
-        openReturnBtn.dataset.loanId = data.loanId || ''
-      })
-    
-      openReturnBtn?.addEventListener('click', function () {
-        const loanId = openReturnBtn.dataset.loanId
-        document.getElementById('returnLoanId').value = loanId || ''
-        document.getElementById('returnDateInput').valueAsDate = new Date()
-        document.getElementById('returnStatusInput').value = 'COMPLETED'
-    
-        const detailsModal = bootstrap.Modal.getInstance(detailsModalEl)
-        detailsModal?.hide()
-    
-        const returnModal = new bootstrap.Modal(returnModalEl)
-        returnModal.show()
-      })
-    
-      returnForm?.addEventListener('submit', async function (e) {
-        e.preventDefault()
-        returnError.classList.add('d-none')
-        returnError.textContent = ''
-    
-        const loanId = document.getElementById('returnLoanId').value
-        const formData = new FormData(returnForm)
-    
-        try {
-          const resp = await fetch(`/emprestimos/return/${loanId}`, {
-            method: 'POST',
-            body: formData
-          })
-          const data = await resp.json()
-    
-          if (!resp.ok || !data.success) {
-            const msg = data?.errors ? JSON.stringify(data.errors) : 'Erro ao registrar retorno.'
-            returnError.textContent = msg
-            returnError.classList.remove('d-none')
-            return
-          }
-    
-          window.location.reload()
-        } catch (err) {
-          returnError.textContent = 'Falha de comunicação ao registrar retorno.'
-          returnError.classList.remove('d-none')
-        }
-      })
-    })
-  </script>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <script src="{{ url_for('static', filename='js/management.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard-charts.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/dashboard-app.js') }}"></script>
 {% endblock %}

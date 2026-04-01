@@ -14,6 +14,19 @@ def populate_configs():
         # Definição das configurações padrões
         default_configs = [
             {
+                "key": "DASHBOARD_LOST_THRESHOLD_DAYS",
+                "value": "30",
+                "description": "Dias de atraso para considerar extravio no painel de saúde do acervo.",
+                "spec": {
+                    "valueType": "integer",
+                    "minValue": 1,
+                    "maxValue": 365,
+                    "required": True,
+                    "defaultValue": "30",
+                    "description": "Usado no dashboard para classificar itens perdidos por atraso prolongado."
+                }
+            },
+            {
                 "key": "TEMPO_MAXIMO_PARA_CANCELAMENTO_DE_EMPRESTIMO",
                 "value": "15",
                 "description": "Tempo em minutos que o usuário tem para cancelar um empréstimo realizado por engano.",
