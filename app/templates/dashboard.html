@@ -39,11 +39,20 @@
     <section class="panel-block mt-4">
       <div class="panel-head">
         <h3>1. Painel de Devoluções</h3>
-        <div class="d-flex flex-wrap gap-2">
-          <button class="btn btn-outline-secondary quick-filter active" data-quick-filter="today">Hoje</button>
+        <div class="devolucoes-toolbar d-flex flex-wrap align-items-center gap-2">
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="devolucoesSerieDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">Série</button>
+            <div class="dropdown-menu p-2 devolucoes-dropdown-menu" aria-labelledby="devolucoesSerieDropdown" id="devolucoesSerieMenu"></div>
+          </div>
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="devolucoesTurmaDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">Turma</button>
+            <div class="dropdown-menu p-2 devolucoes-dropdown-menu" aria-labelledby="devolucoesTurmaDropdown" id="devolucoesTurmaMenu"></div>
+          </div>
+          <button class="btn btn-outline-secondary quick-filter active" data-quick-filter="today">Hoje <span class="badge rounded-pill text-bg-secondary" id="todayBadge">0</span></button>
           <button class="btn btn-outline-secondary quick-filter" data-quick-filter="week">Esta semana</button>
-          <button class="btn btn-outline-secondary quick-filter" data-quick-filter="pending">Pendentes</button>
+          <button class="btn btn-outline-secondary quick-filter" data-quick-filter="all">Todos</button>
           <button class="btn btn-outline-danger quick-filter" data-quick-filter="overdue">Atrasados <span class="badge rounded-pill text-bg-danger" id="overdueBadge">0</span></button>
+          <button class="btn btn-outline-secondary ms-auto" id="clearDevolucoesFilters" type="button">Limpar filtros</button>
         </div>
       </div>
 
@@ -55,14 +64,14 @@
           <span>Semana</span><strong data-kpi="week">--</strong>
         </div>
         <div class="mini-kpi">
-          <span>Pendentes</span><strong data-kpi="pending">--</strong>
+          <span>Todos</span><strong data-kpi="all">--</strong>
         </div>
         <div class="mini-kpi mini-kpi-danger">
           <span>Atrasados</span><strong data-kpi="overdue">--</strong>
         </div>
       </div>
 
-      <div class="d-flex flex-wrap gap-2 mb-3">
+      <div class="d-flex flex-wrap gap-2 mb-3 devolucoes-filters">
         <input class="form-control filter-student" id="filterStudent" placeholder="Buscar aluno por nome ou código" />
       </div>
 
@@ -112,62 +121,74 @@
       </div>
     </section>
 
-    <section class="panel-block mt-4">
+    <section class="panel-block mt-4 related-analytics-block">
       <div class="panel-head">
-        <h3>5. Engajamento por Série, Turma e Período</h3>
-        <div class="related-filters">
-          <select id="filterPeriodoTempo" class="form-select form-select-sm">
-            <option value="today">Hoje</option>
-            <option value="week">Semana</option>
-            <option value="month">Mês</option>
-            <option value="all" selected>Todos</option>
-          </select>
-          <input id="filterSerie" class="form-control form-control-sm" placeholder="Série" />
-          <input id="filterTurma" class="form-control form-control-sm" placeholder="Turma" />
-          <select id="filterPeriodoEscolar" class="form-select form-select-sm">
-            <option value="">Período escolar</option>
-            <option value="manha">Manhã</option>
-            <option value="tarde">Tarde</option>
-          </select>
+        <h3>5. Engajamento</h3>
+        <div class="related-filters related-toolbar">
+          <input id="filterDataInicial" type="date" class="form-control form-control-sm" />
+          <input id="filterDataFinal" type="date" class="form-control form-control-sm" />
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="relatedUserTypeDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">Tipo de usuário</button>
+            <div class="dropdown-menu p-2 devolucoes-dropdown-menu" aria-labelledby="relatedUserTypeDropdown" id="relatedUserTypeMenu"></div>
+          </div>
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="relatedSerieDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">Série</button>
+            <div class="dropdown-menu p-2 devolucoes-dropdown-menu" aria-labelledby="relatedSerieDropdown" id="relatedSerieMenu"></div>
+          </div>
+          <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="relatedTurmaDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">Turma</button>
+            <div class="dropdown-menu p-2 devolucoes-dropdown-menu" aria-labelledby="relatedTurmaDropdown" id="relatedTurmaMenu"></div>
+          </div>
+          <button class="btn btn-outline-secondary btn-sm" type="button" id="clearRelatedFilters">Limpar filtros</button>
         </div>
       </div>
-      <div class="row g-3">
-        <div class="col-lg-4">
-          <div id="engajamentoTurmaChart" class="chart-host"></div>
-        </div>
-        <div class="col-lg-4">
-          <div id="engajamentoSerieChart" class="chart-host"></div>
-        </div>
-        <div class="col-lg-4">
-          <div id="engajamentoPeriodoChart" class="chart-host"></div>
-        </div>
-      </div>
-      <div class="mt-3">
-        <h4 class="sub-title">Top alunos leitores</h4>
-        <ul id="topAlunosList" class="top-list"></ul>
-      </div>
-    </section>
 
-    <section class="row g-4 mt-1">
-      <div class="col-xl-7">
-        <div class="panel-block h-100">
-          <div class="panel-head">
-            <h3>6. Popularidade do Acervo</h3>
-            <select id="popularidadeRange" class="form-select form-select-sm w-auto">
-              <option value="mensal">Mensal</option>
-              <option value="semestral">Semestral</option>
-              <option value="anual" selected>Anual</option>
-            </select>
+      <div class="related-panel-card">
+        <div class="panel-head">
+          <h3>Engajamento por período</h3>
+        </div>
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <article class="chart-outline">
+              <h4 class="chart-outline-title">Empréstimos por Turma</h4>
+              <div id="engajamentoTurmaChart" class="chart-host"></div>
+            </article>
           </div>
-          <div id="popularidadeLivrosChart" class="chart-host"></div>
+          <div class="col-lg-6">
+            <article class="chart-outline">
+              <h4 class="chart-outline-title">Empréstimos por Série</h4>
+              <div id="engajamentoSerieChart" class="chart-host"></div>
+            </article>
+          </div>
+        </div>
+        <div class="mt-3">
+          <h4 class="sub-title">Top alunos leitores</h4>
+          <ul id="topAlunosList" class="top-list"></ul>
         </div>
       </div>
-      <div class="col-xl-5">
-        <div class="panel-block h-100">
-          <div class="panel-head">
-            <h3>Distribuição por Tags</h3>
+
+      <div class="row g-4 mt-1">
+        <div class="col-xl-7">
+          <div class="related-panel-card h-100">
+            <div class="panel-head">
+              <h3>6. Popularidade do Acervo</h3>
+            </div>
+            <article class="chart-outline">
+              <h4 class="chart-outline-title">Top livros emprestados</h4>
+              <div id="popularidadeLivrosChart" class="chart-host"></div>
+            </article>
           </div>
-          <div id="popularidadeTagsChart" class="chart-host"></div>
+        </div>
+        <div class="col-xl-5">
+          <div class="related-panel-card h-100">
+            <div class="panel-head">
+              <h3>Distribuição por Tags</h3>
+            </div>
+            <article class="chart-outline">
+              <h4 class="chart-outline-title">Distribuição de tags</h4>
+              <div id="popularidadeTagsChart" class="chart-host"></div>
+            </article>
+          </div>
         </div>
       </div>
     </section>

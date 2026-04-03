@@ -42,7 +42,7 @@
 
     function renderEngajamento(data) {
         const turmas = data?.emprestimos_por_turma || [];
-        const periodos = data?.comparativo_periodo || [];
+        const series = data?.emprestimos_por_serie || [];
 
         Plotly.react(
             'engajamentoTurmaChart',
@@ -55,14 +55,12 @@
                 hovertemplate: 'Turma: %{x}<br>Empréstimos: %{y}<extra></extra>'
             }],
             {
-                title: 'Empréstimos por Turma',
-                margin: { t: 40, r: 10, b: 60, l: 45 },
+                margin: { t: 20, r: 10, b: 60, l: 45 },
                 paper_bgcolor: 'transparent',
                 plot_bgcolor: 'transparent'
             },
             { displayModeBar: false, responsive: true }
         );
-        bindClick('engajamentoTurmaChart', 'engajamento_turma');
 
         Plotly.react(
             'engajamentoSerieChart',
@@ -75,27 +73,7 @@
                 hovertemplate: 'Série: %{x}<br>Empréstimos: %{y}<extra></extra>'
             }],
             {
-                title: 'Empréstimos por Série',
-                margin: { t: 40, r: 10, b: 60, l: 45 },
-                paper_bgcolor: 'transparent',
-                plot_bgcolor: 'transparent'
-            },
-            { displayModeBar: false, responsive: true }
-        );
-
-        Plotly.react(
-            'engajamentoPeriodoChart',
-            [{
-                x: periodos.map((i) => i.periodo),
-                y: periodos.map((i) => i.count),
-                customdata: periodos.map((i) => i.periodo),
-                type: 'bar',
-                marker: { color: '#d68c45' },
-                hovertemplate: 'Período: %{x}<br>Empréstimos: %{y}<extra></extra>'
-            }],
-            {
-                title: 'Comparativo por Período',
-                margin: { t: 40, r: 10, b: 60, l: 45 },
+                margin: { t: 20, r: 10, b: 60, l: 45 },
                 paper_bgcolor: 'transparent',
                 plot_bgcolor: 'transparent'
             },

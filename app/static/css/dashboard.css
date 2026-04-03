@@ -87,6 +87,53 @@ body {
     min-width: 110px;
 }
 
+.related-analytics-block {
+    background: #ffffff;
+}
+
+.related-toolbar {
+    align-items: center;
+}
+
+.related-toolbar .form-control {
+    min-width: 145px;
+}
+
+.related-toolbar .form-select {
+    min-width: 190px;
+}
+
+.related-toolbar #relatedUserTypeDropdown {
+    min-width: 190px;
+    text-align: left;
+}
+
+.related-toolbar .dropdown-toggle {
+    min-width: 130px;
+    text-align: left;
+}
+
+.related-panel-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0.85rem;
+}
+
+.chart-outline {
+    border: 1px solid #dbe3d8;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 0.65rem 0.7rem;
+}
+
+.chart-outline-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
 .devolution-kpis {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
@@ -123,6 +170,22 @@ body {
 
 .filter-student {
     max-width: 320px;
+}
+
+.devolucoes-toolbar .dropdown-toggle {
+    min-width: 130px;
+    text-align: left;
+}
+
+.devolucoes-dropdown-menu {
+    min-width: 240px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.devolucoes-dropdown-empty {
+    color: var(--text-muted);
+    font-size: 0.88rem;
 }
 
 .panel-table-wrap {

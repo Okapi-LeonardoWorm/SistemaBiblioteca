@@ -71,16 +71,87 @@ def _extract_period_expr():
     )
 
 
-def _apply_engajamento_filters(query, serie=None, turma=None, periodo_escolar=None):
-    if serie:
-        try:
-            query = query.filter(User.gradeNumber == int(serie))
-        except ValueError:
-            pass
-    if turma:
-        query = query.filter(func.lower(func.coalesce(User.className, '')).like(f"%{turma.lower()}%"))
+def _apply_engajamento_filters(query, serie=None, turma=None, series=None, turmas=None, user_type=None, user_types=None, periodo_escolar=None):
+    parsed_series = _normalize_series(series)
+    if not parsed_series and serie:
+        parsed_series = _normalize_series([serie])
+    if parsed_series:
+        query = query.filter(User.gradeNumber.in_(parsed_series))
+
+    parsed_turmas = _normalize_turmas(turmas)
+    if not parsed_turmas and turma:
+        parsed_turmas = _normalize_turmas([turma])
+    if parsed_turmas:
+        class_name = func.lower(func.trim(func.coalesce(User.className, '')))
+        query = query.filter(class_name.in_(parsed_turmas))
+
+    parsed_user_types = _normalize_user_types(user_types)
+    if not parsed_user_types and user_type:
+        parsed_user_types = _normalize_user_types([user_type])
+    if parsed_user_types:
+        user_type_expr = func.lower(func.trim(func.coalesce(User.userType, '')))
+        query = query.filter(user_type_expr.in_(parsed_user_types))
+
     if periodo_escolar:
         query = query.filter(_extract_period_expr() == periodo_escolar)
+    return query
+
+
+def _normalize_series(series):
+    normalized = []
+    for value in series or []:
+        try:
+            parsed = int(str(value).strip())
+        except (TypeError, ValueError):
+            continue
+        if parsed not in normalized:
+            normalized.append(parsed)
+    return normalized
+
+
+def _normalize_turmas(turmas):
+    normalized = []
+    for value in turmas or []:
+        label = (str(value).strip() if value is not None else '')
+        if not label:
+            continue
+        lower_label = label.lower()
+        if lower_label not in normalized:
+            normalized.append(lower_label)
+    return normalized
+
+
+def _normalize_user_types(user_types):
+    normalized = []
+    for value in user_types or []:
+        label = (str(value).strip() if value is not None else '')
+        if not label:
+            continue
+        lower_label = label.lower()
+        if lower_label not in normalized:
+            normalized.append(lower_label)
+    return normalized
+
+
+def _apply_devolucoes_user_filters(query, *, student_query='', series=None, turmas=None):
+    if student_query:
+        term = student_query.strip()
+        query = query.filter(
+            or_(
+                User.userCompleteName.ilike(f"%{term}%"),
+                User.identificationCode.ilike(f"%{term}%")
+            )
+        )
+
+    parsed_series = _normalize_series(series)
+    if parsed_series:
+        query = query.filter(User.gradeNumber.in_(parsed_series))
+
+    parsed_turmas = _normalize_turmas(turmas)
+    if parsed_turmas:
+        class_name = func.lower(func.trim(func.coalesce(User.className, '')))
+        query = query.filter(class_name.in_(parsed_turmas))
+
     return query
 
 
@@ -125,7 +196,7 @@ def get_dashboard_kpis():
     }
 
 
-def get_devolucoes_data(quick_filter='today', student_query='', page=1, per_page=10):
+def get_devolucoes_data(quick_filter='today', student_query='', series=None, turmas=None, page=1, per_page=10):
     today = date.today()
     query = (
         db.session.query(
@@ -154,17 +225,15 @@ def get_devolucoes_data(quick_filter='today', student_query='', page=1, per_page
         query = query.filter(func.date(Loan.returnDate) >= start, func.date(Loan.returnDate) <= end)
     elif normalized == 'overdue':
         query = query.filter(func.date(Loan.returnDate) < today)
-    elif normalized == 'pending':
+    elif normalized in ('all', 'pending'):
         pass
 
-    if student_query:
-        term = student_query.strip()
-        query = query.filter(
-            or_(
-                User.userCompleteName.ilike(f"%{term}%"),
-                User.identificationCode.ilike(f"%{term}%")
-            )
-        )
+    query = _apply_devolucoes_user_filters(
+        query,
+        student_query=student_query,
+        series=series,
+        turmas=turmas,
+    )
 
     pagination = query.order_by(Loan.returnDate.asc(), Loan.loanId.asc()).paginate(
         page=max(1, page),
@@ -203,12 +272,24 @@ def get_devolucoes_data(quick_filter='today', student_query='', page=1, per_page
         })
 
     # KPIs operacionais com query dedicada para não depender da página atual.
-    base_active = Loan.query.filter(Loan.status.in_([StatusLoan.ACTIVE, StatusLoan.OVERDUE]))
+    base_active = (
+        db.session.query(Loan.loanId)
+        .join(Book, Book.bookId == Loan.bookId)
+        .join(User, User.userId == Loan.userId)
+        .filter(Loan.status.in_([StatusLoan.ACTIVE, StatusLoan.OVERDUE]))
+        .filter(Book.deleted.is_(False), User.deleted.is_(False))
+    )
+    base_active = _apply_devolucoes_user_filters(
+        base_active,
+        student_query=student_query,
+        series=series,
+        turmas=turmas,
+    )
     kpi_today = base_active.filter(func.date(Loan.returnDate) == today).count()
     start = today - timedelta(days=today.weekday())
     end = start + timedelta(days=6)
     kpi_week = base_active.filter(func.date(Loan.returnDate) >= start, func.date(Loan.returnDate) <= end).count()
-    kpi_pending = base_active.count()
+    kpi_all = base_active.count()
     kpi_overdue = base_active.filter(func.date(Loan.returnDate) < today).count()
 
     return {
@@ -216,7 +297,8 @@ def get_devolucoes_data(quick_filter='today', student_query='', page=1, per_page
         'kpis': {
             'today': kpi_today,
             'week': kpi_week,
-            'pending': kpi_pending,
+            'all': kpi_all,
+            'pending': kpi_all,
             'overdue': kpi_overdue,
         },
         'pagination': {
@@ -227,6 +309,38 @@ def get_devolucoes_data(quick_filter='today', student_query='', page=1, per_page
             'has_next': pagination.has_next,
             'has_prev': pagination.has_prev,
         }
+    }
+
+
+def get_devolucoes_filter_options():
+    series_rows = (
+        db.session.query(User.gradeNumber)
+        .filter(User.deleted.is_(False), User.gradeNumber.is_not(None))
+        .distinct()
+        .order_by(User.gradeNumber.asc())
+        .all()
+    )
+    turma_rows = (
+        db.session.query(func.trim(User.className).label('class_name'))
+        .filter(User.deleted.is_(False), User.className.is_not(None))
+        .filter(func.trim(User.className) != '')
+        .distinct()
+        .order_by(func.trim(User.className).asc())
+        .all()
+    )
+    user_type_rows = (
+        db.session.query(func.trim(User.userType).label('user_type'))
+        .filter(User.deleted.is_(False), User.userType.is_not(None))
+        .filter(func.trim(User.userType) != '')
+        .distinct()
+        .order_by(func.trim(User.userType).asc())
+        .all()
+    )
+
+    return {
+        'series': [int(row.gradeNumber) for row in series_rows if row.gradeNumber is not None],
+        'turmas': [row.class_name for row in turma_rows if row.class_name],
+        'user_types': [row.user_type for row in user_type_rows if row.user_type],
     }
 
 
@@ -325,15 +439,35 @@ def get_ultimos_emprestimos(limit=10):
     }
 
 
-def get_engajamento(period='all', serie=None, turma=None, periodo_escolar=None, top_limit=10):
+def get_engajamento(period='all', start_date=None, end_date=None, series=None, turmas=None, user_type=None, user_types=None, serie=None, turma=None, periodo_escolar=None, top_limit=10):
     top_limit = max(1, min(int(top_limit), 25))
     normalized_period = (period or 'all').lower()
-    cache_key = f"eng:{normalized_period}:{serie or ''}:{turma or ''}:{periodo_escolar or ''}:{top_limit}"
+    parsed_start = _safe_date(start_date)
+    parsed_end = _safe_date(end_date)
+
+    if not parsed_start and not parsed_end:
+        parsed_end = date.today()
+        parsed_start = parsed_end - timedelta(days=30)
+
+    if parsed_start and parsed_end and parsed_start > parsed_end:
+        parsed_start, parsed_end = parsed_end, parsed_start
+
+    cache_key = (
+        f"eng:{normalized_period}:{parsed_start or ''}:{parsed_end or ''}:"
+        f"{','.join(str(v) for v in _normalize_series(series) or _normalize_series([serie] if serie else []))}:"
+        f"{','.join(_normalize_turmas(turmas) or _normalize_turmas([turma] if turma else []))}:"
+        f"{','.join(_normalize_user_types(user_types) or _normalize_user_types([user_type] if user_type else []))}:"
+        f"{periodo_escolar or ''}:{top_limit}"
+    )
     cached = _cache_get(cache_key)
     if cached is not None:
         return cached
 
     start, end = _period_bounds(normalized_period)
+    if parsed_start:
+        start = parsed_start
+    if parsed_end:
+        end = parsed_end
     period_expr = _extract_period_expr()
 
     base = (
@@ -345,7 +479,16 @@ def get_engajamento(period='all', serie=None, turma=None, periodo_escolar=None, 
         base = base.filter(func.date(Loan.loanDate) >= start)
     if end:
         base = base.filter(func.date(Loan.loanDate) <= end)
-    base = _apply_engajamento_filters(base, serie=serie, turma=turma, periodo_escolar=periodo_escolar)
+    base = _apply_engajamento_filters(
+        base,
+        serie=serie,
+        turma=turma,
+        series=series,
+        turmas=turmas,
+        user_type=user_type,
+        user_types=user_types,
+        periodo_escolar=periodo_escolar,
+    )
 
     turma_rows = (
         base.with_entities(
@@ -416,15 +559,32 @@ def get_engajamento(period='all', serie=None, turma=None, periodo_escolar=None, 
     return payload
 
 
-def get_popularidade(range_name='anual', serie=None, turma=None, periodo_escolar=None, limit=10):
+def get_popularidade(start_date=None, end_date=None, range_name='anual', series=None, turmas=None, user_type=None, user_types=None, serie=None, turma=None, periodo_escolar=None, limit=10):
     limit = max(1, min(int(limit), 20))
     normalized_range = (range_name or 'anual').lower()
-    cache_key = f"pop:{normalized_range}:{serie or ''}:{turma or ''}:{periodo_escolar or ''}:{limit}"
+    parsed_start = _safe_date(start_date)
+    parsed_end = _safe_date(end_date)
+
+    # Prefer explicit date window from UI; fallback keeps backward compatibility.
+    if parsed_start and parsed_end and parsed_start > parsed_end:
+        parsed_start, parsed_end = parsed_end, parsed_start
+    if not parsed_start and not parsed_end:
+        parsed_start, parsed_end = _popularidade_bounds(normalized_range)
+    elif parsed_start and not parsed_end:
+        parsed_end = date.today()
+    elif parsed_end and not parsed_start:
+        parsed_start = parsed_end - timedelta(days=30)
+
+    cache_key = (
+        f"pop:{parsed_start.isoformat() if parsed_start else ''}:{parsed_end.isoformat() if parsed_end else ''}:{normalized_range}:"
+        f"{','.join(str(v) for v in _normalize_series(series) or _normalize_series([serie] if serie else []))}:"
+        f"{','.join(_normalize_turmas(turmas) or _normalize_turmas([turma] if turma else []))}:"
+        f"{','.join(_normalize_user_types(user_types) or _normalize_user_types([user_type] if user_type else []))}:"
+        f"{periodo_escolar or ''}:{limit}"
+    )
     cached = _cache_get(cache_key)
     if cached is not None:
         return cached
-
-    start, end = _popularidade_bounds(normalized_range)
 
     base = (
         db.session.query(Loan, Book, User)
@@ -432,11 +592,20 @@ def get_popularidade(range_name='anual', serie=None, turma=None, periodo_escolar
         .join(User, User.userId == Loan.userId)
         .filter(Book.deleted.is_(False), User.deleted.is_(False))
     )
-    if start:
-        base = base.filter(func.date(Loan.loanDate) >= start)
-    if end:
-        base = base.filter(func.date(Loan.loanDate) <= end)
-    base = _apply_engajamento_filters(base, serie=serie, turma=turma, periodo_escolar=periodo_escolar)
+    if parsed_start:
+        base = base.filter(func.date(Loan.loanDate) >= parsed_start)
+    if parsed_end:
+        base = base.filter(func.date(Loan.loanDate) <= parsed_end)
+    base = _apply_engajamento_filters(
+        base,
+        serie=serie,
+        turma=turma,
+        series=series,
+        turmas=turmas,
+        user_type=user_type,
+        user_types=user_types,
+        periodo_escolar=periodo_escolar,
+    )
 
     top_books = (
         base.with_entities(
@@ -555,6 +724,17 @@ def get_acervo_data(days_lost=None, limit=20):
 def _safe_int(value):
     try:
         return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _safe_date(value):
+    if not value:
+        return None
+    if isinstance(value, date):
+        return value
+    try:
+        return datetime.strptime(str(value).strip(), '%Y-%m-%d').date()
     except (TypeError, ValueError):
         return None
 

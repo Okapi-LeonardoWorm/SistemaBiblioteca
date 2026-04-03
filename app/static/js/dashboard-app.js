@@ -3,16 +3,16 @@
         devolucoes: {
             quickFilter: 'today',
             student: '',
+            series: [],
+            turmas: [],
             page: 1,
             perPage: 10
         },
         related: {
-            period: 'all',
-            serie: '',
-            turma: '',
-            periodoEscolar: ''
+            series: [],
+            turmas: [],
+            userTypes: []
         },
-        popularidadeRange: 'anual',
         recentLimit: 10,
         acervo: {
             daysLost: 30
@@ -24,6 +24,27 @@
     };
 
     let studentSearchTimer = null;
+
+    function toIsoDate(dateObj) {
+        const local = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000);
+        return local.toISOString().slice(0, 10);
+    }
+
+    function initEngajamentoDateRange() {
+        const initialEl = document.getElementById('filterDataInicial');
+        const finalEl = document.getElementById('filterDataFinal');
+        if (!initialEl || !finalEl) return;
+
+        if (!finalEl.value) {
+            finalEl.value = toIsoDate(new Date());
+        }
+        if (!initialEl.value) {
+            const start = new Date();
+            start.setDate(start.getDate() - 30);
+            initialEl.value = toIsoDate(start);
+        }
+    }
+
     function formatDateBR(isoDate) {
         if (!isoDate) return '-';
         const date = new Date(isoDate);
@@ -57,6 +78,14 @@
     async function apiGet(path, params = {}) {
         const url = new URL(path, window.location.origin);
         Object.entries(params).forEach(([key, value]) => {
+            if (Array.isArray(value)) {
+                value.forEach((item) => {
+                    if (item !== null && item !== undefined && `${item}` !== '') {
+                        url.searchParams.append(key, item);
+                    }
+                });
+                return;
+            }
             if (value !== null && value !== undefined && `${value}` !== '') {
                 url.searchParams.set(key, value);
             }
@@ -100,6 +129,11 @@
             });
         }
 
+        document.getElementById('clearDevolucoesFilters')?.addEventListener('click', () => {
+            resetDevolucoesFilters();
+            loadDevolucoes();
+        });
+
         const nextButton = document.getElementById('devolucoesNext');
         const prevButton = document.getElementById('devolucoesPrev');
         nextButton?.addEventListener('click', () => {
@@ -113,14 +147,13 @@
             loadDevolucoes();
         });
 
-        ['filterPeriodoTempo', 'filterSerie', 'filterTurma', 'filterPeriodoEscolar'].forEach((id) => {
+        ['filterDataInicial', 'filterDataFinal'].forEach((id) => {
             document.getElementById(id)?.addEventListener('change', loadRelatedPanels);
             document.getElementById(id)?.addEventListener('input', loadRelatedPanels);
         });
 
-        document.getElementById('popularidadeRange')?.addEventListener('change', (event) => {
-            state.popularidadeRange = event.target.value;
-            loadPopularidade();
+        document.getElementById('clearRelatedFilters')?.addEventListener('click', () => {
+            resetRelatedFilters();
         });
 
         document.getElementById('recentLimit')?.addEventListener('change', (event) => {
@@ -135,6 +168,179 @@
 
         bindLoanRowClick('#devolucoesTable tbody');
         bindLoanRowClick('#acervoTable tbody');
+    }
+
+    function selectQuickFilterButton(value) {
+        document.querySelectorAll('.quick-filter').forEach((item) => {
+            item.classList.toggle('active', item.dataset.quickFilter === value);
+        });
+    }
+
+    function resetDevolucoesFilters() {
+        state.devolucoes.quickFilter = 'today';
+        state.devolucoes.student = '';
+        state.devolucoes.series = [];
+        state.devolucoes.turmas = [];
+        state.devolucoes.page = 1;
+
+        const studentEl = document.getElementById('filterStudent');
+        if (studentEl) studentEl.value = '';
+
+        document.querySelectorAll('input[name="devolucoesSerieOption"]:checked').forEach((checkbox) => {
+            checkbox.checked = false;
+        });
+        document.querySelectorAll('input[name="devolucoesTurmaOption"]:checked').forEach((checkbox) => {
+            checkbox.checked = false;
+        });
+
+        selectQuickFilterButton('today');
+        updateDropdownLabels();
+    }
+
+    function updateDropdownLabels() {
+        const serieButton = document.getElementById('devolucoesSerieDropdown');
+        const turmaButton = document.getElementById('devolucoesTurmaDropdown');
+        if (serieButton) {
+            serieButton.textContent = state.devolucoes.series.length ? `Série (${state.devolucoes.series.length})` : 'Série';
+        }
+        if (turmaButton) {
+            turmaButton.textContent = state.devolucoes.turmas.length ? `Turma (${state.devolucoes.turmas.length})` : 'Turma';
+        }
+    }
+
+    function fillMultiSelectDropdownOptions({ menuId, checkboxName, values, placeholder, selectedValues }) {
+        const menuEl = document.getElementById(menuId);
+        if (!menuEl) return;
+        menuEl.innerHTML = '';
+
+        if (!values.length) {
+            const emptyState = document.createElement('div');
+            emptyState.className = 'devolucoes-dropdown-empty';
+            emptyState.textContent = placeholder;
+            menuEl.appendChild(emptyState);
+            return;
+        }
+
+        const allWrapper = document.createElement('label');
+        allWrapper.className = 'dropdown-item d-flex align-items-center gap-2';
+
+        const allCheckbox = document.createElement('input');
+        allCheckbox.type = 'checkbox';
+        allCheckbox.className = 'form-check-input mt-0';
+        allCheckbox.name = checkboxName;
+        allCheckbox.value = '__all__';
+        allCheckbox.checked = values.length > 0 && values.every((value) => selectedValues.includes(String(value)));
+
+        const allText = document.createElement('span');
+        allText.className = 'fw-semibold';
+        allText.textContent = 'Todos';
+
+        allWrapper.appendChild(allCheckbox);
+        allWrapper.appendChild(allText);
+        menuEl.appendChild(allWrapper);
+
+        const divider = document.createElement('div');
+        divider.className = 'dropdown-divider my-1';
+        menuEl.appendChild(divider);
+
+        values.forEach((value) => {
+            const wrapper = document.createElement('label');
+            wrapper.className = 'dropdown-item d-flex align-items-center gap-2';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input mt-0';
+            checkbox.name = checkboxName;
+            checkbox.value = String(value);
+            checkbox.checked = selectedValues.includes(String(value));
+
+            const text = document.createElement('span');
+            text.textContent = String(value);
+
+            wrapper.appendChild(checkbox);
+            wrapper.appendChild(text);
+            menuEl.appendChild(wrapper);
+        });
+    }
+
+    function bindMultiSelectDropdownSelection({ menuId, checkboxName, selectedValues, onChange, bindKey }) {
+        const menu = document.getElementById(menuId);
+        if (!menu) return;
+
+        const boundAttr = bindKey || `bound-${checkboxName}`;
+        if (menu.dataset[boundAttr] === '1') return;
+        menu.dataset[boundAttr] = '1';
+
+        menu.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+
+        menu.addEventListener('change', (event) => {
+            const checkbox = event.target.closest(`input[name="${checkboxName}"]`);
+            if (!checkbox) return;
+
+            const allValue = '__all__';
+            const allCheckbox = menu.querySelector(`input[name="${checkboxName}"][value="${allValue}"]`);
+            const itemCheckboxes = Array.from(menu.querySelectorAll(`input[name="${checkboxName}"]`))
+                .filter((el) => el.value !== allValue);
+
+            if (checkbox.value === allValue) {
+                itemCheckboxes.forEach((el) => {
+                    el.checked = checkbox.checked;
+                });
+            } else if (allCheckbox) {
+                const allChecked = itemCheckboxes.length > 0 && itemCheckboxes.every((el) => el.checked);
+                allCheckbox.checked = allChecked;
+            }
+
+            const nextValues = itemCheckboxes
+                .filter((el) => el.checked)
+                .map((el) => el.value);
+
+            selectedValues.splice(0, selectedValues.length, ...nextValues);
+            onChange(nextValues);
+        });
+    }
+
+    async function loadDevolucoesFilterOptions() {
+        const data = await apiGet('/api/dashboard/devolucoes/filter-options');
+        fillMultiSelectDropdownOptions({
+            menuId: 'devolucoesSerieMenu',
+            checkboxName: 'devolucoesSerieOption',
+            values: data.series || [],
+            placeholder: 'Sem séries cadastradas',
+            selectedValues: state.devolucoes.series,
+        });
+        fillMultiSelectDropdownOptions({
+            menuId: 'devolucoesTurmaMenu',
+            checkboxName: 'devolucoesTurmaOption',
+            values: data.turmas || [],
+            placeholder: 'Sem turmas cadastradas',
+            selectedValues: state.devolucoes.turmas,
+        });
+        bindMultiSelectDropdownSelection({
+            menuId: 'devolucoesSerieMenu',
+            checkboxName: 'devolucoesSerieOption',
+            selectedValues: state.devolucoes.series,
+            bindKey: 'dropdownBound',
+            onChange: () => {
+                state.devolucoes.page = 1;
+                updateDropdownLabels();
+                loadDevolucoes();
+            }
+        });
+        bindMultiSelectDropdownSelection({
+            menuId: 'devolucoesTurmaMenu',
+            checkboxName: 'devolucoesTurmaOption',
+            selectedValues: state.devolucoes.turmas,
+            bindKey: 'dropdownBound',
+            onChange: () => {
+                state.devolucoes.page = 1;
+                updateDropdownLabels();
+                loadDevolucoes();
+            }
+        });
+        updateDropdownLabels();
     }
 
     function bindLoanRowClick(selector) {
@@ -167,11 +373,112 @@
 
     function currentRelatedFilters() {
         return {
-            period: document.getElementById('filterPeriodoTempo')?.value || 'all',
-            serie: document.getElementById('filterSerie')?.value || '',
-            turma: document.getElementById('filterTurma')?.value || '',
-            periodo: document.getElementById('filterPeriodoEscolar')?.value || ''
+            startDate: document.getElementById('filterDataInicial')?.value || '',
+            endDate: document.getElementById('filterDataFinal')?.value || '',
+            series: state.related.series,
+            turmas: state.related.turmas,
+            userTypes: state.related.userTypes
         };
+    }
+
+    function resetRelatedFilters() {
+        const finalEl = document.getElementById('filterDataFinal');
+        const initialEl = document.getElementById('filterDataInicial');
+
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 30);
+
+        if (finalEl) finalEl.value = toIsoDate(end);
+        if (initialEl) initialEl.value = toIsoDate(start);
+
+        state.related.userTypes = [];
+        state.related.series = [];
+        state.related.turmas = [];
+
+        document.querySelectorAll('input[name="relatedSerieOption"]').forEach((el) => {
+            el.checked = false;
+        });
+        document.querySelectorAll('input[name="relatedTurmaOption"]').forEach((el) => {
+            el.checked = false;
+        });
+        document.querySelectorAll('input[name="relatedUserTypeOption"]').forEach((el) => {
+            el.checked = false;
+        });
+
+        updateRelatedDropdownLabels();
+        loadRelatedPanels();
+    }
+
+    function updateRelatedDropdownLabels() {
+        const serieButton = document.getElementById('relatedSerieDropdown');
+        const turmaButton = document.getElementById('relatedTurmaDropdown');
+        const userTypeButton = document.getElementById('relatedUserTypeDropdown');
+        if (serieButton) {
+            serieButton.textContent = state.related.series.length ? `Série (${state.related.series.length})` : 'Série';
+        }
+        if (turmaButton) {
+            turmaButton.textContent = state.related.turmas.length ? `Turma (${state.related.turmas.length})` : 'Turma';
+        }
+        if (userTypeButton) {
+            userTypeButton.textContent = state.related.userTypes.length ? `Tipo de usuário (${state.related.userTypes.length})` : 'Tipo de usuário';
+        }
+    }
+
+    async function loadRelatedFilterOptions() {
+        const data = await apiGet('/api/dashboard/devolucoes/filter-options');
+        fillMultiSelectDropdownOptions({
+            menuId: 'relatedSerieMenu',
+            checkboxName: 'relatedSerieOption',
+            values: data.series || [],
+            placeholder: 'Sem séries cadastradas',
+            selectedValues: state.related.series,
+        });
+        fillMultiSelectDropdownOptions({
+            menuId: 'relatedTurmaMenu',
+            checkboxName: 'relatedTurmaOption',
+            values: data.turmas || [],
+            placeholder: 'Sem turmas cadastradas',
+            selectedValues: state.related.turmas,
+        });
+        fillMultiSelectDropdownOptions({
+            menuId: 'relatedUserTypeMenu',
+            checkboxName: 'relatedUserTypeOption',
+            values: data.user_types || [],
+            placeholder: 'Sem tipos cadastrados',
+            selectedValues: state.related.userTypes,
+        });
+        bindMultiSelectDropdownSelection({
+            menuId: 'relatedSerieMenu',
+            checkboxName: 'relatedSerieOption',
+            selectedValues: state.related.series,
+            bindKey: 'relatedDropdownBound',
+            onChange: () => {
+                updateRelatedDropdownLabels();
+                loadRelatedPanels();
+            }
+        });
+        bindMultiSelectDropdownSelection({
+            menuId: 'relatedTurmaMenu',
+            checkboxName: 'relatedTurmaOption',
+            selectedValues: state.related.turmas,
+            bindKey: 'relatedDropdownBound',
+            onChange: () => {
+                updateRelatedDropdownLabels();
+                loadRelatedPanels();
+            }
+        });
+        bindMultiSelectDropdownSelection({
+            menuId: 'relatedUserTypeMenu',
+            checkboxName: 'relatedUserTypeOption',
+            selectedValues: state.related.userTypes,
+            bindKey: 'relatedDropdownBound',
+            onChange: () => {
+                updateRelatedDropdownLabels();
+                loadRelatedPanels();
+            }
+        });
+        updateRelatedDropdownLabels();
     }
 
     async function loadKpis() {
@@ -197,6 +504,8 @@
             const data = await apiGet('/api/dashboard/devolucoes', {
                 quick_filter: state.devolucoes.quickFilter,
                 student: state.devolucoes.student,
+                serie: state.devolucoes.series,
+                turma: state.devolucoes.turmas,
                 page: state.devolucoes.page,
                 per_page: state.devolucoes.perPage
             });
@@ -229,6 +538,7 @@
                 const key = el.dataset.kpi;
                 el.textContent = data.kpis[key] ?? '--';
             });
+            document.getElementById('todayBadge').textContent = data.kpis.today ?? 0;
             document.getElementById('overdueBadge').textContent = data.kpis.overdue ?? 0;
 
             state.pagination.hasNext = data.pagination.has_next;
@@ -275,13 +585,14 @@
     }
 
     async function loadEngajamento() {
-        await withLoading(['#engajamentoTurmaChart', '#engajamentoSerieChart', '#engajamentoPeriodoChart', '#topAlunosList'], async () => {
+        await withLoading(['#engajamentoTurmaChart', '#engajamentoSerieChart', '#topAlunosList'], async () => {
             const filters = currentRelatedFilters();
             const data = await apiGet('/api/dashboard/engajamento', {
-                period: filters.period,
-                serie: filters.serie,
-                turma: filters.turma,
-                periodo: filters.periodo
+                start_date: filters.startDate,
+                end_date: filters.endDate,
+                serie: filters.series,
+                turma: filters.turmas,
+                user_type: filters.userTypes
             });
 
             window.DashboardCharts.renderEngajamento(data);
@@ -301,10 +612,11 @@
         await withLoading(['#popularidadeLivrosChart', '#popularidadeTagsChart'], async () => {
             const filters = currentRelatedFilters();
             const data = await apiGet('/api/dashboard/popularidade', {
-                range: state.popularidadeRange,
-                serie: filters.serie,
-                turma: filters.turma,
-                periodo: filters.periodo,
+                start_date: filters.startDate,
+                end_date: filters.endDate,
+                serie: filters.series,
+                turma: filters.turmas,
+                user_type: filters.userTypes,
                 limit: 10
             });
             window.DashboardCharts.renderPopularidade(data);
@@ -351,9 +663,12 @@
     }
 
     async function bootstrap() {
+        initEngajamentoDateRange();
         setupLoanModalWorkflow();
         bindEvents();
         try {
+            await loadDevolucoesFilterOptions();
+            await loadRelatedFilterOptions();
             await Promise.all([
                 loadKpis(),
                 loadDevolucoes(),

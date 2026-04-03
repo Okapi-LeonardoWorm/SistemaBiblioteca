@@ -8,6 +8,7 @@ from app.services.dashboard_service import (
     get_acervo_data,
     get_dashboard_kpis,
     get_devolucoes_data,
+    get_devolucoes_filter_options,
     get_engajamento,
     get_popularidade,
     get_top_tags,
@@ -268,6 +269,8 @@ def api_dashboard_kpis():
 def api_dashboard_devolucoes():
     quick_filter = (request.args.get('quick_filter') or 'today').strip().lower()
     student_query = (request.args.get('student') or '').strip()
+    series = request.args.getlist('serie')
+    turmas = request.args.getlist('turma')
     try:
         page = int(request.args.get('page', 1))
     except ValueError:
@@ -280,9 +283,18 @@ def api_dashboard_devolucoes():
     data = get_devolucoes_data(
         quick_filter=quick_filter,
         student_query=student_query,
+        series=series,
+        turmas=turmas,
         page=page,
         per_page=per_page,
     )
+    return jsonify({'success': True, 'data': data})
+
+
+@bp.route('/api/dashboard/devolucoes/filter-options')
+@login_required
+def api_dashboard_devolucoes_filter_options():
+    data = get_devolucoes_filter_options()
     return jsonify({'success': True, 'data': data})
 
 
@@ -311,7 +323,15 @@ def api_dashboard_ultimos_emprestimos():
 @bp.route('/api/dashboard/engajamento')
 @login_required
 def api_dashboard_engajamento():
-    period = (request.args.get('period') or 'all').strip().lower()
+    period = (request.args.get('period') or '').strip().lower()
+    start_date = (request.args.get('start_date') or '').strip()
+    end_date = (request.args.get('end_date') or '').strip()
+    series = request.args.getlist('serie')
+    turmas = request.args.getlist('turma')
+    user_types = [item.strip() for item in request.args.getlist('user_type') if (item or '').strip()]
+    user_type = (request.args.get('user_type') or '').strip()
+    if not user_types and user_type:
+        user_types = [user_type]
     serie = (request.args.get('serie') or '').strip()
     turma = (request.args.get('turma') or '').strip()
     periodo_escolar = (request.args.get('periodo') or '').strip().lower()
@@ -321,7 +341,13 @@ def api_dashboard_engajamento():
         top_limit = 10
 
     data = get_engajamento(
-        period=period,
+        period=period or None,
+        start_date=start_date or None,
+        end_date=end_date or None,
+        series=series or None,
+        turmas=turmas or None,
+        user_types=user_types or None,
+        user_type=user_type or None,
         serie=serie or None,
         turma=turma or None,
         periodo_escolar=periodo_escolar or None,
@@ -333,7 +359,15 @@ def api_dashboard_engajamento():
 @bp.route('/api/dashboard/popularidade')
 @login_required
 def api_dashboard_popularidade():
+    start_date = (request.args.get('start_date') or '').strip()
+    end_date = (request.args.get('end_date') or '').strip()
     range_name = (request.args.get('range') or 'anual').strip().lower()
+    series = request.args.getlist('serie')
+    turmas = request.args.getlist('turma')
+    user_types = [item.strip() for item in request.args.getlist('user_type') if (item or '').strip()]
+    user_type = (request.args.get('user_type') or '').strip()
+    if not user_types and user_type:
+        user_types = [user_type]
     serie = (request.args.get('serie') or '').strip()
     turma = (request.args.get('turma') or '').strip()
     periodo_escolar = (request.args.get('periodo') or '').strip().lower()
@@ -343,7 +377,13 @@ def api_dashboard_popularidade():
         limit = 10
 
     data = get_popularidade(
+        start_date=start_date or None,
+        end_date=end_date or None,
         range_name=range_name,
+        series=series or None,
+        turmas=turmas or None,
+        user_types=user_types or None,
+        user_type=user_type or None,
         serie=serie or None,
         turma=turma or None,
         periodo_escolar=periodo_escolar or None,
