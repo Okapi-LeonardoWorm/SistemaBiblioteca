@@ -7,6 +7,7 @@ from flask import Blueprint, abort, current_app, flash, jsonify, redirect, rende
 from flask_login import current_user, login_required
 from flask_paginate import get_page_parameter
 from sqlalchemy import or_
+from sqlalchemy import func
 
 from app import bcrypt, db
 from app.forms import UserForm
@@ -195,7 +196,7 @@ def new_user():
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8') if form.password.data else bcrypt.generate_password_hash('123456').decode('utf-8')
         new_user = User(
-            identificationCode=form.identificationCode.data.strip(),
+            identificationCode=form.identificationCode.data.strip().lower(),
             userCompleteName=form.userCompleteName.data.strip(),
             password=hashed_password,
             userType=form.userType.data,
@@ -230,7 +231,7 @@ def edit_user(user_id):
     if form.validate():
         # manual populate to avoid overwriting id fields
         user.userType = form.userType.data
-        user.identificationCode = form.identificationCode.data.strip()
+        user.identificationCode = form.identificationCode.data.strip().lower()
         user.userCompleteName = form.userCompleteName.data.strip()
         user.userPhone = form.userPhone.data
         user.birthDate = form.birthDate.data
@@ -256,10 +257,10 @@ def edit_user(user_id):
 @bp.route('/users/check-identification', methods=['GET'])
 @login_required
 def check_identification_code():
-    code = (request.args.get('code') or '').strip()
+    code = (request.args.get('code') or '').strip().lower()
     exists = False
     if code:
-        exists = db.session.query(User.userId).filter_by(identificationCode=code).first() is not None
+        exists = db.session.query(User.userId).filter(func.lower(User.identificationCode) == code).first() is not None
     return jsonify({'exists': exists})
 
 @bp.route('/users/delete/<int:user_id>', methods=['POST'])

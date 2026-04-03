@@ -99,6 +99,10 @@ def normalize_optional(value):
     return text.strip()
 
 
+def normalize_identifier(value):
+    return normalize_optional(value).lower()
+
+
 def parse_pcd(value):
     text = normalize_optional(value).lower()
     if text in ('', 'nao', 'não', 'n', 'no', 'false', '0'):
@@ -248,7 +252,7 @@ def _build_form_data(raw_row: dict, selected_user_type: str):
 
     data = {
         'userType': selected_user_type,
-        'identificationCode': normalize_optional(_resolve_column_value(raw_row, 'identificationCode')),
+        'identificationCode': normalize_identifier(_resolve_column_value(raw_row, 'identificationCode')),
         'password': normalize_optional(_resolve_column_value(raw_row, 'password')),
         'userCompleteName': normalize_optional(_resolve_column_value(raw_row, 'userCompleteName')),
         'birthDate': format_birth_date_for_form(_resolve_column_value(raw_row, 'birthDate')),
@@ -279,7 +283,7 @@ def _validate_required_fields(form_data: dict, required_fields: list[str]):
 def _create_user_from_form(form: UserForm, imported_by: int):
     hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
     new_user = User(
-        identificationCode=form.identificationCode.data.strip(),
+        identificationCode=form.identificationCode.data.strip().lower(),
         userCompleteName=form.userCompleteName.data.strip(),
         password=hashed_password,
         userType=form.userType.data,

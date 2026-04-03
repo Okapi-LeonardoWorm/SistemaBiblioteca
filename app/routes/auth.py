@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from flask_login import AnonymousUserMixin, current_user, login_required, login_user, logout_user
+from sqlalchemy import func
 
 from app import bcrypt, db
 from app.audit import log_manual_event
@@ -50,11 +51,19 @@ def logout():
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        if current_user.userType == 'admin':
+            return redirect(url_for('navigation.dashboard'))
+        return redirect(url_for('navigation.menu'))
+
     form = LoginForm()
     if form.validate_on_submit():
-        usernameStr = form.username.data.strip().lower()
-        # Agora o login utiliza o identificationCode no lugar de username
-        user = User.query.filter_by(identificationCode=usernameStr, deleted=False).first()
+        login_identifier = form.username.data.strip().lower()
+        # Login por código de identificação (incluindo emails) sem diferenciação de maiúsculas/minúsculas.
+        user = User.query.filter(
+            func.lower(User.identificationCode) == login_identifier,
+            User.deleted.is_(False),
+        ).first()
         valid_password = False
         if user:
             try:
@@ -67,7 +76,7 @@ def login():
             token_str = str(uuid4())
             
             session['logged_in'] = True
-            session['username'] = usernameStr
+            session['username'] = login_identifier
             session['userId'] = user.userId
             session['userType'] = user.userType
             session['session_start'] = datetime.now(timezone.utc).isoformat()
@@ -90,7 +99,7 @@ def login():
                 db.session.add(new_session)
                 db.session.commit()
 
-                log_manual_event('LOGIN', 'User', user.userId, changes={'username': usernameStr})
+                log_manual_event('LOGIN', 'User', user.userId, changes={'identifier': login_identifier})
             except Exception:
                 pass
             if user.userType == 'admin':

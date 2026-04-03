@@ -25,7 +25,7 @@
         {{ form.userType(class="form-select", id="userTypeSelect", required=True) }}
     </div>
     <div class="mb-3">
-        <label class="form-label">{{ form.identificationCode.label.text }} <span style="color:#d00">(Este também será o login do usuário)*</span></label>
+        <label class="form-label">{{ form.identificationCode.label.text }} <span style="color:#d00">(Este também será o código ou email de login)*</span></label>
         {{ form.identificationCode(class="form-control", id="identificationCodeInput", required=True, minlength=3, maxlength=150) }}
         <div id="identificationCodeHelp" class="form-text"></div>
     </div>
@@ -254,7 +254,7 @@
                     if (data.exists) {
                         input.classList.add('is-invalid');
                         input.style.color = '#7a0000';
-                        help.textContent = 'Código já existente. Escolha outro.';
+                        help.textContent = 'Código ou email já existente. Escolha outro.';
                         help.style.color = '#7a0000';
                     } else {
                         input.classList.remove('is-invalid');

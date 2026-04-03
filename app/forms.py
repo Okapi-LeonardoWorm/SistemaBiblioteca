@@ -3,6 +3,7 @@ from wtforms import (DateField, IntegerField, PasswordField, StringField,
                      SubmitField, RadioField, SelectField, TextAreaField, BooleanField)
 from wtforms.validators import (DataRequired, InputRequired, Length,
                                 NumberRange, Optional, Regexp, ValidationError)
+from sqlalchemy import func
 from .models import User
 from datetime import datetime, timedelta
 from .models import StatusLoan
@@ -16,8 +17,8 @@ def _digits_only(val: str) -> str:
 
 
 class LoginForm(FlaskForm):
-    username = StringField(validators=[InputRequired(), Length(
-        min=3, max=20, message="Seu nome de usuário deve conter entre 3 e 20 caracteres"),  Regexp(r'^[a-zA-Z_ ]+$', message="O nome de usuário pode conter apenas letras minúsculas e sublinhados(Underline), não pode conter espaços.")], render_kw={"placeholder": "Username"})
+    username = StringField('Código ou Email', validators=[InputRequired(), Length(
+        min=3, max=150, message="O login deve conter entre 3 e 150 caracteres")], render_kw={"placeholder": "Código ou email"})
     password = PasswordField(validators=[InputRequired(), Length(
         min=4, max=20, message="A senha deve conter entre 4 e 20 caracteres")], render_kw={"placeholder": "Password"})
 
@@ -25,7 +26,7 @@ class LoginForm(FlaskForm):
 
 
 class RegisterForm(FlaskForm):
-    username = StringField('Nome de Usuário', validators=[DataRequired(), Length(min=3, max=20)])
+    username = StringField('Código ou Email', validators=[DataRequired(), Length(min=3, max=150)])
     password = PasswordField('Senha', validators=[DataRequired(), Length(min=4, max=80)])
     userType = SelectField('Tipo de Cadastro', validators=[DataRequired()])
     userPhone = StringField('Telefone', validators=[Optional()], render_kw={"placeholder": "(11) 91234-5678", "inputmode": "numeric"})
@@ -43,9 +44,11 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Registrar")
 
     def validate_username(self, username):
-        existing_user_username = User.query.filter_by(username=username.data).first()
+        normalized_login = (username.data or '').strip().lower()
+        username.data = (username.data or '').strip()
+        existing_user_username = User.query.filter(func.lower(User.identificationCode) == normalized_login).first()
         if existing_user_username:
-            raise ValidationError('Este nome de usuário já está em uso. Por favor, escolha outro.')
+            raise ValidationError('Este código ou email já está em uso. Por favor, escolha outro.')
 
     def validate_userPhone(self, userPhone):
         if not userPhone.data:
@@ -192,7 +195,7 @@ class UserForm(FlaskForm):
         ('bibliotecario', 'Bibliotecário'),
         ('admin', 'Admin')
     ], validators=[DataRequired()])
-    identificationCode = StringField('Código de Identificação', validators=[DataRequired(), Length(min=3, max=150)])
+    identificationCode = StringField('Código ou Email', validators=[DataRequired(), Length(min=3, max=150)])
     userCompleteName = StringField('Nome completo', validators=[DataRequired(), Length(min=3, max=100)])
     password = PasswordField('Senha', validators=[Optional(), Length(min=4, max=80)])
     creationDate = DateField('Data de Criação', format='%Y-%m-%d', validators=[Optional()])
@@ -214,12 +217,14 @@ class UserForm(FlaskForm):
     submit = SubmitField('Salvar Usuário')
 
     def validate_identificationCode(self, identificationCode):
-        existing = User.query.filter_by(identificationCode=identificationCode.data).first()
+        normalized_code = (identificationCode.data or '').strip().lower()
+        identificationCode.data = normalized_code
+        existing = User.query.filter(func.lower(User.identificationCode) == normalized_code).first()
         # Permite manter o mesmo código ao editar o próprio registro
         if existing:
             current_id = getattr(self, 'instance_id', None)
             if not current_id or existing.userId != current_id:
-                raise ValidationError('Código de identificação já existe. Por favor, escolha outro.')
+                raise ValidationError('Código ou email já existe. Por favor, escolha outro.')
 
     def __init__(self, *args, **kwargs):
         # Permite passar mode='create'|'edit' para ajustar validações dinâmicas
