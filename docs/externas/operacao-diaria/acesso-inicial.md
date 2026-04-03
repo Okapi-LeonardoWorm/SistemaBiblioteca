@@ -18,7 +18,9 @@ Orientar o primeiro acesso e a navegacao inicial ate as telas de operacao diaria
 1. Abra a tela de Login.
 2. Preencha Codigo ou Email e Senha.
 3. Clique em Login.
-4. Acesse o menu inicial.
+4. Acesse a tela inicial do seu perfil:
+   - Admin: Dashboard Administrativo.
+   - Demais perfis: Menu operacional.
 5. Entre no modulo desejado (livros, usuarios, emprestimos ou tags).
 
 ## Como preencher os campos
@@ -39,4 +41,4 @@ Observacoes:
 
 ## Resultado esperado
 
-Sessao iniciada e navegacao liberada para as funcionalidades permitidas ao perfil.
+Sessao iniciada e navegacao liberada para as funcionalidades permitidas ao perfil, com entrada no dashboard para admins.

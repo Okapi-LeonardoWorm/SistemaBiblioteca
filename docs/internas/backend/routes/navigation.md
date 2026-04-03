@@ -9,6 +9,7 @@ Documentar o blueprint navigation, responsavel pelas telas de entrada operaciona
 - app/routes/navigation.py
 - app/templates/menu.html
 - app/templates/dashboard.html
+- app/routes/apis.py
 
 ## Endpoints
 
@@ -28,6 +29,7 @@ Documentar o blueprint navigation, responsavel pelas telas de entrada operaciona
 ## Comportamento funcional
 
 - dashboard apresenta KPIs e filtros por periodo para acompanhamento de emprestimos.
+- dashboard consome dados via endpoints /api/dashboard/* (detalhes em routes/dashboard-apis.md).
 - menu funciona como hub de navegacao para as areas operacionais.
 
 ## Riscos e pontos de atencao
@@ -41,3 +43,4 @@ Documentar o blueprint navigation, responsavel pelas telas de entrada operaciona
 
 - Manter dashboard como visao de acompanhamento e nao como concentrador de regras de negocio.
 - Preservar menu como ponto de entrada simples e orientado a tarefas.
+- Toda mudanca de bloco/indicador no dashboard deve atualizar tambem a documentacao externa operacional.

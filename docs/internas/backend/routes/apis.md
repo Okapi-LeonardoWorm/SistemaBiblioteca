@@ -1,8 +1,8 @@
-# Rotas de API Interna (apis)
+﻿# Rotas de API Interna (apis)
 
 ## Objetivo
 
-Documentar o blueprint apis, usado por componentes de interface para busca assistida de usuarios e livros.
+Documentar o blueprint apis, usado por componentes de interface para busca assistida e para o dashboard administrativo.
 
 ## Fonte principal
 
@@ -38,6 +38,17 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
     - Parametros:
        - q: busca por nome do livro ou nome do autor (opcional)
     - Retorno: listagem de livros associados a uma tag para consumo em modal de edicao.
+6. Endpoints do dashboard administrativo
+   - /api/dashboard/kpis
+   - /api/dashboard/devolucoes
+   - /api/dashboard/devolucoes/filter-options
+   - /api/dashboard/tags-top
+   - /api/dashboard/ultimos-emprestimos
+   - /api/dashboard/engajamento
+   - /api/dashboard/popularidade
+   - /api/dashboard/acervo
+   - /api/dashboard/drilldown
+   - Contratos detalhados em `routes/dashboard-apis.md`.
 
 ## Contrato de resposta
 
@@ -47,20 +58,20 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
   - users.search inclui age calculada.
   - books.search inclui available e lista de keywords.
 - Endpoints de historico retornam:
-   - success: boolean
-   - summary:
-      - total_borrowed
-      - total_returned
-   - status_options: lista com name e label do enum StatusLoan
-   - items: lista de emprestimos serializados
-      - user-history: loanId, bookName, loanDate, returnDate, statusName, statusLabel
-      - book-history: loanId, userCode, userName, loanDate, returnDate, statusName, statusLabel
+  - success: boolean
+  - summary:
+    - total_borrowed
+    - total_returned
+  - status_options: lista com name e label do enum StatusLoan
+  - items: lista de emprestimos serializados
+    - user-history: loanId, bookName, loanDate, returnDate, statusName, statusLabel
+    - book-history: loanId, userCode, userName, loanDate, returnDate, statusName, statusLabel
 - Endpoint de livros por tag retorna:
-   - success: boolean
-   - summary:
-      - total_books
-   - items: lista de livros serializados
-      - keyword-book-history: bookId, bookName, authorName
+  - success: boolean
+  - summary:
+    - total_books
+  - items: lista de livros serializados
+    - keyword-book-history: bookId, bookName, authorName
 
 ## Controle de acesso
 
@@ -106,3 +117,4 @@ Documentar o blueprint apis, usado por componentes de interface para busca assis
 
 - Versionar endpoint quando houver mudanca de contrato.
 - Definir schema de resposta com validacao automatizada se APIs crescerem.
+- Manter documentacao do dashboard sincronizada entre `routes/dashboard-apis.md` e `services/dashboard-service.md`.

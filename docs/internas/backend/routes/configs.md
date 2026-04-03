@@ -32,6 +32,7 @@ Documentar gestao de configuracoes de sistema e especificacoes de validacao via 
 - key e imutavel na edicao.
 - value e validado contra spec (tipo, limites, allowed values e required).
 - creation/last update e autoria sao atualizados em Configuration e ConfigSpec.
+- A chave `DASHBOARD_LOST_THRESHOLD_DAYS` e usada pelo dashboard para definir dias de atraso considerados extravio.
 
 ## Riscos e pontos de atencao
 

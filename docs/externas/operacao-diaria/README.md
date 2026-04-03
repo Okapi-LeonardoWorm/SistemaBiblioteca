@@ -21,6 +21,7 @@ Cada caso de uso segue o mesmo formato:
 ### Acesso
 
 - Realizar login e iniciar navegacao
+- Usar o dashboard administrativo (perfil admin)
 
 ### Usuarios
 
@@ -59,6 +60,7 @@ Cada caso de uso segue o mesmo formato:
 
 - acesso-inicial.md
 - login-e-acesso.md
+- dashboard/casos-de-uso.md
 - usuarios/casos-de-uso.md
 - usuarios/historico-de-emprestimos.md
 - livros/casos-de-uso.md
