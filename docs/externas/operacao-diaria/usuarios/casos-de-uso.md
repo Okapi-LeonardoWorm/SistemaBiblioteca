@@ -25,7 +25,7 @@ Quando uma pessoa precisa passar a usar o sistema (aluno, colaborador, bibliotec
 ### Como preencher os campos
 
 - Tipo de Usuario: selecione perfil correto (aluno, colaborador, bibliotecario, admin).
-- Codigo de Identificacao: obrigatorio; sera usado como login; minimo de 3 caracteres.
+- Codigo ou Email: obrigatorio; sera usado como login; entre 3 e 150 caracteres.
 - Nome completo: obrigatorio.
 - Senha: opcional no formulario de usuarios; se vazio, o sistema define senha padrao.
 - Data de Nascimento: obrigatoria ao criar.
@@ -39,7 +39,7 @@ Quando uma pessoa precisa passar a usar o sistema (aluno, colaborador, bibliotec
 
 ### Erros comuns e como resolver
 
-- Codigo de identificacao ja existe: use outro codigo unico.
+- Codigo ou email ja existe: use outro valor unico.
 - Data de nascimento vazia: preencher antes de salvar.
 - Telefone invalido: informar DDD + numero com 10 ou 11 digitos.
 - CPF invalido: informar 11 digitos.
@@ -85,10 +85,11 @@ Quando houver mudanca de dados cadastrais, perfil ou informacoes complementares.
 - Mesmas regras do cadastro.
 - Data de nascimento pode ficar opcional na edicao.
 - Senha so muda se voce preencher o campo.
+- O sistema normaliza codigo/email para minusculas e valida duplicidade sem diferenciar caixa.
 
 ### Erros comuns e como resolver
 
-- Codigo de identificacao duplicado: troque para um valor unico.
+- Codigo ou email duplicado: troque para um valor unico.
 - Erros de formato em telefone/CPF/RG: ajustar para o padrao aceito.
 
 ### Resultado esperado

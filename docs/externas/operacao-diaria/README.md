@@ -58,6 +58,7 @@ Cada caso de uso segue o mesmo formato:
 ## Navegacao rapida
 
 - acesso-inicial.md
+- login-e-acesso.md
 - usuarios/casos-de-uso.md
 - usuarios/historico-de-emprestimos.md
 - livros/casos-de-uso.md

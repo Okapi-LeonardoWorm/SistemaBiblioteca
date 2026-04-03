@@ -16,8 +16,12 @@ Documentar contratos e comportamento do blueprint auth, incluindo login, logout,
    - Requer login.
    - Redireciona admin para dashboard e demais usuarios para menu.
 2. GET /login, POST /login
-   - Nao requer login.
-   - Valida credenciais por identificationCode + senha.
+   - Disponivel para usuarios nao autenticados.
+   - Se o usuario ja estiver autenticado, nao renderiza a tela de login:
+     - admin -> redireciona para /dashboard
+     - demais perfis -> redireciona para /menu
+   - Valida credenciais por identificationCode (codigo ou email) + senha.
+   - Comparacao do identificador e case-insensitive (normalizacao para minusculas).
    - Cria sessao em flask session e registro em UserSession.
 3. GET /logout
    - Requer login.
@@ -51,10 +55,12 @@ Documentar contratos e comportamento do blueprint auth, incluindo login, logout,
 ## Troubleshooting
 
 1. Login valida formulario mas nao autentica:
-   - Verificar identificationCode normalizado e hash de senha armazenado.
-2. Sessao expira inesperadamente:
+   - Verificar identificador (codigo ou email) normalizado e hash de senha armazenado.
+2. Usuario autenticado abre /login e nao ve formulario:
+   - Comportamento esperado; conferir redirecionamento por perfil (dashboard ou menu).
+3. Sessao expira inesperadamente:
    - Verificar check_session_timeout e parametros de tempo de sessao.
-3. Usuario continua ativo apos logout:
+4. Usuario continua ativo apos logout:
    - Verificar persistencia/remocao em UserSession e limpeza de session_token.
 
 ## Diretriz de evolucao

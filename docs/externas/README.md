@@ -9,6 +9,7 @@ Primeira trilha de conteudo criada em `operacao-diaria/`.
 ## Conteudo disponivel
 
 - operacao-diaria/README.md
+- operacao-diaria/login-e-acesso.md
 - operacao-diaria/usuarios/casos-de-uso.md
 - operacao-diaria/usuarios/historico-de-emprestimos.md
 - operacao-diaria/livros/casos-de-uso.md

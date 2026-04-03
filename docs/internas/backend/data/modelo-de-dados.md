@@ -50,12 +50,15 @@ StatusLoan:
 - Soft delete aplicado em entidades com campo deleted.
 - Campos de trilha temporal e autoria (creationDate, lastUpdate, createdBy, updatedBy).
 - Conversao de datas por @validates para entradas em string.
+- identificationCode e o identificador principal de login (codigo ou email), com tamanho de 3 a 150 caracteres.
+- identificationCode e persistido em minusculas para comparacao case-insensitive.
 
 ## Pontos de atencao
 
 - Conversao de data distribuida em varias entidades exige padrao consistente em novas models.
 - Tabela keyWords usa casing misto; em SQL manual requer cuidado com quoting.
 - Campos historicos e alias (username como sinonimo de identificationCode) mantem compatibilidade retroativa.
+- Em bases legadas, a migracao de normalizacao pode ajustar identificadores em conflito por caixa com sufixo de resolucao.
 
 ## Diretriz para novas entidades
 

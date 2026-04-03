@@ -23,7 +23,8 @@ Documentar o blueprint users para administracao de usuarios, ciclo de vida (soft
 4. POST /users/edit/<user_id>
    - Atualiza usuario e senha opcional.
 5. GET /users/check-identification
-   - Verifica existencia de identificationCode (suporte a validacao frontend).
+   - Verifica existencia de identificationCode (codigo ou email de login) para validacao frontend.
+   - A verificacao e case-insensitive.
 6. POST /users/delete/<user_id>
    - Soft delete.
 7. POST /users/reactivate/<user_id>
@@ -51,6 +52,9 @@ Documentar o blueprint users para administracao de usuarios, ciclo de vida (soft
   - admin
 - Campos obrigatorios mudam por tipo de usuario.
 - Senha em criacao manual usa hash e fallback default quando ausente.
+- identificationCode e o identificador de login (codigo ou email), com limite de 3 a 150 caracteres.
+- identificationCode e normalizado para minusculas na criacao, edicao e importacao em massa.
+- Duplicidade de identificationCode e tratada de forma case-insensitive.
 - Soft delete preserva historico e integridade de referencias.
 - No historico do modal de usuario:
    - filtro por status e busca por nome do livro sao aplicados via API interna;
@@ -85,4 +89,5 @@ Documentar o blueprint users para administracao de usuarios, ciclo de vida (soft
 
 - Consolidar politicas de senha em servico unico quando houver requisitos de seguranca adicionais.
 - Manter compatibilidade de identificationCode como identificador principal de login.
+- Em mensagens e UI, preferir o termo "codigo ou email" para reduzir ambiguidade de uso.
 - Reutilizar o padrao de backref de historico para novas telas, evitando duplicacao de modais de emprestimo.
