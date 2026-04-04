@@ -7,4 +7,5 @@ tests/tempCodeRunnerFile.py
 .vscode/extensions.json
 instance/biblioteca Backup antes do Postgres 17-02-26.db
 instance/bulk_import_jobs/*
+instance/backups/*
 flask_session/

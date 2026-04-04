@@ -142,6 +142,191 @@ def populate_configs():
                     "description": "Lista de campos separados por vírgula."
                 }
             },
+            {
+                "key": "BACKUP_LOCAL_DIRECTORY",
+                "value": "",
+                "description": "Diretório local do Windows para armazenamento dos arquivos de backup. Em branco usa instance/backups.",
+                "spec": {
+                    "valueType": "string",
+                    "required": False,
+                    "defaultValue": "",
+                    "description": "Caminho absoluto no servidor Windows que executa o sistema."
+                }
+            },
+            {
+                "key": "BACKUP_RETENTION_DAYS",
+                "value": "30",
+                "description": "Quantidade de dias para retenção dos backups locais.",
+                "spec": {
+                    "valueType": "integer",
+                    "minValue": 1,
+                    "maxValue": 3650,
+                    "required": True,
+                    "defaultValue": "30",
+                    "description": "Arquivos locais mais antigos que este prazo podem ser removidos."
+                }
+            },
+            {
+                "key": "BACKUP_SCREEN_MIN_VIEW_LEVEL",
+                "value": "3",
+                "description": "Nível mínimo para visualizar a tela de backup (1=aluno, 2=colaborador, 3=bibliotecario, 4=admin).",
+                "spec": {
+                    "valueType": "enum",
+                    "allowedValues": "1,2,3,4",
+                    "required": True,
+                    "defaultValue": "3",
+                    "description": "Controle de acesso por nível mínimo para visualização da tela de backup."
+                }
+            },
+            {
+                "key": "BACKUP_SCREEN_MIN_EDIT_LEVEL",
+                "value": "4",
+                "description": "Nível mínimo para editar dados na tela de backup (1=aluno, 2=colaborador, 3=bibliotecario, 4=admin).",
+                "spec": {
+                    "valueType": "enum",
+                    "allowedValues": "1,2,3,4",
+                    "required": True,
+                    "defaultValue": "4",
+                    "description": "Controle de acesso por nível mínimo para ações de edição/executar backup."
+                }
+            },
+            {
+                "key": "BACKUP_GOOGLE_DRIVE_FOLDER_ID",
+                "value": "",
+                "description": "ID da pasta do Google Drive que receberá os backups.",
+                "spec": {
+                    "valueType": "string",
+                    "required": False,
+                    "defaultValue": "",
+                    "description": "Pasta de destino no Drive para upload automático de backups."
+                }
+            },
+            {
+                "key": "BACKUP_PG_DUMP_COMMAND",
+                "value": "pg_dump",
+                "description": "Comando executável de dump do PostgreSQL no servidor (ex.: pg_dump ou caminho completo).",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "pg_dump",
+                    "description": "Permite ajustar o executável usado na geração de backup local."
+                }
+            },
+            {
+                "key": "BACKUP_DUMP_STRATEGY",
+                "value": "auto",
+                "description": "Estratégia de dump: auto, local_cli ou docker_exec.",
+                "spec": {
+                    "valueType": "enum",
+                    "allowedValues": "auto,local_cli,docker_exec",
+                    "required": True,
+                    "defaultValue": "auto",
+                    "description": "auto tenta pg_dump local e cai para docker_exec quando necessário."
+                }
+            },
+            {
+                "key": "BACKUP_DOCKER_BINARY",
+                "value": "docker",
+                "description": "Executável Docker usado para comandos de backup via container.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "docker",
+                    "description": "Normalmente 'docker'."
+                }
+            },
+            {
+                "key": "BACKUP_DOCKER_CONTAINER_NAME",
+                "value": "sistema_biblioteca_postgres",
+                "description": "Nome do container PostgreSQL para executar pg_dump internamente.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "sistema_biblioteca_postgres",
+                    "description": "Container do banco definido no docker-compose."
+                }
+            },
+            {
+                "key": "BACKUP_DOCKER_TEMP_DIR",
+                "value": "/tmp",
+                "description": "Diretório temporário dentro do container para gerar o arquivo dump.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "/tmp",
+                    "description": "Pasta interna do container usada antes do docker cp."
+                }
+            },
+            {
+                "key": "BACKUP_RETRY_BASE_MINUTES",
+                "value": "10",
+                "description": "Intervalo base (minutos) para retentativas de upload ao Drive.",
+                "spec": {
+                    "valueType": "integer",
+                    "minValue": 1,
+                    "maxValue": 1440,
+                    "required": True,
+                    "defaultValue": "10",
+                    "description": "Base do backoff exponencial para nova tentativa de envio."
+                }
+            },
+            {
+                "key": "BACKUP_RETRY_MAX_MINUTES",
+                "value": "1440",
+                "description": "Teto (minutos) para retentativas de upload ao Drive.",
+                "spec": {
+                    "valueType": "integer",
+                    "minValue": 1,
+                    "maxValue": 10080,
+                    "required": True,
+                    "defaultValue": "1440",
+                    "description": "Intervalo máximo entre tentativas de envio pendente ao Drive."
+                }
+            },
+            {
+                "key": "BACKUP_GOOGLE_OAUTH_CLIENT_ID",
+                "value": "",
+                "description": "Client ID OAuth2 da aplicação Google para envio de backups ao Drive.",
+                "spec": {
+                    "valueType": "string",
+                    "required": False,
+                    "defaultValue": "",
+                    "description": "Credencial OAuth2 fornecida no Google Cloud Console."
+                }
+            },
+            {
+                "key": "BACKUP_GOOGLE_OAUTH_CLIENT_SECRET",
+                "value": "",
+                "description": "Client Secret OAuth2 da aplicação Google para envio de backups ao Drive.",
+                "spec": {
+                    "valueType": "string",
+                    "required": False,
+                    "defaultValue": "",
+                    "description": "Segredo OAuth2 fornecido no Google Cloud Console."
+                }
+            },
+            {
+                "key": "BACKUP_GOOGLE_OAUTH_REDIRECT_URI",
+                "value": "",
+                "description": "URL de callback OAuth2 da aplicação para retorno da autorização Google.",
+                "spec": {
+                    "valueType": "string",
+                    "required": False,
+                    "defaultValue": "",
+                    "description": "Deixe em branco para usar automaticamente a rota /backups/google/callback do servidor atual."
+                }
+            },
+            {
+                "key": "BACKUP_GOOGLE_OAUTH_SCOPES",
+                "value": "https://www.googleapis.com/auth/drive.file",
+                "description": "Escopos OAuth2 utilizados na integração de backup com Google Drive.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "https://www.googleapis.com/auth/drive.file",
+                    "description": "Escopos separados por espaço conforme padrão OAuth2."
+                }
+            },
         ]
 
         for item in default_configs:
@@ -155,6 +340,7 @@ def populate_configs():
                 new_spec = ConfigSpec(
                     key=key,
                     valueType=spec_data['valueType'],
+                    allowedValues=spec_data.get('allowedValues'),
                     minValue=spec_data.get('minValue'),
                     maxValue=spec_data.get('maxValue'),
                     required=spec_data.get('required', False),

@@ -68,6 +68,8 @@ def createApp(config_name: str | None = None):
 
     @app.context_processor
     def inject_globals():
+        from app.utils import can_view_backup_screen
+
         def _render_user_identifier(user):
             if user is None:
                 return ''
@@ -95,6 +97,7 @@ def createApp(config_name: str | None = None):
             username=session.get('username'),
             userType=session.get('userType'),
             userId=session.get('userId'),
+            can_view_backup_screen=can_view_backup_screen(),
             csrf_token=_csrf_token,
             render_user_identifier=_render_user_identifier)
     
@@ -103,9 +106,11 @@ def createApp(config_name: str | None = None):
         from . import forms, models
         from . import audit
         from .routes import register_blueprints
+        from .services.backup_runtime import start_backup_runtime
 
         audit.register_listeners(app)
         register_blueprints(app)
+        start_backup_runtime(app)
     return app
 
 # Alias comum para compatibilidade com ferramentas/CLIs

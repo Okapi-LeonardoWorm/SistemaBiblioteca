@@ -24,9 +24,13 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
     WTF_CSRF_METHODS = ['POST', 'PUT', 'DELETE']
+    BACKUP_RUNTIME_ENABLED = True
+    BACKUP_RUNTIME_LOOP_SECONDS = int(os.environ.get('BACKUP_RUNTIME_LOOP_SECONDS', '30'))
+    BACKUP_TOKEN_ENCRYPTION_KEY = os.environ.get('BACKUP_TOKEN_ENCRYPTION_KEY')
 
 class TestingConfig(Config):
     TESTING = True
+    BACKUP_RUNTIME_ENABLED = False
     SESSION_TYPE = 'filesystem'
     SQLALCHEMY_DATABASE_URI = (
         os.environ.get('TEST_DATABASE_URL')

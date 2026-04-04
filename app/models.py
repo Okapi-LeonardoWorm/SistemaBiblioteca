@@ -283,3 +283,72 @@ class UserSession(db.Model):
     last_activity = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     
     user = db.relationship('User', backref=db.backref('sessions', lazy='dynamic'))
+
+
+class BackupSchedule(db.Model):
+    __tablename__ = 'backup_schedules'
+
+    scheduleId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(120), nullable=False)
+    frequency = db.Column(db.String(20), nullable=False)  # daily | weekly
+    runTime = db.Column(db.String(5), nullable=False)  # HH:MM
+    weekDays = db.Column(db.String(20), nullable=True)  # Ex.: "1,3,5" para seg/qua/sex
+    timezone = db.Column(db.String(64), nullable=False, default='America/Sao_Paulo')
+    enabled = db.Column(db.Boolean, nullable=False, default=True)
+    nextRunAt = db.Column(db.DateTime, nullable=True)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=False)
+
+
+class BackupRun(db.Model):
+    __tablename__ = 'backup_runs'
+
+    runId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    scheduleId = db.Column(db.Integer, db.ForeignKey('backup_schedules.scheduleId'), nullable=True)
+    status = db.Column(db.String(20), nullable=False, default='queued')  # queued|running|success|failed
+    fileName = db.Column(db.String(255), nullable=True)
+    localPath = db.Column(db.Text, nullable=True)
+    fileHash = db.Column(db.String(64), nullable=True)
+    fileSizeBytes = db.Column(db.BigInteger, nullable=True)
+    startedAt = db.Column(db.DateTime, nullable=True)
+    finishedAt = db.Column(db.DateTime, nullable=True)
+    errorMessage = db.Column(db.Text, nullable=True)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
+
+
+class BackupUpload(db.Model):
+    __tablename__ = 'backup_uploads'
+
+    uploadId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    runId = db.Column(db.Integer, db.ForeignKey('backup_runs.runId'), nullable=False, unique=True)
+    provider = db.Column(db.String(30), nullable=False, default='google_drive')
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending|uploading|uploaded|failed
+    retryCount = db.Column(db.Integer, nullable=False, default=0)
+    nextRetryAt = db.Column(db.DateTime, nullable=True)
+    uploadedAt = db.Column(db.DateTime, nullable=True)
+    remoteFileId = db.Column(db.String(255), nullable=True)
+    lastError = db.Column(db.Text, nullable=True)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+
+
+class OAuthCredential(db.Model):
+    __tablename__ = 'oauth_credentials'
+
+    credentialId = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    provider = db.Column(db.String(50), nullable=False, unique=True)  # Ex.: google_drive
+    accessToken = db.Column(db.Text, nullable=True)
+    refreshToken = db.Column(db.Text, nullable=True)
+    tokenType = db.Column(db.String(30), nullable=True)
+    scope = db.Column(db.Text, nullable=True)
+    expiresAt = db.Column(db.DateTime, nullable=True)
+    isEncrypted = db.Column(db.Boolean, nullable=False, default=False)
+    creationDate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    lastUpdate = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    createdBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)
+    updatedBy = db.Column(db.Integer, db.ForeignKey('users.userId'), nullable=True)

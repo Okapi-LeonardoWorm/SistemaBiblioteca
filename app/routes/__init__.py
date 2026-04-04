@@ -4,6 +4,7 @@ from .admin_sessions import bp as admin_sessions_bp
 from .apis import bp as apis_bp
 from .audit_logs import bp as audit_logs_bp
 from .auth import bp as auth_bp
+from .backups import bp as backups_bp
 from .books import bp as books_bp
 from .configs import bp as configs_bp
 from .keywords import bp as keywords_bp
@@ -14,6 +15,7 @@ from .users import bp as users_bp
 BLUEPRINTS = [
     auth_bp,
     navigation_bp,
+    backups_bp,
     books_bp,
     loans_bp,
     keywords_bp,
