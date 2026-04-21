@@ -56,6 +56,15 @@ Cada caso de uso segue o mesmo formato:
 - Excluir tag (exclusao logica)
 - Recuperacao de tag (orientacao operacional)
 
+### Backup
+
+- Configurar credenciais Google Drive
+- Conectar e desconectar integracao Google
+- Executar backup manual
+- Configurar agendamentos
+- Monitorar fila e tentativas de upload
+- Resolver falhas e recuperar pasta invalida
+
 ## Navegacao rapida
 
 - acesso-inicial.md
@@ -68,3 +77,10 @@ Cada caso de uso segue o mesmo formato:
 - emprestimos/casos-de-uso.md
 - tags/casos-de-uso.md
 - tags/livros-por-tag.md
+- backup/README.md
+- backup/google-drive-setup.md
+- backup/configuracoes-e-preenchimento.md
+- backup/agendamentos.md
+- backup/monitoramento-da-fila.md
+- backup/recovery-mode.md
+- backup/troubleshooting.md

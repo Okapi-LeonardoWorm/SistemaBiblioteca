@@ -50,6 +50,14 @@ Descrever a arquitetura logica do backend para guiar manutencao, extensao e trou
 - Sessao server-side depende de banco e configuracao correta de SESSION_SQLALCHEMY.
 - Aliases legados de endpoint mantem retrocompatibilidade e precisam ser preservados em refactors.
 - Parte da logica de negocio ainda reside em rotas; novas evolucoes devem priorizar extracao progressiva para services.
+- Fluxo de backup e offline-first: cria artefato local primeiro e envia ao Google Drive por fila/retry em segundo momento.
+
+## Arquitetura de backup (resumo)
+
+- Rota de acao manual e configuracao em app/routes/backups.py.
+- Orquestracao principal em app/services/backup_service.py.
+- Persistencia operacional em BackupRun, BackupSchedule, BackupUpload e OAuthCredential.
+- Tela de observabilidade com status da fila, tentativas e erros em app/templates/backups.html.
 
 ## Referencias de codigo
 

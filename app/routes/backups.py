@@ -13,6 +13,7 @@ from app.services import (
     disconnect_google_oauth,
     exchange_google_oauth_code,
     process_pending_drive_uploads_once,
+    upsert_backup_config_value,
 )
 from app.utils import can_edit_backup_screen, can_view_backup_screen
 
@@ -24,29 +25,6 @@ def _get_config_value(key: str, default: str = '') -> str:
     if not row or row.value is None:
         return default
     return str(row.value)
-
-
-def _upsert_config(key: str, value: str, description: str, actor_user_id: int):
-    now_dt = datetime.now()
-    row = Configuration.query.filter_by(key=key).first()
-    normalized = (value or '').strip()
-    if row:
-        row.value = normalized
-        row.description = description
-        row.lastUpdate = now_dt
-        row.updatedBy = actor_user_id
-        return
-
-    row = Configuration(
-        key=key,
-        value=normalized,
-        description=description,
-        creationDate=now_dt,
-        lastUpdate=now_dt,
-        createdBy=actor_user_id,
-        updatedBy=actor_user_id,
-    )
-    db.session.add(row)
 
 
 def _parse_enabled(raw_value: str | None) -> bool:
@@ -88,6 +66,8 @@ def backup_management():
     google_client_secret = _get_config_value('BACKUP_GOOGLE_OAUTH_CLIENT_SECRET', '')
     google_redirect_uri = _get_config_value('BACKUP_GOOGLE_OAUTH_REDIRECT_URI', '')
     google_folder_id = _get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_ID', '')
+    google_folder_name = _get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_NAME', 'Backups_Sistema_Biblioteca')
+    google_auto_create_folder = _get_config_value('BACKUP_GOOGLE_DRIVE_AUTO_CREATE_FOLDER', '1')
     google_scopes = _get_config_value('BACKUP_GOOGLE_OAUTH_SCOPES', 'https://www.googleapis.com/auth/drive.file')
     google_ready_to_connect = bool(google_client_id and google_client_secret)
 
@@ -102,6 +82,8 @@ def backup_management():
         google_client_secret=google_client_secret,
         google_redirect_uri=google_redirect_uri,
         google_folder_id=google_folder_id,
+        google_folder_name=google_folder_name,
+        google_auto_create_folder=google_auto_create_folder,
         google_scopes=google_scopes,
         google_ready_to_connect=google_ready_to_connect,
     )
@@ -377,37 +359,36 @@ def save_google_credentials():
         flash('Informe o Client Secret do OAuth2 do Google.', 'warning')
         return redirect(url_for('backups.backup_management'))
 
-    _upsert_config(
+    upsert_backup_config_value(
         'BACKUP_GOOGLE_OAUTH_CLIENT_ID',
         client_id,
         'Client ID OAuth2 da aplicação Google para envio de backups ao Drive.',
         current_user.userId,
     )
-    _upsert_config(
+    upsert_backup_config_value(
         'BACKUP_GOOGLE_OAUTH_CLIENT_SECRET',
         client_secret,
         'Client Secret OAuth2 da aplicação Google para envio de backups ao Drive.',
         current_user.userId,
     )
-    _upsert_config(
+    upsert_backup_config_value(
         'BACKUP_GOOGLE_OAUTH_REDIRECT_URI',
         redirect_uri,
         'URL de callback OAuth2 da aplicação para retorno da autorização Google.',
         current_user.userId,
     )
-    _upsert_config(
+    upsert_backup_config_value(
         'BACKUP_GOOGLE_DRIVE_FOLDER_ID',
         folder_id,
         'ID da pasta do Google Drive que receberá os backups.',
         current_user.userId,
     )
-    _upsert_config(
+    upsert_backup_config_value(
         'BACKUP_GOOGLE_OAUTH_SCOPES',
         scopes,
         'Escopos OAuth2 utilizados na integração de backup com Google Drive.',
         current_user.userId,
     )
-    db.session.commit()
 
     flash('Credenciais Google salvas com sucesso. Agora clique em Conectar Google.', 'success')
     return redirect(url_for('backups.backup_management'))

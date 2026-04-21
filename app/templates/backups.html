@@ -72,6 +72,8 @@
                 {% else %}
                 <span class="badge text-bg-warning">Faltam credenciais OAuth2</span>
                 {% endif %}
+                <span class="badge text-bg-secondary">Pasta gerenciada: {{ google_folder_name }}</span>
+                <span class="badge text-bg-secondary">Auto criação: {{ 'Ativa' if (google_auto_create_folder|string)|lower in ['1', 'true', 'yes', 'sim', 'on'] else 'Desativada' }}</span>
             </div>
             {% if can_edit %}
             <div class="d-flex gap-2">
@@ -196,7 +198,11 @@
                     <th>Arquivo</th>
                     <th>Tamanho</th>
                     <th>Upload Drive</th>
+                    <th>Tentativas</th>
+                    <th>Próxima Tentativa</th>
+                    <th>ID Remoto</th>
                     <th>Finalizado Em</th>
+                    <th>Erro Upload</th>
                     <th>Erro</th>
                 </tr>
             </thead>
@@ -209,11 +215,15 @@
                     <td>{{ run.fileName or '—' }}</td>
                     <td>{{ run.fileSizeBytes or '—' }}</td>
                     <td>{{ upload.status if upload else '—' }}</td>
+                    <td>{{ upload.retryCount if upload else '—' }}</td>
+                    <td>{{ upload.nextRetryAt.strftime('%d/%m/%Y %H:%M:%S') if upload and upload.nextRetryAt else '—' }}</td>
+                    <td>{{ upload.remoteFileId if upload and upload.remoteFileId else '—' }}</td>
                     <td>{{ run.finishedAt.strftime('%d/%m/%Y %H:%M:%S') if run.finishedAt else '—' }}</td>
+                    <td>{{ upload.lastError if upload and upload.lastError else '—' }}</td>
                     <td>{{ run.errorMessage or '—' }}</td>
                 </tr>
                 {% else %}
-                <tr><td colspan="7" class="text-center">Nenhum backup executado ainda.</td></tr>
+                <tr><td colspan="11" class="text-center">Nenhum backup executado ainda.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

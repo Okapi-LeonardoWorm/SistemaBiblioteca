@@ -202,6 +202,40 @@ def populate_configs():
                 }
             },
             {
+                "key": "BACKUP_GOOGLE_DRIVE_FOLDER_NAME",
+                "value": "Backups_Sistema_Biblioteca",
+                "description": "Nome da pasta gerenciada automaticamente no Google Drive para armazenamento dos backups.",
+                "spec": {
+                    "valueType": "string",
+                    "required": True,
+                    "defaultValue": "Backups_Sistema_Biblioteca",
+                    "description": "Se o folder_id estiver vazio ou inválido, o sistema busca/cria pasta com este nome."
+                }
+            },
+            {
+                "key": "BACKUP_GOOGLE_DRIVE_AUTO_CREATE_FOLDER",
+                "value": "1",
+                "description": "Habilita criação automática da pasta de backup no Google Drive quando necessário.",
+                "spec": {
+                    "valueType": "boolean",
+                    "required": True,
+                    "defaultValue": "1",
+                    "description": "Quando ativo, o sistema provisiona a pasta automaticamente no connect/upload."
+                }
+            },
+            {
+                "key": "BACKUP_GOOGLE_DRIVE_FOLDER_RECOVERY_MODE",
+                "value": "auto_replace_invalid",
+                "description": "Comportamento quando folder_id salvo estiver inválido: auto_replace_invalid ou strict.",
+                "spec": {
+                    "valueType": "enum",
+                    "allowedValues": "auto_replace_invalid,strict",
+                    "required": True,
+                    "defaultValue": "auto_replace_invalid",
+                    "description": "auto_replace_invalid busca/cria nova pasta e atualiza folder_id automaticamente."
+                }
+            },
+            {
                 "key": "BACKUP_PG_DUMP_COMMAND",
                 "value": "pg_dump",
                 "description": "Comando executável de dump do PostgreSQL no servidor (ex.: pg_dump ou caminho completo).",

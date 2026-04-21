@@ -21,9 +21,15 @@ BACKUP_FILE_PREFIX = 'BkpBiblioteca'
 GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 GOOGLE_DRIVE_UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart'
+GOOGLE_DRIVE_FILES_URL = 'https://www.googleapis.com/drive/v3/files'
+GOOGLE_DEFAULT_BACKUP_FOLDER_NAME = 'Backups_Sistema_Biblioteca'
 
 
 class PgDumpCommandNotFoundError(RuntimeError):
+    pass
+
+
+class GoogleDriveFolderValidationError(RuntimeError):
     pass
 
 
@@ -49,6 +55,58 @@ def _get_config_value(key: str, default: str | None = None) -> str | None:
 def _get_config_bool(key: str, default: bool = False) -> bool:
     raw = (_get_config_value(key, '1' if default else '0') or '').strip().lower()
     return raw in {'1', 'true', 'yes', 'sim', 'on'}
+
+
+def _resolve_config_actor_user_id(actor_user_id: int | None = None) -> int:
+    if actor_user_id:
+        return int(actor_user_id)
+
+    existing_config = Configuration.query.order_by(Configuration.configId.asc()).first()
+    if existing_config:
+        if existing_config.updatedBy:
+            return int(existing_config.updatedBy)
+        if existing_config.createdBy:
+            return int(existing_config.createdBy)
+
+    credential = OAuthCredential.query.filter_by(provider='google_drive').first()
+    if credential:
+        if credential.updatedBy:
+            return int(credential.updatedBy)
+        if credential.createdBy:
+            return int(credential.createdBy)
+
+    return 1
+
+
+def _upsert_config_value(key: str, value: str, description: str, actor_user_id: int | None = None):
+    now_dt = datetime.now()
+    normalized = (value or '').strip()
+    entry = Configuration.query.filter_by(key=key).first()
+    if entry:
+        entry.value = normalized
+        entry.description = description
+        entry.lastUpdate = now_dt
+        entry.updatedBy = _resolve_config_actor_user_id(actor_user_id)
+        db.session.commit()
+        return entry
+
+    owner_id = _resolve_config_actor_user_id(actor_user_id)
+    entry = Configuration(
+        key=key,
+        value=normalized,
+        description=description,
+        creationDate=now_dt,
+        lastUpdate=now_dt,
+        createdBy=owner_id,
+        updatedBy=owner_id,
+    )
+    db.session.add(entry)
+    db.session.commit()
+    return entry
+
+
+def upsert_backup_config_value(key: str, value: str, description: str, actor_user_id: int | None = None):
+    return _upsert_config_value(key=key, value=value, description=description, actor_user_id=actor_user_id)
 
 
 def _get_backup_directory() -> str:
@@ -474,6 +532,24 @@ def _get_google_scopes() -> str:
     return 'https://www.googleapis.com/auth/drive.file'
 
 
+def _get_google_drive_folder_name() -> str:
+    configured = (_get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_NAME', '') or '').strip()
+    if configured:
+        return configured
+    return GOOGLE_DEFAULT_BACKUP_FOLDER_NAME
+
+
+def _is_google_drive_folder_auto_create_enabled() -> bool:
+    return _get_config_bool('BACKUP_GOOGLE_DRIVE_AUTO_CREATE_FOLDER', default=True)
+
+
+def _get_google_drive_folder_recovery_mode() -> str:
+    configured = (_get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_RECOVERY_MODE', 'auto_replace_invalid') or '').strip().lower()
+    if configured in {'auto_replace_invalid', 'strict'}:
+        return configured
+    return 'auto_replace_invalid'
+
+
 def build_google_oauth_authorize_url(state_value: str, redirect_uri: str) -> str:
     client_id = _get_google_client_id()
     if not client_id:
@@ -555,6 +631,12 @@ def exchange_google_oauth_code(code: str, redirect_uri: str, actor_user_id: int 
     credential.lastUpdate = datetime.now()
     credential.updatedBy = actor_user_id
     db.session.commit()
+
+    # Provisionamento oportunista: se falhar aqui, o fluxo de upload fará nova tentativa.
+    try:
+        ensure_google_drive_backup_folder_id(access_token=access_token, actor_user_id=actor_user_id)
+    except Exception:
+        pass
 
     return credential
 
@@ -641,6 +723,149 @@ def _upload_file_to_google_drive(local_path: str, file_name: str, folder_id: str
     return file_id
 
 
+def _validate_google_drive_folder(folder_id: str, access_token: str):
+    normalized = (folder_id or '').strip()
+    if not normalized:
+        return
+
+    url = f'{GOOGLE_DRIVE_FILES_URL}/{normalized}'
+    headers = {'Authorization': f'Bearer {access_token}'}
+    params = {'fields': 'id,name,mimeType,trashed'}
+
+    try:
+        response = requests.get(
+            url,
+            headers=headers,
+            params=params,
+            timeout=30,
+            verify=_requests_verify_bundle(),
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f'Falha de rede ao validar pasta do Google Drive: {exc}') from exc
+
+    if response.status_code == 404:
+        raise GoogleDriveFolderValidationError('Pasta do Google Drive não encontrada (folder_id inválido).')
+    if response.status_code == 403:
+        raise GoogleDriveFolderValidationError('Sem permissão para acessar a pasta do Google Drive informada.')
+    if response.status_code >= 400:
+        raise GoogleDriveFolderValidationError(f'Falha ao validar pasta do Google Drive: {response.text}')
+
+    payload = response.json()
+    if payload.get('trashed'):
+        raise GoogleDriveFolderValidationError('A pasta do Google Drive informada está na lixeira.')
+
+    mime_type = (payload.get('mimeType') or '').strip()
+    if mime_type != 'application/vnd.google-apps.folder':
+        raise GoogleDriveFolderValidationError('O folder_id informado não corresponde a uma pasta no Google Drive.')
+
+
+def _find_google_drive_folder_id_by_name(folder_name: str, access_token: str) -> str:
+    normalized = (folder_name or '').strip()
+    if not normalized:
+        return ''
+
+    safe_name = normalized.replace("'", "\\'")
+    headers = {'Authorization': f'Bearer {access_token}'}
+    params = {
+        'q': f"mimeType = 'application/vnd.google-apps.folder' and trashed = false and name = '{safe_name}'",
+        'fields': 'files(id,name,createdTime)',
+        'orderBy': 'createdTime desc',
+        'pageSize': 10,
+        'spaces': 'drive',
+    }
+
+    try:
+        response = requests.get(
+            GOOGLE_DRIVE_FILES_URL,
+            headers=headers,
+            params=params,
+            timeout=30,
+            verify=_requests_verify_bundle(),
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f'Falha de rede ao buscar pasta de backup no Drive: {exc}') from exc
+
+    if response.status_code >= 400:
+        raise RuntimeError(f'Falha ao buscar pasta de backup no Drive: {response.text}')
+
+    payload = response.json()
+    folders = payload.get('files') or []
+    if not folders:
+        return ''
+    return str(folders[0].get('id') or '').strip()
+
+
+def _create_google_drive_folder(folder_name: str, access_token: str) -> str:
+    normalized = (folder_name or '').strip()
+    if not normalized:
+        raise RuntimeError('Nome da pasta de backup do Google Drive inválido.')
+
+    headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json; charset=UTF-8'}
+    payload = {
+        'name': normalized,
+        'mimeType': 'application/vnd.google-apps.folder',
+    }
+
+    try:
+        response = requests.post(
+            GOOGLE_DRIVE_FILES_URL,
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=30,
+            verify=_requests_verify_bundle(),
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f'Falha de rede ao criar pasta de backup no Drive: {exc}') from exc
+
+    if response.status_code >= 400:
+        raise RuntimeError(f'Falha ao criar pasta de backup no Drive: {response.text}')
+
+    data = response.json()
+    folder_id = (data.get('id') or '').strip()
+    if not folder_id:
+        raise RuntimeError('Criação de pasta no Drive sem id retornado.')
+    return folder_id
+
+
+def ensure_google_drive_backup_folder_id(access_token: str, actor_user_id: int | None = None) -> str:
+    configured_folder_id = (_get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_ID', '') or '').strip()
+    recovery_mode = _get_google_drive_folder_recovery_mode()
+
+    if configured_folder_id:
+        try:
+            _validate_google_drive_folder(configured_folder_id, access_token)
+            return configured_folder_id
+        except GoogleDriveFolderValidationError:
+            if recovery_mode == 'strict':
+                raise
+
+    if not _is_google_drive_folder_auto_create_enabled():
+        raise RuntimeError('Auto criação de pasta do Google Drive está desativada e não há folder_id válido configurado.')
+
+    folder_name = _get_google_drive_folder_name()
+    folder_id = _find_google_drive_folder_id_by_name(folder_name, access_token)
+    if not folder_id:
+        folder_id = _create_google_drive_folder(folder_name, access_token)
+
+    _upsert_config_value(
+        'BACKUP_GOOGLE_DRIVE_FOLDER_ID',
+        folder_id,
+        'ID da pasta do Google Drive que receberá os backups.',
+        actor_user_id,
+    )
+    return folder_id
+
+
+def _mark_upload_failed(item: BackupUpload, message: str):
+    item.status = 'failed'
+    item.retryCount = int(item.retryCount or 0) + 1
+    wait_minutes = next_retry_delay_minutes(item.retryCount)
+    item.nextRetryAt = datetime.now() + timedelta(minutes=wait_minutes)
+    item.lastError = str(message)
+    item.lastUpdate = datetime.now()
+    db.session.commit()
+
+
 def process_pending_drive_uploads_once(limit: int = 10) -> int:
     now_dt = datetime.now()
     pending_items = (
@@ -660,21 +885,31 @@ def process_pending_drive_uploads_once(limit: int = 10) -> int:
 
     credential = OAuthCredential.query.filter_by(provider='google_drive').first()
     if not credential or not credential.accessToken:
+        for item in pending_items:
+            _mark_upload_failed(item, 'Google Drive não conectado. Conecte novamente e tente processar a fila.')
         return 0
 
-    folder_id = (_get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_ID', '') or '').strip()
+    folder_id = ''
     uploaded_count = 0
+
+    try:
+        access_token = _get_google_access_token(credential)
+    except Exception as exc:
+        for item in pending_items:
+            _mark_upload_failed(item, f'Falha ao obter token Google: {exc}')
+        return 0
+
+    try:
+        folder_id = ensure_google_drive_backup_folder_id(access_token=access_token, actor_user_id=credential.updatedBy)
+    except Exception as exc:
+        for item in pending_items:
+            _mark_upload_failed(item, f'Falha ao resolver pasta de backup no Google Drive: {exc}')
+        return 0
 
     for item in pending_items:
         run = db.session.get(BackupRun, item.runId)
         if not run or run.status != 'success' or not run.localPath or not os.path.isfile(run.localPath):
-            item.status = 'failed'
-            item.retryCount = int(item.retryCount or 0) + 1
-            wait_minutes = next_retry_delay_minutes(item.retryCount)
-            item.nextRetryAt = datetime.now() + timedelta(minutes=wait_minutes)
-            item.lastError = 'Arquivo local indisponível para upload.'
-            item.lastUpdate = datetime.now()
-            db.session.commit()
+            _mark_upload_failed(item, 'Arquivo local indisponível para upload.')
             continue
 
         item.status = 'uploading'
@@ -693,12 +928,6 @@ def process_pending_drive_uploads_once(limit: int = 10) -> int:
             db.session.commit()
             uploaded_count += 1
         except Exception as exc:
-            item.status = 'failed'
-            item.retryCount = int(item.retryCount or 0) + 1
-            wait_minutes = next_retry_delay_minutes(item.retryCount)
-            item.nextRetryAt = datetime.now() + timedelta(minutes=wait_minutes)
-            item.lastError = str(exc)
-            item.lastUpdate = datetime.now()
-            db.session.commit()
+            _mark_upload_failed(item, f'Falha no envio ao Google Drive: {exc}')
 
     return uploaded_count

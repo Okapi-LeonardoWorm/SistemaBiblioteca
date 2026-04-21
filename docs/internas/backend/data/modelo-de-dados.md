@@ -27,6 +27,8 @@ Mapear entidades centrais, relacionamentos e regras de consistencia do dominio.
    - Permission, Role, RolePermission.
 7. Auditoria e sessao:
    - AuditLog e UserSession.
+8. Backup:
+   - BackupSchedule, BackupRun, BackupUpload, OAuthCredential.
 
 ## Relacionamentos de destaque
 
@@ -59,6 +61,24 @@ StatusLoan:
 - Tabela keyWords usa casing misto; em SQL manual requer cuidado com quoting.
 - Campos historicos e alias (username como sinonimo de identificationCode) mantem compatibilidade retroativa.
 - Em bases legadas, a migracao de normalizacao pode ajustar identificadores em conflito por caixa com sufixo de resolucao.
+
+## Entidades de backup (detalhe operacional)
+
+1. BackupSchedule:
+   - Define frequencia, horario, timezone, habilitacao e proxima execucao.
+2. BackupRun:
+   - Registra tentativa de backup local, status final, arquivo gerado, hash e erro.
+3. BackupUpload:
+   - Controla fila de envio ao Drive com status, tentativas, proxima tentativa e erro.
+4. OAuthCredential:
+   - Armazena tokens da integracao Google Drive para upload.
+
+Campos de fila importantes em BackupUpload:
+
+- retryCount
+- nextRetryAt
+- lastError
+- remoteFileId
 
 ## Diretriz para novas entidades
 

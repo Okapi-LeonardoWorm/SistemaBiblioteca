@@ -32,9 +32,12 @@ Documenta a arquitetura e o funcionamento interno do backend Flask do Sistema Bi
 16. routes/apis.md
 17. routes/audit-logs.md
 18. routes/fluxo-emprestimos.md
-19. services/processamento-em-lote.md
-20. services/dashboard-service.md
-21. utils/utilitarios-backend.md
+19. routes/backups.md
+20. services/backup-service.md
+21. services/backup-queue-e-retry.md
+22. services/processamento-em-lote.md
+23. services/dashboard-service.md
+24. utils/utilitarios-backend.md
 
 ## Fonte de verdade
 

@@ -7,10 +7,13 @@ from unittest.mock import patch
 from app import db
 from app.models import BackupRun, BackupSchedule, BackupUpload, Configuration, OAuthCredential, User
 from app.services.backup_service import (
+    GoogleDriveFolderValidationError,
     _run_pg_dump_custom,
     build_google_oauth_authorize_url,
     calculate_next_run_at,
     create_local_backup_now,
+    ensure_google_drive_backup_folder_id,
+    exchange_google_oauth_code,
     process_pending_drive_uploads_once,
 )
 from tests.unit.base import BaseTestCase
@@ -201,13 +204,253 @@ class BackupModuleTestCase(BaseTestCase):
             db.session.commit()
 
             with patch('app.services.backup_service.decrypt_secret', return_value='token'):
-                with patch('app.services.backup_service._upload_file_to_google_drive', return_value='drive-file-id'):
-                    uploaded_count = process_pending_drive_uploads_once(limit=5)
+                with patch('app.services.backup_service._find_google_drive_folder_id_by_name', return_value='folder-ok'):
+                    with patch('app.services.backup_service._upload_file_to_google_drive', return_value='drive-file-id'):
+                        uploaded_count = process_pending_drive_uploads_once(limit=5)
 
             self.assertEqual(uploaded_count, 1)
             updated = db.session.get(BackupUpload, upload.uploadId)
             self.assertEqual(updated.status, 'uploaded')
             self.assertEqual(updated.remoteFileId, 'drive-file-id')
+
+    def test_process_pending_uploads_without_google_credential_marks_failed(self):
+        owner = self._create_admin_user()
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            zip_path = os.path.join(tmp_dir, 'BkpBiblioteca_03-04-2026_10-05-00.zip')
+            with open(zip_path, 'wb') as file_obj:
+                file_obj.write(b'zip-data')
+
+            run = BackupRun(
+                scheduleId=None,
+                status='success',
+                fileName=os.path.basename(zip_path),
+                localPath=zip_path,
+                fileHash='abc',
+                fileSizeBytes=7,
+                startedAt=datetime.now(),
+                finishedAt=datetime.now(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+                createdBy=owner.userId,
+                updatedBy=owner.userId,
+            )
+            db.session.add(run)
+            db.session.commit()
+
+            upload = BackupUpload(
+                runId=run.runId,
+                provider='google_drive',
+                status='pending',
+                retryCount=0,
+                nextRetryAt=datetime.now() - timedelta(minutes=1),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+            )
+            db.session.add(upload)
+            db.session.commit()
+
+            uploaded_count = process_pending_drive_uploads_once(limit=5)
+
+            self.assertEqual(uploaded_count, 0)
+            updated = db.session.get(BackupUpload, upload.uploadId)
+            self.assertEqual(updated.status, 'failed')
+            self.assertEqual(updated.retryCount, 1)
+            self.assertIn('Google Drive não conectado', updated.lastError)
+
+    def test_process_pending_uploads_with_invalid_folder_marks_failed(self):
+        owner = self._create_admin_user()
+        self._set_config('BACKUP_GOOGLE_DRIVE_FOLDER_ID', 'folder-invalida')
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            zip_path = os.path.join(tmp_dir, 'BkpBiblioteca_03-04-2026_10-10-00.zip')
+            with open(zip_path, 'wb') as file_obj:
+                file_obj.write(b'zip-data')
+
+            run = BackupRun(
+                scheduleId=None,
+                status='success',
+                fileName=os.path.basename(zip_path),
+                localPath=zip_path,
+                fileHash='abc',
+                fileSizeBytes=7,
+                startedAt=datetime.now(),
+                finishedAt=datetime.now(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+                createdBy=owner.userId,
+                updatedBy=owner.userId,
+            )
+            db.session.add(run)
+            db.session.commit()
+
+            upload = BackupUpload(
+                runId=run.runId,
+                provider='google_drive',
+                status='pending',
+                retryCount=0,
+                nextRetryAt=datetime.now() - timedelta(minutes=1),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+            )
+            db.session.add(upload)
+
+            credential = OAuthCredential(
+                provider='google_drive',
+                accessToken='enc-token',
+                refreshToken='enc-refresh',
+                tokenType='Bearer',
+                scope='drive.file',
+                expiresAt=datetime.now() + timedelta(hours=1),
+                isEncrypted=True,
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+                createdBy=owner.userId,
+                updatedBy=owner.userId,
+            )
+            db.session.add(credential)
+            db.session.commit()
+
+            with patch('app.services.backup_service.decrypt_secret', return_value='token'):
+                with patch('app.services.backup_service._validate_google_drive_folder', side_effect=RuntimeError('folder sem acesso')):
+                    uploaded_count = process_pending_drive_uploads_once(limit=5)
+
+            self.assertEqual(uploaded_count, 0)
+            updated = db.session.get(BackupUpload, upload.uploadId)
+            self.assertEqual(updated.status, 'failed')
+            self.assertEqual(updated.retryCount, 1)
+            self.assertIn('Falha ao resolver pasta de backup no Google Drive', updated.lastError)
+
+    def test_ensure_google_drive_backup_folder_creates_and_persists_folder_id(self):
+        owner = self._create_admin_user()
+        self._set_config('BACKUP_GOOGLE_DRIVE_FOLDER_NAME', 'Backups_Sistema_Biblioteca')
+
+        class FakeResponse:
+            def __init__(self, status_code, payload, text=''):
+                self.status_code = status_code
+                self._payload = payload
+                self.text = text
+
+            def json(self):
+                return self._payload
+
+        get_response = FakeResponse(200, {'files': []})
+        post_response = FakeResponse(200, {'id': 'folder-created-1'})
+
+        with patch('app.services.backup_service.requests.get', return_value=get_response):
+            with patch('app.services.backup_service.requests.post', return_value=post_response):
+                folder_id = ensure_google_drive_backup_folder_id(access_token='token', actor_user_id=owner.userId)
+
+        self.assertEqual(folder_id, 'folder-created-1')
+        saved = Configuration.query.filter_by(key='BACKUP_GOOGLE_DRIVE_FOLDER_ID').first()
+        self.assertIsNotNone(saved)
+        self.assertEqual(saved.value, 'folder-created-1')
+
+    def test_process_pending_uploads_recovers_invalid_folder_id_and_uploads(self):
+        owner = self._create_admin_user()
+        self._set_config('BACKUP_GOOGLE_DRIVE_FOLDER_ID', 'folder-invalida')
+        self._set_config('BACKUP_GOOGLE_DRIVE_FOLDER_NAME', 'Backups_Sistema_Biblioteca')
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            zip_path = os.path.join(tmp_dir, 'BkpBiblioteca_03-04-2026_10-11-00.zip')
+            with open(zip_path, 'wb') as file_obj:
+                file_obj.write(b'zip-data')
+
+            run = BackupRun(
+                scheduleId=None,
+                status='success',
+                fileName=os.path.basename(zip_path),
+                localPath=zip_path,
+                fileHash='abc',
+                fileSizeBytes=7,
+                startedAt=datetime.now(),
+                finishedAt=datetime.now(),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+                createdBy=owner.userId,
+                updatedBy=owner.userId,
+            )
+            db.session.add(run)
+            db.session.commit()
+
+            upload = BackupUpload(
+                runId=run.runId,
+                provider='google_drive',
+                status='pending',
+                retryCount=0,
+                nextRetryAt=datetime.now() - timedelta(minutes=1),
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+            )
+            db.session.add(upload)
+
+            credential = OAuthCredential(
+                provider='google_drive',
+                accessToken='enc-token',
+                refreshToken='enc-refresh',
+                tokenType='Bearer',
+                scope='drive.file',
+                expiresAt=datetime.now() + timedelta(hours=1),
+                isEncrypted=True,
+                creationDate=datetime.now(),
+                lastUpdate=datetime.now(),
+                createdBy=owner.userId,
+                updatedBy=owner.userId,
+            )
+            db.session.add(credential)
+            db.session.commit()
+
+            with patch('app.services.backup_service.decrypt_secret', return_value='token'):
+                with patch('app.services.backup_service._validate_google_drive_folder', side_effect=GoogleDriveFolderValidationError('folder inválida')):
+                    with patch('app.services.backup_service._find_google_drive_folder_id_by_name', return_value='folder-recuperada'):
+                        with patch('app.services.backup_service._upload_file_to_google_drive', return_value='drive-file-id'):
+                            uploaded_count = process_pending_drive_uploads_once(limit=5)
+
+            self.assertEqual(uploaded_count, 1)
+            updated = db.session.get(BackupUpload, upload.uploadId)
+            self.assertEqual(updated.status, 'uploaded')
+            self.assertEqual(updated.remoteFileId, 'drive-file-id')
+
+            folder_cfg = Configuration.query.filter_by(key='BACKUP_GOOGLE_DRIVE_FOLDER_ID').first()
+            self.assertIsNotNone(folder_cfg)
+            self.assertEqual(folder_cfg.value, 'folder-recuperada')
+
+    def test_exchange_google_oauth_code_triggers_folder_provisioning(self):
+        owner = self._create_admin_user()
+        self._set_config('BACKUP_GOOGLE_OAUTH_CLIENT_ID', 'client-123')
+        self._set_config('BACKUP_GOOGLE_OAUTH_CLIENT_SECRET', 'secret-123')
+        self._set_config('BACKUP_GOOGLE_OAUTH_REDIRECT_URI', 'http://localhost:5000/backups/google/callback')
+
+        class FakeResponse:
+            def __init__(self, status_code, payload, text=''):
+                self.status_code = status_code
+                self._payload = payload
+                self.text = text
+
+            def json(self):
+                return self._payload
+
+        token_response = FakeResponse(
+            200,
+            {
+                'access_token': 'token-abc',
+                'refresh_token': 'refresh-abc',
+                'token_type': 'Bearer',
+                'scope': 'https://www.googleapis.com/auth/drive.file',
+                'expires_in': 3600,
+            },
+        )
+
+        with patch('app.services.backup_service.requests.post', return_value=token_response):
+            with patch('app.services.backup_service.ensure_google_drive_backup_folder_id') as mocked_ensure:
+                credential = exchange_google_oauth_code(
+                    code='oauth-code',
+                    redirect_uri='http://localhost:5000/backups/google/callback',
+                    actor_user_id=owner.userId,
+                )
+
+        self.assertIsNotNone(credential)
+        self.assertTrue(mocked_ensure.called)
 
     def test_google_connect_redirects_to_authorize_url(self):
         self._login_as_admin()
