@@ -30,7 +30,6 @@ LEGACY_ENDPOINT_ALIASES = {
     'main.index': 'auth.index',
     'main.login': 'auth.login',
     'main.logout': 'auth.logout',
-    'main.register': 'auth.register',
     'main.dashboard': 'navigation.dashboard',
     'main.menu': 'navigation.menu',
     'main.livros': 'books.livros',

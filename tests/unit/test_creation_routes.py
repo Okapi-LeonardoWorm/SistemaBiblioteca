@@ -313,67 +313,6 @@ class TestCreationRoutes(BaseTestCase):
         persisted = db.session.get(Book, book.bookId)
         self.assertFalse(persisted.deleted)
 
-    def test_create_users_via_register(self):
-        """Test creation of different user types via the /register endpoint."""
-        # 1. Admin creates a staff member
-        response_staff = self.client.post(url_for('auth.register'), data={
-            'username': 'staffuser',
-            'password': 'password123',
-            'userType': 'staff',
-            'birthDate': '1995-05-05'
-        }, follow_redirects=True)
-        self.assertEqual(response_staff.status_code, 200)
-        self.assertIn('Usuário registrado com sucesso!', response_staff.get_data(as_text=True))
-        staff_user = User.query.filter_by(username='staffuser').first()
-        self.assertIsNotNone(staff_user)
-        self.assertEqual(staff_user.userType, 'staff')
-
-        # 2. Admin creates another admin
-        response_admin = self.client.post(url_for('auth.register'), data={
-            'username': 'newadmin',
-            'password': 'password123',
-            'userType': 'admin',
-            'birthDate': '1990-01-01'
-        }, follow_redirects=True)
-        self.assertEqual(response_admin.status_code, 200)
-        self.assertIn('Usuário registrado com sucesso!', response_admin.get_data(as_text=True))
-        new_admin_user = User.query.filter_by(username='newadmin').first()
-        self.assertIsNotNone(new_admin_user)
-        self.assertEqual(new_admin_user.userType, 'admin')
-
-    def test_register_trims_and_lowercases_identification_code(self):
-        """Register should normalize username to trimmed lower-case identification code."""
-        response = self.client.post(url_for('auth.register'), data={
-            'username': '  UserMixedCase  ',
-            'password': 'password123',
-            'userType': 'student',
-            'birthDate': '2001-02-03'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-        created_user = User.query.filter_by(identificationCode='usermixedcase').first()
-        self.assertIsNotNone(created_user)
-        self.assertEqual(created_user.userCompleteName, 'UserMixedCase')
-
-    def test_register_sanitizes_phone_cpf_and_rg_to_digits(self):
-        """Register validators should keep only digits for phone/CPF/RG fields."""
-        response = self.client.post(url_for('auth.register'), data={
-            'username': 'digits_only_user',
-            'password': 'password123',
-            'userType': 'student',
-            'birthDate': '2001-02-03',
-            'userPhone': '(11) 91234-5678',
-            'cpf': '123.456.789-01',
-            'rg': '12.345.678-9'
-        }, follow_redirects=True)
-
-        self.assertEqual(response.status_code, 200)
-        created_user = User.query.filter_by(identificationCode='digits_only_user').first()
-        self.assertIsNotNone(created_user)
-        self.assertEqual(created_user.userPhone, '11912345678')
-        self.assertEqual(created_user.cpf, '12345678901')
-        self.assertEqual(created_user.rg, '123456789')
-
     def test_create_user_rejects_invalid_phone_length(self):
         """/users/new should reject phone values that do not have 10 or 11 digits."""
         response = self.client.post(url_for('users.new_user'), data={

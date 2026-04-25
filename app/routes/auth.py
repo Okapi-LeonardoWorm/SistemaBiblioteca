@@ -1,13 +1,13 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
-from flask_login import AnonymousUserMixin, current_user, login_required, login_user, logout_user
+from flask_login import current_user, login_required, login_user, logout_user
 from sqlalchemy import func
 
 from app import bcrypt, db
 from app.audit import log_manual_event
-from app.forms import LoginForm, RegisterForm
+from app.forms import LoginForm
 from app.models import User, UserSession
 from app.utils import check_session_timeout
 
@@ -22,7 +22,7 @@ def check_session_timeout_hook():
 @bp.route('/index')
 @login_required
 def index():
-    if current_user.userType == 'admin':
+    if current_user.userType in ['admin', 'bibliotecario']:
         return redirect(url_for('navigation.dashboard'))
     return redirect(url_for('navigation.menu'))
 
@@ -109,60 +109,3 @@ def login():
             flash('Usuário ou senha inválidos', 'danger')
             
     return render_template('login.html', form=form)
-
-
-@bp.route('/register', methods=['GET', 'POST'])
-def register():
-    form = RegisterForm()
-    
-    # Dynamically set choices for userType
-    if isinstance(current_user, AnonymousUserMixin) or not current_user.is_authenticated:
-        # Not logged in
-        form.userType.choices = [('student', 'Estudante'), ('visitor', 'Visitante')]
-    elif current_user.userType == 'admin':
-        # Logged in as admin
-        form.userType.choices = [('student', 'Estudante'), ('visitor', 'Visitante'), ('staff', 'Funcionário'), ('admin', 'Administrador')]
-    else:
-        # Logged in as non-admin (e.g., staff)
-        form.userType.choices = [('student', 'Estudante'), ('visitor', 'Visitante'), ('staff', 'Funcionário')]
-
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        
-        # Determine createdBy and updatedBy
-        creator_id = 1  # Default to system admin or a predefined ID
-        if current_user.is_authenticated:
-            creator_id = current_user.userId
-
-        new_user = User(
-            identificationCode=form.username.data.strip().lower(),
-            userCompleteName=form.username.data.strip(),
-            password=hashed_password,
-            userType=form.userType.data,
-            userPhone=form.userPhone.data,
-            birthDate=form.birthDate.data,
-            cpf=form.cpf.data,
-            rg=form.rg.data,
-            gradeNumber=form.gradeNumber.data,
-            className=form.className.data,
-            guardianName1=form.guardianName1.data,
-            guardianPhone1=form.guardianPhone1.data,
-            guardianName2=form.guardianName2.data,
-            guardianPhone2=form.guardianPhone2.data,
-            notes=form.notes.data,
-            creationDate=date.today(),
-            lastUpdate=date.today(),
-            createdBy=creator_id,
-            updatedBy=creator_id
-        )
-        db.session.add(new_user)
-        db.session.commit()
-        
-        flash('Usuário registrado com sucesso!', 'success')
-        return redirect(url_for('auth.login'))
-
-    return render_template('register.html', form=form)
-
-
-# Book Management Routes
-
