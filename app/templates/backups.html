@@ -8,229 +8,261 @@
 
 {% block content %}
 <div class="container py-4">
-    <header class="management-header">
+    <header class="management-header mb-4">
         <h1 class="h3 mb-0">Gestão de Backup</h1>
         <p class="text-muted mb-0">Fluxo offline-first: primeiro cria backup local, depois envia ao Google Drive.</p>
     </header>
 
-    {% if can_edit %}
-    <div class="d-flex gap-2 mb-3">
-        <form method="POST" action="{{ url_for('backups.run_backup_now') }}">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-play me-1"></i> Executar Backup Agora
+    <ul class="nav nav-tabs mb-4 px-3" id="backupTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="operacoes-tab" data-bs-toggle="tab" data-bs-target="#operacoes-tab-pane" type="button" role="tab" aria-controls="operacoes-tab-pane" aria-selected="true">
+                <i class="fas fa-tasks me-1"></i> Operações e Histórico
             </button>
-        </form>
-        <form method="POST" action="{{ url_for('backups.process_uploads_now') }}">
-            <button type="submit" class="btn btn-outline-primary">
-                <i class="fas fa-cloud-upload-alt me-1"></i> Processar Fila Drive Agora
-            </button>
-        </form>
-    </div>
-    {% else %}
-    <div class="alert alert-info">Você possui acesso somente leitura nesta tela.</div>
-    {% endif %}
-
-    <section class="table-responsive mb-4">
-        <h2 class="h5">Google Drive</h2>
+        </li>
         {% if can_view_google_credentials %}
-        <form method="POST" action="{{ url_for('backups.save_google_credentials') }}" class="row g-2 mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Client ID</label>
-                <input type="text" class="form-control" name="client_id" value="{{ google_client_id }}" required>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Client Secret</label>
-                <input type="text" class="form-control" name="client_secret" value="{{ google_client_secret }}" required>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Redirect URI (opcional)</label>
-                <input type="text" class="form-control" name="redirect_uri" value="{{ google_redirect_uri }}" placeholder="Se vazio usa callback automático">
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Drive Folder ID (opcional)</label>
-                <input type="text" class="form-control" name="folder_id" value="{{ google_folder_id }}">
-            </div>
-            <div class="col-12">
-                <label class="form-label">Scopes</label>
-                <input type="text" class="form-control" name="scopes" value="{{ google_scopes }}">
-            </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-outline-secondary">Salvar Credenciais Google</button>
-            </div>
-        </form>
-        {% else %}
-        <div class="alert alert-warning">As credenciais Google ficam protegidas para este nível de acesso.</div>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config-tab-pane" type="button" role="tab" aria-controls="config-tab-pane" aria-selected="false">
+                <i class="fas fa-cogs me-1"></i> Configurações de Autenticação
+            </button>
+        </li>
         {% endif %}
+    </ul>
 
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                {% if google_is_connected %}
-                <span class="badge text-bg-success">Conectado</span>
-                {% else %}
-                <span class="badge text-bg-secondary">Desconectado</span>
-                {% endif %}
-                {% if can_view_google_credentials and google_ready_to_connect %}
-                <span class="badge text-bg-info">Pronto para conectar</span>
-                {% elif can_view_google_credentials %}
-                <span class="badge text-bg-warning">Faltam credenciais OAuth2</span>
-                {% else %}
-                <span class="badge text-bg-secondary">Credenciais protegidas</span>
-                {% endif %}
-                <span class="badge text-bg-secondary">Pasta gerenciada: {{ google_folder_name }}</span>
-                <span class="badge text-bg-secondary">Auto criação: {{ 'Ativa' if (google_auto_create_folder|string)|lower in ['1', 'true', 'yes', 'sim', 'on'] else 'Desativada' }}</span>
-            </div>
-            {% if can_connect_google %}
-            <div class="d-flex gap-2">
-                <form method="POST" action="{{ url_for('backups.google_connect') }}">
-                    <button type="submit" class="btn btn-outline-success" {% if not google_ready_to_connect %}disabled{% endif %}>Conectar Google</button>
+    <div class="tab-content" id="backupTabsContent">
+        <div class="tab-pane fade show active" id="operacoes-tab-pane" role="tabpanel" aria-labelledby="operacoes-tab" tabindex="0">
+            
+            {% if can_edit %}
+            <div class="d-flex gap-2 mb-4">
+                <form method="POST" action="{{ url_for('backups.run_backup_now') }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-play me-1"></i> Executar Backup Agora
+                    </button>
                 </form>
-                <form method="POST" action="{{ url_for('backups.google_disconnect') }}">
-                    <button type="submit" class="btn btn-outline-danger">Desconectar</button>
+                <form method="POST" action="{{ url_for('backups.process_uploads_now') }}">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-cloud-upload-alt me-1"></i> Processar Fila Drive Agora
+                    </button>
                 </form>
             </div>
+            {% else %}
+            <div class="alert alert-info mb-4">Você possui acesso somente leitura nesta tela para agendamentos.</div>
             {% endif %}
-        </div>
-    </section>
 
-    <section class="table-responsive mb-4">
-        <h2 class="h5">Novo Agendamento</h2>
-        {% if can_edit %}
-        <form method="POST" action="{{ url_for('backups.create_schedule') }}" class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label">Nome</label>
-                <input class="form-control" type="text" name="name" required>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Frequência</label>
-                <select class="form-select" name="frequency" required>
-                    <option value="daily">Diário</option>
-                    <option value="weekly">Semanal</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Horário (HH:MM)</label>
-                <input class="form-control" type="text" name="runTime" placeholder="02:00" required>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Dias semana (0-6)</label>
-                <input class="form-control" type="text" name="weekDays" placeholder="1,3,5">
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">Timezone</label>
-                <input class="form-control" type="text" name="timezone" value="America/Sao_Paulo">
-            </div>
-            <div class="col-md-1 form-check ms-2">
-                <input class="form-check-input" type="checkbox" name="enabled" value="1" checked id="enabledSchedule">
-                <label class="form-check-label" for="enabledSchedule">Ativo</label>
-            </div>
-            <div class="col-12">
-                <button type="submit" class="btn btn-success">Salvar Agendamento</button>
-            </div>
-        </form>
-        {% else %}
-        <p class="text-muted">Sem permissão de edição para criar agendamentos.</p>
-        {% endif %}
-    </section>
+            <section class="table-responsive mb-4">
+                <h2 class="h5">Status do Google Drive</h2>
+                <div class="d-flex flex-wrap justify-content-between align-items-center bg-light p-3 rounded rounded-3 border">
+                    <div class="mb-2 mb-md-0">
+                        {% if google_is_connected %}
+                        <span class="badge text-bg-success"><i class="fas fa-check-circle me-1"></i> Conectado</span>
+                        {% else %}
+                        <span class="badge text-bg-secondary"><i class="fas fa-times-circle me-1"></i> Desconectado</span>
+                        {% endif %}
 
-    <section class="table-responsive mb-4">
-        <h2 class="h5">Agendamentos</h2>
-        <table class="table table-hover mb-0">
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Frequência</th>
-                    <th>Horário</th>
-                    <th>Dias Semana</th>
-                    <th>Ativo</th>
-                    <th>Próxima Execução</th>
-                    {% if can_edit %}
-                    <th>Ações</th>
+                        {% if can_view_google_credentials and google_ready_to_connect %}
+                        <span class="badge text-bg-info">Pronto para conectar</span>
+                        {% elif can_view_google_credentials %}
+                        <span class="badge text-bg-warning">Faltam credenciais OAuth2</span>
+                        {% else %}
+                        <span class="badge text-bg-secondary">Credenciais protegidas</span>
+                        {% endif %}
+                        <span class="badge text-bg-secondary">Pasta gerenciada: {{ google_folder_name }}</span>
+                        <span class="badge text-bg-secondary">Auto criação: {{ 'Ativa' if (google_auto_create_folder|string)|lower in ['1', 'true', 'yes', 'sim', 'on'] else 'Desativada' }}</span>
+                    </div>
+                    {% if can_connect_google %}
+                    <div class="d-flex gap-2">
+                        <form method="POST" action="{{ url_for('backups.google_connect') }}">
+                            <button type="submit" class="btn btn-sm btn-outline-success" {% if not google_ready_to_connect %}disabled{% endif %}>Conectar Google</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('backups.google_disconnect') }}">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Desconectar</button>
+                        </form>
+                    </div>
                     {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in schedules %}
-                <tr>
-                    <td>
-                        <input type="text" name="name" class="form-control form-control-sm" value="{{ row.name }}" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
-                    </td>
-                    <td>
-                        <select class="form-select form-select-sm" name="frequency" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
-                            <option value="daily" {% if row.frequency == 'daily' %}selected{% endif %}>Diário</option>
-                            <option value="weekly" {% if row.frequency == 'weekly' %}selected{% endif %}>Semanal</option>
+                </div>
+            </section>
+
+            <section class="table-responsive mb-4">
+                <h2 class="h5">Novo Agendamento</h2>
+                {% if can_edit %}
+                <form method="POST" action="{{ url_for('backups.create_schedule') }}" class="row g-2 align-items-end bg-light p-2 rounded border mx-0">
+                    <div class="col-md-3">
+                        <label class="form-label">Nome</label>
+                        <input class="form-control" type="text" name="name" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Frequência</label>
+                        <select class="form-select" name="frequency" required>
+                            <option value="daily">Diário</option>
+                            <option value="weekly">Semanal</option>
                         </select>
-                    </td>
-                    <td>
-                        <input type="text" name="runTime" class="form-control form-control-sm" value="{{ row.runTime }}" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
-                    </td>
-                    <td>
-                        <input type="text" name="weekDays" class="form-control form-control-sm" value="{{ row.weekDays or '' }}" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
-                    </td>
-                    <td>
-                        <input type="checkbox" name="enabled" value="1" form="schedule-form-{{ row.scheduleId }}" {% if row.enabled %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
-                    </td>
-                    <td>{{ row.nextRunAt.strftime('%d/%m/%Y %H:%M') if row.nextRunAt else '—' }}</td>
-                    {% if can_edit %}
-                    <td>
-                        <form method="POST" id="schedule-form-{{ row.scheduleId }}" action="{{ url_for('backups.update_schedule', schedule_id=row.scheduleId) }}" class="d-inline">
-                            <input type="hidden" name="timezone" value="{{ row.timezone or 'America/Sao_Paulo' }}">
-                            <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('backups.toggle_schedule', schedule_id=row.scheduleId) }}" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-warning">{{ 'Pausar' if row.enabled else 'Ativar' }}</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('backups.delete_schedule', schedule_id=row.scheduleId) }}" class="d-inline" onsubmit="return confirm('Excluir este agendamento?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
-                        </form>
-                    </td>
-                    {% endif %}
-                </tr>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Horário (HH:MM)</label>
+                        <input class="form-control" type="text" name="runTime" placeholder="02:00" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Dias semana (0-6)</label>
+                        <input class="form-control" type="text" name="weekDays" placeholder="1,3,5">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Timezone</label>
+                        <input class="form-control" type="text" name="timezone" value="America/Sao_Paulo">
+                    </div>
+                    <div class="col-md-1 form-check ms-2 pb-2">
+                        <input class="form-check-input" type="checkbox" name="enabled" value="1" checked id="enabledSchedule">
+                        <label class="form-check-label" for="enabledSchedule">Ativo</label>
+                    </div>
+                    <div class="col-12 mt-3">
+                        <button type="submit" class="btn btn-success btn-sm">Salvar Agendamento</button>
+                    </div>
+                </form>
                 {% else %}
-                <tr><td colspan="{{ 7 if can_edit else 6 }}" class="text-center">Nenhum agendamento cadastrado.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
+                <p class="text-muted">Sem permissão de edição para criar agendamentos.</p>
+                {% endif %}
+            </section>
 
-    <section class="table-responsive">
-        <h2 class="h5">Últimos Backups</h2>
-        <table class="table table-hover mb-0">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Status</th>
-                    <th>Arquivo</th>
-                    <th>Tamanho</th>
-                    <th>Upload Drive</th>
-                    <th>Tentativas</th>
-                    <th>Próxima Tentativa</th>
-                    <th>ID Remoto</th>
-                    <th>Finalizado Em</th>
-                    <th>Erro Upload</th>
-                    <th>Erro</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for run in runs %}
-                {% set upload = uploads_by_run.get(run.runId) %}
-                <tr>
-                    <td>{{ run.runId }}</td>
-                    <td>{{ run.status }}</td>
-                    <td>{{ run.fileName or '—' }}</td>
-                    <td>{{ run.fileSizeBytes or '—' }}</td>
-                    <td>{{ upload.status if upload else '—' }}</td>
-                    <td>{{ upload.retryCount if upload else '—' }}</td>
-                    <td>{{ upload.nextRetryAt.strftime('%d/%m/%Y %H:%M:%S') if upload and upload.nextRetryAt else '—' }}</td>
-                    <td>{{ upload.remoteFileId if upload and upload.remoteFileId else '—' }}</td>
-                    <td>{{ run.finishedAt.strftime('%d/%m/%Y %H:%M:%S') if run.finishedAt else '—' }}</td>
-                    <td>{{ upload.lastError if upload and upload.lastError else '—' }}</td>
-                    <td>{{ run.errorMessage or '—' }}</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="11" class="text-center">Nenhum backup executado ainda.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
+            <section class="table-responsive mb-4">
+                <h2 class="h5">Agendamentos</h2>
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Frequência</th>
+                            <th>Horário</th>
+                            <th>Dias Semana</th>
+                            <th>Ativo</th>
+                            <th>Próxima Execução</th>
+                            {% if can_edit %}
+                            <th>Ações</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in schedules %}
+                        <tr>
+                            <td>
+                                <input type="text" name="name" class="form-control form-control-sm" value="{{ row.name }}" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm" name="frequency" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
+                                    <option value="daily" {% if row.frequency == 'daily' %}selected{% endif %}>Diário</option>
+                                    <option value="weekly" {% if row.frequency == 'weekly' %}selected{% endif %}>Semanal</option>
+                                </select>
+                            </td>
+                            <td>
+                                <input type="text" name="runTime" class="form-control form-control-sm" value="{{ row.runTime }}" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
+                            </td>
+                            <td>
+                                <input type="text" name="weekDays" class="form-control form-control-sm" value="{{ row.weekDays or '' }}" form="schedule-form-{{ row.scheduleId }}" {% if not can_edit %}disabled{% endif %}>
+                            </td>
+                            <td>
+                                <input type="checkbox" name="enabled" value="1" form="schedule-form-{{ row.scheduleId }}" {% if row.enabled %}checked{% endif %} {% if not can_edit %}disabled{% endif %}>
+                            </td>
+                            <td class="align-middle">{{ row.nextRunAt.strftime('%d/%m/%Y %H:%M') if row.nextRunAt else '—' }}</td>
+                            {% if can_edit %}
+                            <td>
+                                <form method="POST" id="schedule-form-{{ row.scheduleId }}" action="{{ url_for('backups.update_schedule', schedule_id=row.scheduleId) }}" class="d-inline">
+                                    <input type="hidden" name="timezone" value="{{ row.timezone or 'America/Sao_Paulo' }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary">Salvar</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('backups.toggle_schedule', schedule_id=row.scheduleId) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-warning">{{ 'Pausar' if row.enabled else 'Ativar' }}</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('backups.delete_schedule', schedule_id=row.scheduleId) }}" class="d-inline" onsubmit="return confirm('Excluir este agendamento?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="{{ 7 if can_edit else 6 }}" class="text-center">Nenhum agendamento cadastrado.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="table-responsive">
+                <h2 class="h5">Últimos Backups</h2>
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Status</th>
+                            <th>Arquivo</th>
+                            <th>Tamanho</th>
+                            <th>Upload Drive</th>
+                            <th>Tentativas</th>
+                            <th>Próxima Tentativa</th>
+                            <th>ID Remoto</th>
+                            <th>Finalizado Em</th>
+                            <th>Erro Upload</th>
+                            <th>Erro</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for run in runs %}
+                        {% set upload = uploads_by_run.get(run.runId) %}
+                        <tr>
+                            <td>{{ run.runId }}</td>
+                            <td>{{ run.status }}</td>
+                            <td>{{ run.fileName or '—' }}</td>
+                            <td>{{ run.fileSizeBytes or '—' }}</td>
+                            <td>{{ upload.status if upload else '—' }}</td>
+                            <td>{{ upload.retryCount if upload else '—' }}</td>
+                            <td>{{ upload.nextRetryAt.strftime('%d/%m/%Y %H:%M:%S') if upload and upload.nextRetryAt else '—' }}</td>
+                            <td>{{ upload.remoteFileId if upload and upload.remoteFileId else '—' }}</td>
+                            <td>{{ run.finishedAt.strftime('%d/%m/%Y %H:%M:%S') if run.finishedAt else '—' }}</td>
+                            <td>{{ upload.lastError if upload and upload.lastError else '—' }}</td>
+                            <td>{{ run.errorMessage or '—' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="11" class="text-center">Nenhum backup executado ainda.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        {% if can_view_google_credentials %}
+        <div class="tab-pane fade" id="config-tab-pane" role="tabpanel" aria-labelledby="config-tab" tabindex="0">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-white py-3">
+                    <h2 class="h5 mb-0"><i class="fab fa-google me-2 text-primary"></i> Credenciais OAuth 2.0 do Google Drive</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">As credenciais salvas aqui serão persistidas para o funcionamento automatizado da conexão da sua aplicação com a API do Google Drive e devem ser protegidas por segurança.</p>
+                    
+                    <form method="POST" action="{{ url_for('backups.save_google_credentials') }}" class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Client ID</label>
+                            <input type="text" class="form-control bg-light" name="client_id" value="{{ google_client_id }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Client Secret</label>
+                            <input type="password" class="form-control bg-light" name="client_secret" value="{{ google_client_secret }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Redirect URI (opcional)</label>
+                            <input type="text" class="form-control bg-light" name="redirect_uri" value="{{ google_redirect_uri }}" placeholder="Se vazio usa callback automático">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Drive Folder ID (opcional)</label>
+                            <input type="text" class="form-control bg-light" name="folder_id" value="{{ google_folder_id }}">
+                            <small class="text-muted">ID de onde armazenar na sua conta Google.</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Scopes</label>
+                            <input type="text" class="form-control bg-light" name="scopes" value="{{ google_scopes }}">
+                        </div>
+                        <div class="col-12 pt-3 border-top mt-4">
+                            <button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-1"></i> Salvar Credenciais</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
 </div>
 {% endblock %}

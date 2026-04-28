@@ -12,6 +12,7 @@ USER_TYPE_LEVELS = {
     'colaborador': 2,
     'bibliotecario': 3,
     'admin': 4,
+    'sysadmin': 5,
 }
 
 
@@ -22,146 +23,146 @@ PERMISSION_LEVEL_CONFIG_SPECS = {
     'DASHBOARD_SCREEN_MIN_VIEW_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'allowed_values': {2, 3},
         'description': 'Nível mínimo para acessar a tela de dashboard.',
     },
     'BOOKS_BROWSE_MIN_LEVEL': {
         'default': 1,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para listar/buscar/filtrar/ordenar/paginar livros.',
     },
     'BOOKS_MANAGE_MIN_LEVEL': {
         'default': 2,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para criar/editar livros.',
     },
     'BOOKS_DELETE_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para excluir/reativar livros.',
     },
     'BOOKS_INCLUDE_DELETED_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para incluir livros excluídos na listagem.',
     },
     'BOOKS_BULK_IMPORT_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para todo o fluxo de importação em massa de livros.',
     },
     'KEYWORDS_BROWSE_MIN_LEVEL': {
         'default': 1,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para listar/buscar/paginar tags.',
     },
     'KEYWORDS_MANAGE_MIN_LEVEL': {
         'default': 2,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para criar/editar tags.',
     },
     'KEYWORDS_DELETE_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para excluir tags.',
     },
     'USERS_BROWSE_MIN_LEVEL': {
         'default': 2,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para listar/buscar/filtrar/ordenar/paginar usuários.',
     },
     'USERS_MANAGE_MIN_LEVEL': {
         'default': 2,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para criar/editar usuários.',
     },
     'USERS_DELETE_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para excluir/reativar usuários.',
     },
     'USERS_BULK_IMPORT_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para todo o fluxo de importação em massa de usuários.',
     },
     'LOANS_BROWSE_MIN_LEVEL': {
         'default': 2,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para listar/buscar/filtrar/ordenar/paginar empréstimos.',
     },
     'LOANS_MANAGE_MIN_LEVEL': {
         'default': 2,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para criar/editar empréstimos.',
     },
     'LOANS_CANCEL_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para cancelar empréstimos.',
     },
     'LOANS_RETURN_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para informar retorno/perda de empréstimos.',
     },
     'CONFIGS_SCREEN_MIN_LEVEL': {
         'default': 4,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para acessar a tela de configurações.',
     },
     'AUDIT_LOGS_SCREEN_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para acessar logs de auditoria.',
     },
     'ADMIN_SESSIONS_SCREEN_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para acessar sessões administrativas.',
     },
     'BACKUP_SCREEN_MIN_VIEW_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para visualizar a tela de backups.',
     },
     'BACKUP_SCREEN_MIN_EDIT_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para editar/executar ações operacionais de backup.',
     },
     'BACKUP_GOOGLE_CONNECT_MIN_LEVEL': {
         'default': 3,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para conectar/desconectar Google Drive no backup.',
     },
     'BACKUP_GOOGLE_CREDENTIALS_VIEW_MIN_LEVEL': {
-        'default': 4,
+        'default': 5,
         'minimum': 1,
-        'maximum': 4,
+        'maximum': 5,
         'description': 'Nível mínimo para visualizar/editar campos de credenciais Google no backup.',
     },
 }
@@ -316,7 +317,7 @@ def get_configured_min_level(config_key: str) -> int:
     _ensure_permission_configs_ready()
     spec = PERMISSION_LEVEL_CONFIG_SPECS.get(config_key)
     if not spec:
-        return 4
+        return 5
     value = get_config_int(
         config_key,
         default=int(spec['default']),

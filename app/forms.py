@@ -166,6 +166,24 @@ class UserForm(FlaskForm):
         # Permite passar o id da instância para validações (edição)
         self.instance_id = kwargs.pop('instance_id', None)
         super().__init__(*args, **kwargs)
+        
+        from flask_login import current_user
+        if getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'userType', None) == 'sysadmin':
+            self.userType.choices = [
+                ('aluno', 'Aluno'),
+                ('colaborador', 'Colaborador'),
+                ('bibliotecario', 'Bibliotecário'),
+                ('admin', 'Admin'),
+                ('sysadmin', 'Sysadmin')
+            ]
+        else:
+            self.userType.choices = [
+                ('aluno', 'Aluno'),
+                ('colaborador', 'Colaborador'),
+                ('bibliotecario', 'Bibliotecário'),
+                ('admin', 'Admin')
+            ]
+            
         # birthDate obrigatório na criação, opcional na edição
         if self.mode == 'create':
             self.birthDate.validators = [DataRequired(message='Data de Nascimento é obrigatória')]

@@ -22,7 +22,7 @@ def check_session_timeout_hook():
 @bp.route('/index')
 @login_required
 def index():
-    if current_user.userType in ['admin', 'bibliotecario']:
+    if current_user.userType in ['sysadmin', 'admin', 'bibliotecario']:
         return redirect(url_for('navigation.dashboard'))
     return redirect(url_for('navigation.menu'))
 

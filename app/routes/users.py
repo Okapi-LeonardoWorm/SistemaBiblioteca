@@ -33,12 +33,16 @@ from app.utils import (
 
 bp = Blueprint('users', __name__)
 
-ALLOWED_BULK_USER_TYPES = [
-    ('aluno', 'Aluno'),
-    ('colaborador', 'Colaborador'),
-    ('bibliotecario', 'Bibliotecário'),
-    ('admin', 'Admin'),
-]
+def get_allowed_bulk_user_types():
+    types = [
+        ('aluno', 'Aluno'),
+        ('colaborador', 'Colaborador'),
+        ('bibliotecario', 'Bibliotecário'),
+        ('admin', 'Admin'),
+    ]
+    if getattr(current_user, 'is_authenticated', False) and getattr(current_user, 'userType', None) == 'sysadmin':
+        types.append(('sysadmin', 'Sysadmin'))
+    return types
 
 
 def _active_users_query():
@@ -216,6 +220,9 @@ def new_user():
 
     form = UserForm(mode='create')
     if form.validate_on_submit():
+        if form.userType.data == 'sysadmin' and getattr(current_user, 'userType', None) != 'sysadmin':
+            return jsonify({'success': False, 'errors': {'userType': ['Apenas um sysadmin pode criar outro sysadmin.']}})
+            
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8') if form.password.data else bcrypt.generate_password_hash('123456').decode('utf-8')
         new_user = User(
             identificationCode=form.identificationCode.data.strip().lower(),
@@ -255,6 +262,9 @@ def edit_user(user_id):
     user = _get_user_or_404(user_id)
     form = UserForm(request.form, obj=user, mode='edit', instance_id=user.userId)
     if form.validate():
+        if form.userType.data == 'sysadmin' and getattr(current_user, 'userType', None) != 'sysadmin':
+            return jsonify({'success': False, 'errors': {'userType': ['Apenas um sysadmin pode atribuir o nível sysadmin.']}})
+            
         # manual populate to avoid overwriting id fields
         user.userType = form.userType.data
         user.identificationCode = form.identificationCode.data.strip().lower()
@@ -355,7 +365,7 @@ def _ensure_bulk_import_permission():
 
 
 def _is_valid_bulk_user_type(user_type: str) -> bool:
-    return user_type in {item[0] for item in ALLOWED_BULK_USER_TYPES}
+    return user_type in {item[0] for item in get_allowed_bulk_user_types()}
 
 
 def _is_job_owner_or_allowed(job_data: dict) -> bool:
@@ -377,11 +387,11 @@ def bulk_user_import_select_type():
         selected_user_type = (request.form.get('user_type') or request.form.get('userType') or '').strip().lower()
         if not _is_valid_bulk_user_type(selected_user_type):
             flash('Tipo de usuário inválido para importação.', 'danger')
-            return render_template('users_bulk_import_type.html', user_types=ALLOWED_BULK_USER_TYPES)
+            return render_template('users_bulk_import_type.html', user_types=get_allowed_bulk_user_types())
 
         return redirect(url_for('users.bulk_user_import_upload', user_type=selected_user_type))
 
-    return render_template('users_bulk_import_type.html', user_types=ALLOWED_BULK_USER_TYPES)
+    return render_template('users_bulk_import_type.html', user_types=get_allowed_bulk_user_types())
 
 
 @bp.route('/users/import/bulk/upload', methods=['GET', 'POST'])
