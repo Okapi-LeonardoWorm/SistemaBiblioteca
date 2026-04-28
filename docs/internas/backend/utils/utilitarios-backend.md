@@ -11,7 +11,7 @@ Consolidar o papel da camada utilitaria e orientar uso correto para evitar dupli
 
 ## Modulos utilitarios mapeados
 
-- auth_utils.py
+- auth_utils.py: Responsável por todo o controle centralizado e dinâmico de autorização/permissões de usuários baseado em níveis (veja os detalhes de sua arquitetura [neste guia de permissões](../core/permissoes.md)).
 - config_utils.py
 - date_utils.py
 - loan_utils.py

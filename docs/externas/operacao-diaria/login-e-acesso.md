@@ -8,6 +8,7 @@
 4. Se o usuario ja estiver logado e abrir `/login`, ele sera redirecionado automaticamente:
    - Admin -> Dashboard
    - Demais perfis -> Menu
+5. **[NOVO]** O que você vê no sistema (botões, menus e funcionalidades) após o login é gerado dinamicamente com base nas **permissões** do seu perfil e pode ser configurado pelo Administrador. Saiba mais sobre os [Níveis de Permissão](./permissoes-e-acessos.md).
 
 ## Como preencher o login
 
