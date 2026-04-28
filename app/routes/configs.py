@@ -8,7 +8,7 @@ from sqlalchemy import or_
 from app import db
 from app.forms import ConfigForm
 from app.models import ConfigSpec, Configuration
-from app.utils import build_or_update_spec_from_form, is_admin_user, validate_config_value
+from app.utils import build_or_update_spec_from_form, enforce_api_feature_access, enforce_feature_access, validate_config_value
 
 bp = Blueprint('configs', __name__)
 
@@ -53,9 +53,9 @@ def _ensure_dashboard_lost_threshold_config():
 @bp.route('/configuracoes')
 @login_required
 def configuracoes():
-    if not is_admin_user():
-        flash('Acesso negado. Você precisa ser um administrador.', 'warning')
-        return redirect(url_for('navigation.menu'))
+    denial = enforce_feature_access('configs_screen', 'Acesso negado. Você precisa ter permissão para acessar configurações.')
+    if denial:
+        return denial
 
     dashboard_lost_config = _ensure_dashboard_lost_threshold_config()
 
@@ -93,8 +93,9 @@ def configuracoes():
 @bp.route('/configuracoes/form/<int:config_id>', methods=['GET'])
 @login_required
 def get_config_form(config_id):
-    if not is_admin_user():
-        return '<p class="text-danger">Acesso negado.</p>', 403
+    denial = enforce_feature_access('configs_screen', 'Acesso negado. Você precisa ter permissão para acessar configurações.')
+    if denial:
+        return denial
 
     if config_id:
         config = db.session.get(Configuration, config_id)
@@ -121,8 +122,9 @@ def get_config_form(config_id):
 @bp.route('/configuracoes/new', methods=['POST'])
 @login_required
 def nova_configuracao():
-    if not is_admin_user():
-        return jsonify({'success': False, 'errors': {'auth': ['Acesso negado.']}}), 403
+    denial = enforce_api_feature_access('configs_screen')
+    if denial:
+        return denial
 
     form = ConfigForm()
     if not form.validate_on_submit():
@@ -161,8 +163,9 @@ def nova_configuracao():
 @bp.route('/configuracoes/edit/<int:config_id>', methods=['POST'])
 @login_required
 def editar_configuracao(config_id):
-    if not is_admin_user():
-        return jsonify({'success': False, 'errors': {'auth': ['Acesso negado.']}}), 403
+    denial = enforce_api_feature_access('configs_screen')
+    if denial:
+        return denial
 
     config = db.session.get(Configuration, config_id)
     if not config:

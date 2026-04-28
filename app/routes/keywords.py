@@ -8,7 +8,7 @@ from sqlalchemy import func
 from app import db
 from app.forms import KeyWordForm
 from app.models import KeyWord, KeyWordBook
-from app.utils import normalize_tag, parse_normalized_tags
+from app.utils import enforce_api_feature_access, enforce_feature_access, normalize_tag, parse_normalized_tags
 
 bp = Blueprint('keywords', __name__)
 
@@ -26,6 +26,10 @@ def _get_active_keyword_or_404(keyword_id):
 @bp.route('/palavras_chave')
 @login_required
 def palavras_chave():
+    denial = enforce_feature_access('keywords_browse', 'Acesso negado para visualizar tags.')
+    if denial:
+        return denial
+
     query = _active_keywords_query()
     search_term = request.args.get('search', '')
     if search_term:
@@ -43,16 +47,28 @@ def palavras_chave():
 @login_required
 def get_keyword_form(keyword_id):
     if keyword_id:
+        denial = enforce_feature_access('keywords_browse', 'Acesso negado para visualizar os livros associados à tag.')
+    else:
+        denial = enforce_feature_access('keywords_manage', 'Acesso negado para acessar o formulário de tags.')
+    if denial:
+        return denial
+
+    if keyword_id:
         keyword = _get_active_keyword_or_404(keyword_id)
         form = KeyWordForm(obj=keyword)
     else:
+        keyword = None
         form = KeyWordForm()
-    return render_template('_keyword_form.html', form=form, keyword_id=keyword_id)
+    return render_template('_keyword_form.html', form=form, keyword_id=keyword_id, keyword=keyword)
 
 
 @bp.route('/api/palavras_chave/<int:id>/usage', methods=['GET'])
 @login_required
 def keyword_usage(id):
+    denial = enforce_api_feature_access('keywords_browse')
+    if denial:
+        return denial
+
     keyword = db.session.get(KeyWord, id)
     if not keyword:
         abort(404)
@@ -69,6 +85,10 @@ def keyword_usage(id):
 @bp.route('/palavras_chave/new', methods=['POST'])
 @login_required
 def nova_palavra_chave():
+    denial = enforce_feature_access('keywords_manage', 'Acesso negado para criar tags.')
+    if denial:
+        return denial
+
     form = KeyWordForm()
     if form.validate_on_submit():
         parts = parse_normalized_tags(form.word.data)
@@ -133,6 +153,10 @@ def nova_palavra_chave():
 @bp.route('/palavras_chave/edit/<int:keyword_id>', methods=['POST'])
 @login_required
 def editar_palavra_chave(keyword_id):
+    denial = enforce_feature_access('keywords_manage', 'Acesso negado para editar tags.')
+    if denial:
+        return denial
+
     keyword = _get_active_keyword_or_404(keyword_id)
     form = KeyWordForm(request.form)
     if form.validate():
@@ -156,6 +180,10 @@ def editar_palavra_chave(keyword_id):
 @bp.route('/excluir_palavra_chave/<int:id>', methods=['POST'])
 @login_required
 def excluir_palavra_chave(id):
+    denial = enforce_feature_access('keywords_delete', 'Acesso negado para excluir tags.')
+    if denial:
+        return denial
+
     palavra_chave = db.session.get(KeyWord, id)
     if not palavra_chave:
         abort(404)

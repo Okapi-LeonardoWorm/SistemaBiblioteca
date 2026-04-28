@@ -24,9 +24,11 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
+            {% if can_manage_loans %}
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="">
                 <i class="fas fa-plus"></i> Novo Empréstimo
             </button>
+            {% endif %}
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedLoanFilters" aria-expanded="false" aria-controls="advancedLoanFilters">
                 Filtros avançados
             </button>
@@ -215,7 +217,7 @@
         </thead>
         <tbody>
             {% for loan in loans.items %}
-            <tr data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}" data-loan-status="{{ loan.status.name }}" class="cursor-pointer">
+            <tr {% if can_manage_loans %}data-bs-toggle="modal" data-bs-target="#loanModal" data-loan-id="{{ loan.loanId }}" data-loan-status="{{ loan.status.name }}" class="cursor-pointer"{% endif %}>
                 <td class="mgmt-col-loan-book">{{ truncated_text(loan.book.bookName, 'N/A') }}</td>
                 <td class="mgmt-col-loan-user">{{ render_user_identifier(loan.user) }}</td>
                 <td class="mgmt-col-loan-loandate">{{ loan.loanDate.strftime('%d/%m/%Y') }}</td>
@@ -251,13 +253,16 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    {% if can_manage_loans %}
                     <button type="button" class="btn btn-primary" id="saveLoanBtn">Salvar</button>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Return Loan Modal -->
+    {% if can_return_loans %}
     <div class="modal fade" id="loanReturnModal" tabindex="-1" aria-labelledby="loanReturnModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -298,6 +303,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 {% endblock %}
 
@@ -310,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loanReturnModalEl = document.getElementById('loanReturnModal');
     const loanReturnForm = document.getElementById('loanReturnForm');
     const loanReturnError = document.getElementById('loanReturnError');
+    const canReturnLoans = {{ 'true' if can_return_loans else 'false' }};
 
     window.ManagementUI?.initDelayedHoverTooltips(document);
     loanModal?.addEventListener('show.bs.modal', window.ManagementUI?.clearDelayedHoverTooltips);
@@ -337,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Re-bind return button in dropdown
                 const newReturnBtn = modalBody.querySelector('#returnLoanFromEditBtn');
-                if (newReturnBtn) {
+                     if (newReturnBtn && canReturnLoans) {
                    newReturnBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
@@ -506,6 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
+    if (saveLoanBtn) {
     saveLoanBtn.addEventListener('click', function() {
         const form = document.getElementById('loanModalForm');
         if (form) {
@@ -540,16 +548,20 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+    }
 
     // Impede que clicar nas ações abra o modal de edição da linha
-    document.querySelectorAll('.btn-return-loan').forEach((el) => {
-        el.addEventListener('click', function(e) {
-            e.stopPropagation();
+    if (canReturnLoans) {
+        document.querySelectorAll('.btn-return-loan').forEach((el) => {
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
         });
-    });
+    }
 
     // Abrir modal de retorno
     function openReturnModalForLoan(loanId, previousReturnDate) {
+        if (!canReturnLoans || !loanReturnModalEl) return;
         document.getElementById('returnLoanId').value = loanId || '';
         document.getElementById('returnDateInput').valueAsDate = new Date();
         if (!document.getElementById('returnDateInput').value && previousReturnDate) {
@@ -563,18 +575,21 @@ document.addEventListener('DOMContentLoaded', function() {
         returnModal.show();
     }
 
-    document.querySelectorAll('.btn-return-loan').forEach((btn) => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const loanId = btn.getAttribute('data-loan-id');
-            const previousReturnDate = btn.getAttribute('data-loan-return-date');
-            openReturnModalForLoan(loanId, previousReturnDate);
+    if (canReturnLoans) {
+        document.querySelectorAll('.btn-return-loan').forEach((btn) => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const loanId = btn.getAttribute('data-loan-id');
+                const previousReturnDate = btn.getAttribute('data-loan-return-date');
+                openReturnModalForLoan(loanId, previousReturnDate);
+            });
         });
-    });
+    }
 
     // Submeter retorno
-    loanReturnForm?.addEventListener('submit', async function(e) {
+    if (loanReturnForm && loanReturnModalEl) {
+    loanReturnForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         loanReturnError.classList.add('d-none');
         loanReturnError.textContent = '';
@@ -602,6 +617,7 @@ document.addEventListener('DOMContentLoaded', function() {
             loanReturnError.classList.remove('d-none');
         }
     });
+    }
 
     // Função global para cancelamento
     window.cancelLoan = function(event, loanId) {

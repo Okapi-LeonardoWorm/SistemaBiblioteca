@@ -15,7 +15,7 @@ from app.services import (
     process_pending_drive_uploads_once,
     upsert_backup_config_value,
 )
-from app.utils import can_edit_backup_screen, can_view_backup_screen
+from app.utils import can_connect_backup_google, can_edit_backup_screen, can_view_backup_google_credentials, can_view_backup_screen, enforce_feature_access
 
 bp = Blueprint('backups', __name__)
 
@@ -47,9 +47,9 @@ def _normalize_week_days(raw_value: str) -> str:
 @bp.route('/backups')
 @login_required
 def backup_management():
-    if not can_view_backup_screen():
-        flash('Acesso negado para gestão de backups.', 'warning')
-        return redirect(url_for('navigation.menu'))
+    denial = enforce_feature_access('backup_view', 'Acesso negado para gestão de backups.')
+    if denial:
+        return denial
 
     schedules = BackupSchedule.query.order_by(BackupSchedule.enabled.desc(), BackupSchedule.name.asc()).all()
     runs = BackupRun.query.order_by(BackupRun.runId.desc()).limit(30).all()
@@ -62,14 +62,17 @@ def backup_management():
 
     google_connected = OAuthCredential.query.filter_by(provider='google_drive').first()
     google_is_connected = bool(google_connected and google_connected.accessToken)
-    google_client_id = _get_config_value('BACKUP_GOOGLE_OAUTH_CLIENT_ID', '')
-    google_client_secret = _get_config_value('BACKUP_GOOGLE_OAUTH_CLIENT_SECRET', '')
-    google_redirect_uri = _get_config_value('BACKUP_GOOGLE_OAUTH_REDIRECT_URI', '')
-    google_folder_id = _get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_ID', '')
+    can_view_credentials = can_view_backup_google_credentials()
+    actual_google_client_id = _get_config_value('BACKUP_GOOGLE_OAUTH_CLIENT_ID', '')
+    actual_google_client_secret = _get_config_value('BACKUP_GOOGLE_OAUTH_CLIENT_SECRET', '')
+    google_client_id = actual_google_client_id if can_view_credentials else ''
+    google_client_secret = actual_google_client_secret if can_view_credentials else ''
+    google_redirect_uri = _get_config_value('BACKUP_GOOGLE_OAUTH_REDIRECT_URI', '') if can_view_credentials else ''
+    google_folder_id = _get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_ID', '') if can_view_credentials else ''
     google_folder_name = _get_config_value('BACKUP_GOOGLE_DRIVE_FOLDER_NAME', 'Backups_Sistema_Biblioteca')
     google_auto_create_folder = _get_config_value('BACKUP_GOOGLE_DRIVE_AUTO_CREATE_FOLDER', '1')
-    google_scopes = _get_config_value('BACKUP_GOOGLE_OAUTH_SCOPES', 'https://www.googleapis.com/auth/drive.file')
-    google_ready_to_connect = bool(google_client_id and google_client_secret)
+    google_scopes = _get_config_value('BACKUP_GOOGLE_OAUTH_SCOPES', 'https://www.googleapis.com/auth/drive.file') if can_view_credentials else ''
+    google_ready_to_connect = bool(actual_google_client_id and actual_google_client_secret)
 
     return render_template(
         'backups.html',
@@ -78,6 +81,8 @@ def backup_management():
         uploads_by_run=uploads_by_run,
         can_edit=can_edit_backup_screen(),
         google_is_connected=google_is_connected,
+        can_connect_google=can_connect_backup_google(),
+        can_view_google_credentials=can_view_credentials,
         google_client_id=google_client_id,
         google_client_secret=google_client_secret,
         google_redirect_uri=google_redirect_uri,
@@ -92,9 +97,9 @@ def backup_management():
 @bp.route('/backups/run-now', methods=['POST'])
 @login_required
 def run_backup_now():
-    if not can_edit_backup_screen():
-        flash('Acesso negado para executar backup.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_edit', 'Acesso negado para executar backup.')
+    if denial:
+        return denial
 
     try:
         create_local_backup_now(requested_by=current_user.userId)
@@ -108,9 +113,9 @@ def run_backup_now():
 @bp.route('/backups/schedules/new', methods=['POST'])
 @login_required
 def create_schedule():
-    if not can_edit_backup_screen():
-        flash('Acesso negado para editar agendamentos.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_edit', 'Acesso negado para editar agendamentos.')
+    if denial:
+        return denial
 
     name = (request.form.get('name') or '').strip()
     frequency = (request.form.get('frequency') or '').strip().lower()
@@ -162,9 +167,9 @@ def create_schedule():
 @bp.route('/backups/schedules/<int:schedule_id>/update', methods=['POST'])
 @login_required
 def update_schedule(schedule_id):
-    if not can_edit_backup_screen():
-        flash('Acesso negado para editar agendamentos.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_edit', 'Acesso negado para editar agendamentos.')
+    if denial:
+        return denial
 
     schedule = db.session.get(BackupSchedule, schedule_id)
     if not schedule:
@@ -214,9 +219,9 @@ def update_schedule(schedule_id):
 @bp.route('/backups/schedules/<int:schedule_id>/toggle', methods=['POST'])
 @login_required
 def toggle_schedule(schedule_id):
-    if not can_edit_backup_screen():
-        flash('Acesso negado para editar agendamentos.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_edit', 'Acesso negado para editar agendamentos.')
+    if denial:
+        return denial
 
     schedule = db.session.get(BackupSchedule, schedule_id)
     if not schedule:
@@ -236,9 +241,9 @@ def toggle_schedule(schedule_id):
 @bp.route('/backups/schedules/<int:schedule_id>/delete', methods=['POST'])
 @login_required
 def delete_schedule(schedule_id):
-    if not can_edit_backup_screen():
-        flash('Acesso negado para excluir agendamentos.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_edit', 'Acesso negado para excluir agendamentos.')
+    if denial:
+        return denial
 
     schedule = db.session.get(BackupSchedule, schedule_id)
     if not schedule:
@@ -254,9 +259,9 @@ def delete_schedule(schedule_id):
 @bp.route('/backups/uploads/process-now', methods=['POST'])
 @login_required
 def process_uploads_now():
-    if not can_edit_backup_screen():
-        flash('Acesso negado para processar uploads.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_edit', 'Acesso negado para processar uploads.')
+    if denial:
+        return denial
 
     try:
         uploaded = process_pending_drive_uploads_once(limit=20)
@@ -270,9 +275,9 @@ def process_uploads_now():
 @bp.route('/backups/google/connect', methods=['POST'])
 @login_required
 def google_connect():
-    if not can_edit_backup_screen():
-        flash('Acesso negado para conectar Google Drive.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_google_connect', 'Acesso negado para conectar Google Drive.')
+    if denial:
+        return denial
 
     callback_url = url_for('backups.google_callback', _external=True)
     state_value = str(uuid4())
@@ -295,9 +300,9 @@ def google_connect():
 @bp.route('/backups/google/callback', methods=['GET'])
 @login_required
 def google_callback():
-    if not can_edit_backup_screen():
-        flash('Acesso negado para concluir OAuth2.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_google_connect', 'Acesso negado para concluir OAuth2.')
+    if denial:
+        return denial
 
     expected_state = session.get('backup_google_oauth_state')
     received_state = (request.args.get('state') or '').strip()
@@ -329,9 +334,9 @@ def google_callback():
 @bp.route('/backups/google/disconnect', methods=['POST'])
 @login_required
 def google_disconnect():
-    if not can_edit_backup_screen():
-        flash('Acesso negado para desconectar Google Drive.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_google_connect', 'Acesso negado para desconectar Google Drive.')
+    if denial:
+        return denial
 
     disconnect_google_oauth(actor_user_id=current_user.userId)
     flash('Google Drive desconectado.', 'success')
@@ -341,9 +346,9 @@ def google_disconnect():
 @bp.route('/backups/google/credentials', methods=['POST'])
 @login_required
 def save_google_credentials():
-    if not can_edit_backup_screen():
-        flash('Acesso negado para configurar credenciais Google.', 'danger')
-        return redirect(url_for('backups.backup_management'))
+    denial = enforce_feature_access('backup_google_credentials_view', 'Acesso negado para configurar credenciais Google.')
+    if denial:
+        return denial
 
     client_id = (request.form.get('client_id') or '').strip()
     client_secret = (request.form.get('client_secret') or '').strip()

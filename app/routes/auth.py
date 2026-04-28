@@ -52,9 +52,7 @@ def logout():
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        if current_user.userType == 'admin':
-            return redirect(url_for('navigation.dashboard'))
-        return redirect(url_for('navigation.menu'))
+        return redirect(url_for('auth.index'))
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -102,8 +100,6 @@ def login():
                 log_manual_event('LOGIN', 'User', user.userId, changes={'identifier': login_identifier})
             except Exception:
                 pass
-            if user.userType == 'admin':
-                return redirect(url_for('navigation.dashboard'))
             return redirect(url_for('auth.index'))
         else:
             flash('Usuário ou senha inválidos', 'danger')

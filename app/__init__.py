@@ -68,7 +68,9 @@ def createApp(config_name: str | None = None):
 
     @app.context_processor
     def inject_globals():
-        from app.utils import can_view_backup_screen
+        from app.utils import build_permission_capabilities
+
+        capabilities = build_permission_capabilities()
 
         def _render_user_identifier(user):
             if user is None:
@@ -97,7 +99,7 @@ def createApp(config_name: str | None = None):
             username=session.get('username'),
             userType=session.get('userType'),
             userId=session.get('userId'),
-            can_view_backup_screen=can_view_backup_screen(),
+            **capabilities,
             csrf_token=_csrf_token,
             render_user_identifier=_render_user_identifier)
     

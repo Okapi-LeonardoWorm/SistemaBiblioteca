@@ -1,4 +1,4 @@
-<form id="bookModalForm" action="{{ url_for('books.novo_livro') if not book_id else url_for('books.editar_livro', book_id=book_id) }}" method="POST">
+<form id="bookModalForm" method="POST">
     {{ form.hidden_tag() }}
     <ul class="nav nav-tabs mb-3" id="bookModalTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -7,19 +7,39 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link {% if not book_id %}disabled{% endif %}" id="book-history-tab" data-bs-toggle="tab" data-bs-target="#book-history-pane" type="button" role="tab" aria-controls="book-history-pane" aria-selected="false" {% if not book_id %}tabindex="-1" aria-disabled="true"{% endif %}>
+            <button class="nav-link {% if not (can_view_loans or can_manage_loans) %}disabled{% endif %}"
+                    id="book-history-tab"
+                    type="button"
+                    {% if can_view_loans or can_manage_loans %}
+                    data-bs-toggle="tab" data-bs-target="#book-history-pane"
+                    {% else %}
+                    tabindex="-1" aria-disabled="true"
+                    {% endif %}
+                    role="tab" aria-controls="book-history-pane" aria-selected="false">
                 Histórico
             </button>
         </li>
     </ul>
 
+    {% if can_view_loans or can_manage_loans %}
+    <div id="bookLoanHistoryMeta" data-can-open-loan-modal="1" hidden></div>
+    {% else %}
+    <div id="bookLoanHistoryMeta" data-can-open-loan-modal="0" hidden></div>
+    {% endif %}
+
     <div class="tab-content" id="bookModalTabContent">
     <div class="tab-pane fade show active" id="book-data-pane" role="tabpanel" aria-labelledby="book-data-tab" tabindex="0">
-    {% if book_id and book and book.deleted %}
+    {% if can_delete_books and book_id and book and book.deleted %}
     <div class="alert alert-warning" role="alert">
         Este livro está marcado como excluído. Você pode editar os dados e reativá-lo quando desejar.
     </div>
     {% endif %}
+    {% if not can_manage_books %}
+    <div class="alert alert-info" role="alert">
+        Visualizando livro em modo de leitura.
+    </div>
+    {% endif %}
+    <fieldset {% if not can_manage_books %}disabled{% endif %}>
     <div class="mb-3">
         {{ form.bookName.label(class="form-label") }}
         {{ form.bookName(class="form-control") }}
@@ -98,7 +118,7 @@
             <i class="fas fa-undo"></i> Reativar livro
         </button>
     </div>
-    {% elif book_id %}
+    {% elif can_delete_books and book_id %}
     <div class="d-flex justify-content-end mt-3">
         <button
             type="button"
@@ -112,6 +132,7 @@
         </button>
     </div>
     {% endif %}
+    </fieldset>
     </div>
 
     <div class="tab-pane fade" id="book-history-pane" role="tabpanel" aria-labelledby="book-history-tab" tabindex="0">

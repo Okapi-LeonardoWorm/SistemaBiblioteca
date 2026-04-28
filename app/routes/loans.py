@@ -8,7 +8,7 @@ from sqlalchemy.orm import aliased
 
 from app.forms import LoanForm
 from app.models import Book, Configuration, KeyWord, Loan, StatusLoan, User
-from app.utils import calc_age, get_config_bool, parse_date
+from app.utils import calc_age, enforce_api_feature_access, enforce_feature_access, get_config_bool, parse_date
 from app.validaEmprestimo import validaEmprestimo
 from app import db
 
@@ -56,6 +56,10 @@ def _build_sort_links(endpoint, base_params, sort_columns, current_sort_by, curr
 @bp.route('/emprestimos')
 @login_required
 def emprestimos():
+    denial = enforce_feature_access('loans_browse', 'Acesso negado para visualizar empréstimos.')
+    if denial:
+        return denial
+
     query = Loan.query
     created_by_user = aliased(User)
     include_deleted = request.args.get('include_deleted') == '1'
@@ -309,6 +313,10 @@ def emprestimos():
 @bp.route('/emprestimos/cancel/<int:loan_id>', methods=['POST'])
 @login_required
 def cancelar_emprestimo(loan_id):
+    denial = enforce_api_feature_access('loans_cancel')
+    if denial:
+        return denial
+
     loan = db.session.get(Loan, loan_id)
     if not loan:
         abort(404)
@@ -340,6 +348,10 @@ def cancelar_emprestimo(loan_id):
 @bp.route('/emprestimos/form/<int:loan_id>', methods=['GET'])
 @login_required
 def get_loan_form(loan_id):
+    denial = enforce_feature_access('loans_manage', 'Acesso negado para acessar o formulário de empréstimos.')
+    if denial:
+        return denial
+
     cancellation_available = False
     can_edit_initial_note = False
     can_edit_final_note = False
@@ -409,6 +421,10 @@ def get_loan_form(loan_id):
 @bp.route('/emprestimos/new', methods=['POST'])
 @login_required
 def novo_emprestimo():
+    denial = enforce_api_feature_access('loans_manage')
+    if denial:
+        return denial
+
     form = LoanForm()
     if form.validate_on_submit() and validaEmprestimo(form, Loan, Book, StatusLoan):
         new_loan = Loan(
@@ -438,6 +454,10 @@ def novo_emprestimo():
 @bp.route('/emprestimos/edit/<int:loan_id>', methods=['POST'])
 @login_required
 def editar_emprestimo(loan_id):
+    denial = enforce_api_feature_access('loans_manage')
+    if denial:
+        return denial
+
     loan = db.session.get(Loan, loan_id)
     if not loan:
         abort(404)
@@ -502,6 +522,10 @@ def informar_retorno_emprestimo(loan_id):
     - returnDate deve ser informada pelo usuário (YYYY-MM-DD)
     - empréstimo já finalizado (COMPLETED/LOST) não pode ser finalizado novamente
     """
+    denial = enforce_api_feature_access('loans_return')
+    if denial:
+        return denial
+
     loan = db.session.get(Loan, loan_id)
     if not loan:
         abort(404)
@@ -575,6 +599,10 @@ def informar_retorno_emprestimo(loan_id):
 @bp.route('/excluir_emprestimo/<int:id>', methods=['POST'])
 @login_required
 def excluir_emprestimo(id):
+    denial = enforce_api_feature_access('loans_manage')
+    if denial:
+        return denial
+
     return jsonify({
         'success': False,
         'errors': {'delete': ['A exclusão de empréstimos está desativada no sistema.']}

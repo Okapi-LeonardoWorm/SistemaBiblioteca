@@ -3,15 +3,16 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.models import UserSession
+from app.utils import enforce_feature_access
 
 bp = Blueprint('admin_sessions', __name__)
 
 @bp.route('/admin/sessions')
 @login_required
 def manage_sessions():
-    if current_user.userType != 'admin':
-        flash('Acesso negado. Apenas administradores podem ver as sessões.', 'danger')
-        return redirect(url_for('auth.index'))
+    denial = enforce_feature_access('admin_sessions_screen', 'Acesso negado.')
+    if denial:
+        return denial
         
     sessions = UserSession.query.order_by(UserSession.last_activity.desc()).all()
     current_token = session.get('session_token')
@@ -21,9 +22,9 @@ def manage_sessions():
 @bp.route('/admin/sessions/revoke/<session_id>', methods=['POST'])
 @login_required
 def revoke_session(session_id):
-    if current_user.userType != 'admin':
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('auth.index'))
+    denial = enforce_feature_access('admin_sessions_screen', 'Acesso negado.')
+    if denial:
+        return denial
         
     user_session = UserSession.query.filter_by(session_id=session_id).first()
     if user_session:

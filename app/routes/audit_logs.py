@@ -5,16 +5,16 @@ from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
 from app.models import AuditLog, User
-from app.utils import is_admin_user
+from app.utils import enforce_feature_access
 
 bp = Blueprint('audit_logs', __name__)
 
 @bp.route('/audit_logs')
 @login_required
 def audit_logs():
-    if not is_admin_user():
-        flash('Acesso não autorizado.', 'danger')
-        return redirect(url_for('auth.index'))
+    denial = enforce_feature_access('audit_logs_screen', 'Acesso não autorizado.')
+    if denial:
+        return denial
 
     # Pagination
     try:

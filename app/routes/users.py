@@ -21,7 +21,15 @@ from app.services import (
     get_required_fields_for_user_type,
     run_user_create_import_job,
 )
-from app.utils import SUPPORTED_IMPORT_EXTENSIONS, build_template_bytes, can_manage_user_bulk_import, detect_extension
+from app.utils import (
+    SUPPORTED_IMPORT_EXTENSIONS,
+    build_template_bytes,
+    can_access_feature,
+    can_manage_user_bulk_import,
+    detect_extension,
+    enforce_api_feature_access,
+    enforce_feature_access,
+)
 
 bp = Blueprint('users', __name__)
 
@@ -82,7 +90,13 @@ def _parse_int(value):
 @bp.route('/users')
 @login_required
 def list_users():
+    denial = enforce_feature_access('users_browse', 'Acesso negado para visualizar usuários.')
+    if denial:
+        return denial
+
     include_deleted = request.args.get('include_deleted') == '1'
+    if include_deleted and not can_access_feature('users_delete'):
+        include_deleted = False
     include_deleted_value = '1' if include_deleted else ''
     query = User.query if include_deleted else _active_users_query()
     search_term = (request.args.get('search') or '').strip()
@@ -181,6 +195,10 @@ def list_users():
 @bp.route('/users/form/<int:user_id>', methods=['GET'])
 @login_required
 def get_user_form(user_id):
+    denial = enforce_feature_access('users_manage', 'Acesso negado para acessar o formulário de usuários.')
+    if denial:
+        return denial
+
     user = None
     if user_id:
         user = _get_user_or_404(user_id)
@@ -192,6 +210,10 @@ def get_user_form(user_id):
 @bp.route('/users/new', methods=['POST'])
 @login_required
 def new_user():
+    denial = enforce_feature_access('users_manage', 'Acesso negado para criar usuários.')
+    if denial:
+        return denial
+
     form = UserForm(mode='create')
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8') if form.password.data else bcrypt.generate_password_hash('123456').decode('utf-8')
@@ -226,6 +248,10 @@ def new_user():
 @bp.route('/users/edit/<int:user_id>', methods=['POST'])
 @login_required
 def edit_user(user_id):
+    denial = enforce_feature_access('users_manage', 'Acesso negado para editar usuários.')
+    if denial:
+        return denial
+
     user = _get_user_or_404(user_id)
     form = UserForm(request.form, obj=user, mode='edit', instance_id=user.userId)
     if form.validate():
@@ -257,6 +283,10 @@ def edit_user(user_id):
 @bp.route('/users/check-identification', methods=['GET'])
 @login_required
 def check_identification_code():
+    denial = enforce_api_feature_access('users_manage')
+    if denial:
+        return denial
+
     code = (request.args.get('code') or '').strip().lower()
     exists = False
     if code:
@@ -266,6 +296,10 @@ def check_identification_code():
 @bp.route('/users/delete/<int:user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
+    denial = enforce_feature_access('users_delete', 'Acesso negado para excluir usuários.')
+    if denial:
+        return denial
+
     user = _get_user_or_404(user_id)
 
     was_already_deleted = bool(user.deleted)
@@ -289,6 +323,10 @@ def delete_user(user_id):
 @bp.route('/users/reactivate/<int:user_id>', methods=['POST'])
 @login_required
 def reactivate_user(user_id):
+    denial = enforce_feature_access('users_delete', 'Acesso negado para reativar usuários.')
+    if denial:
+        return denial
+
     user = _get_user_or_404(user_id)
 
     was_already_active = not bool(user.deleted)
@@ -331,8 +369,9 @@ def _is_job_owner_or_allowed(job_data: dict) -> bool:
 @bp.route('/users/import/bulk', methods=['GET', 'POST'])
 @login_required
 def bulk_user_import_select_type():
-    if not _ensure_bulk_import_permission():
-        return redirect(url_for('users.list_users'))
+    denial = enforce_feature_access('users_bulk_import', 'Acesso negado para importar usuários em massa.')
+    if denial:
+        return denial
 
     if request.method == 'POST':
         selected_user_type = (request.form.get('user_type') or request.form.get('userType') or '').strip().lower()
@@ -348,8 +387,9 @@ def bulk_user_import_select_type():
 @bp.route('/users/import/bulk/upload', methods=['GET', 'POST'])
 @login_required
 def bulk_user_import_upload():
-    if not _ensure_bulk_import_permission():
-        return redirect(url_for('users.list_users'))
+    denial = enforce_feature_access('users_bulk_import', 'Acesso negado para importar usuários em massa.')
+    if denial:
+        return denial
 
     selected_user_type = (request.args.get('user_type') or request.form.get('user_type') or '').strip().lower()
     if not _is_valid_bulk_user_type(selected_user_type):
@@ -416,8 +456,9 @@ def bulk_user_import_upload():
 @bp.route('/users/import/bulk/template', methods=['GET'])
 @login_required
 def bulk_user_import_download_template():
-    if not _ensure_bulk_import_permission():
-        return redirect(url_for('users.list_users'))
+    denial = enforce_feature_access('users_bulk_import', 'Acesso negado para importar usuários em massa.')
+    if denial:
+        return denial
 
     selected_user_type = (request.args.get('user_type') or request.args.get('userType') or '').strip().lower()
     output_format = (request.args.get('format') or 'xlsx').strip().lower()
@@ -446,8 +487,9 @@ def bulk_user_import_download_template():
 @bp.route('/users/import/bulk/progress/<job_id>', methods=['GET'])
 @login_required
 def bulk_user_import_progress(job_id):
-    if not _ensure_bulk_import_permission():
-        return redirect(url_for('users.list_users'))
+    denial = enforce_feature_access('users_bulk_import', 'Acesso negado para importar usuários em massa.')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_job_owner_or_allowed(job_data):
@@ -459,8 +501,9 @@ def bulk_user_import_progress(job_id):
 @bp.route('/users/import/bulk/status/<job_id>', methods=['GET'])
 @login_required
 def bulk_user_import_status(job_id):
-    if not _ensure_bulk_import_permission():
-        return jsonify({'success': False, 'error': 'Acesso negado.'}), 403
+    denial = enforce_api_feature_access('users_bulk_import')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_job_owner_or_allowed(job_data):
@@ -472,8 +515,9 @@ def bulk_user_import_status(job_id):
 @bp.route('/users/import/bulk/result/<job_id>', methods=['GET'])
 @login_required
 def bulk_user_import_result(job_id):
-    if not _ensure_bulk_import_permission():
-        return redirect(url_for('users.list_users'))
+    denial = enforce_feature_access('users_bulk_import', 'Acesso negado para importar usuários em massa.')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_job_owner_or_allowed(job_data):
@@ -488,8 +532,9 @@ def bulk_user_import_result(job_id):
 @bp.route('/users/import/bulk/errors/<job_id>', methods=['GET'])
 @login_required
 def bulk_user_import_download_errors(job_id):
-    if not _ensure_bulk_import_permission():
-        return redirect(url_for('users.list_users'))
+    denial = enforce_feature_access('users_bulk_import', 'Acesso negado para importar usuários em massa.')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_job_owner_or_allowed(job_data):

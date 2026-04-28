@@ -219,9 +219,11 @@ window.ManagementUI = window.ManagementUI || {};
         const bookModal = document.getElementById(modalId);
         const saveBookBtn = document.getElementById(saveBtnId);
 
-        if (!bookModal || !saveBookBtn) {
+        if (!bookModal) {
             return;
         }
+
+        const canManageBooks = Boolean(saveBookBtn);
 
         if (bookModal.dataset.workflowBound === '1') {
             return;
@@ -289,52 +291,60 @@ window.ManagementUI = window.ManagementUI || {};
             fetch(formUrl)
                 .then(function (response) { return response.text(); })
                 .then(function (html) {
-                    modalTitle.textContent = bookId ? 'Editar Livro' : 'Novo Livro';
+                    modalTitle.textContent = bookId ? (canManageBooks ? 'Editar Livro' : 'Visualizar Livro') : 'Novo Livro';
                     modalBody.innerHTML = html;
-                    initBookDateModeToggle(modalBody);
-                    bindSoftDeleteAction(modalBody, {
-                        selector: '#deleteBookBtn',
-                        onSuccess: function () {
-                            window.location.reload();
-                        },
-                    });
-                    bindSoftDeleteAction(modalBody, {
-                        selector: '#restoreBookBtn',
-                        onSuccess: function () {
-                            window.location.reload();
-                        },
-                    });
+                    const form = modalBody.querySelector('#bookModalForm');
+                    if (form) {
+                        form.setAttribute('action', bookId ? `/livros/edit/${bookId}` : '/livros/new');
+                    }
+                    if (canManageBooks) {
+                        initBookDateModeToggle(modalBody);
+                        bindSoftDeleteAction(modalBody, {
+                            selector: '#deleteBookBtn',
+                            onSuccess: function () {
+                                window.location.reload();
+                            },
+                        });
+                        bindSoftDeleteAction(modalBody, {
+                            selector: '#restoreBookBtn',
+                            onSuccess: function () {
+                                window.location.reload();
+                            },
+                        });
+                    }
                 })
                 .catch(function () {
                     modalBody.innerHTML = '<p class="text-danger">Erro ao carregar o formulário.</p>';
                 });
         });
 
-        saveBookBtn.addEventListener('click', function () {
-            const form = document.getElementById('bookModalForm');
-            if (!form) {
-                return;
-            }
+        if (saveBookBtn) {
+            saveBookBtn.addEventListener('click', function () {
+                const form = document.getElementById('bookModalForm');
+                if (!form) {
+                    return;
+                }
 
-            const formData = new FormData(form);
-            const actionUrl = form.getAttribute('action');
+                const formData = new FormData(form);
+                const actionUrl = form.getAttribute('action');
 
-            fetch(actionUrl, {
-                method: 'POST',
-                body: formData,
-            })
-                .then(function (response) { return response.json(); })
-                .then(function (data) {
-                    if (data.success) {
-                        window.location.reload();
-                        return;
-                    }
-                    window.alert('Erro de validação: ' + JSON.stringify(data.errors));
+                fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData,
                 })
-                .catch(function () {
-                    window.alert('Ocorreu um erro ao salvar.');
-                });
-        });
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) {
+                        if (data.success) {
+                            window.location.reload();
+                            return;
+                        }
+                        window.alert('Erro de validação: ' + JSON.stringify(data.errors));
+                    })
+                    .catch(function () {
+                        window.alert('Ocorreu um erro ao salvar.');
+                    });
+            });
+        }
     }
 
     function initLoanModalWorkflow(options = {}) {

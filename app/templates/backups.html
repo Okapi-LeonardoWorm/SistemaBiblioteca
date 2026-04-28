@@ -32,7 +32,7 @@
 
     <section class="table-responsive mb-4">
         <h2 class="h5">Google Drive</h2>
-        {% if can_edit %}
+        {% if can_view_google_credentials %}
         <form method="POST" action="{{ url_for('backups.save_google_credentials') }}" class="row g-2 mb-3">
             <div class="col-md-6">
                 <label class="form-label">Client ID</label>
@@ -58,6 +58,8 @@
                 <button type="submit" class="btn btn-outline-secondary">Salvar Credenciais Google</button>
             </div>
         </form>
+        {% else %}
+        <div class="alert alert-warning">As credenciais Google ficam protegidas para este nível de acesso.</div>
         {% endif %}
 
         <div class="d-flex justify-content-between align-items-center">
@@ -67,15 +69,17 @@
                 {% else %}
                 <span class="badge text-bg-secondary">Desconectado</span>
                 {% endif %}
-                {% if google_ready_to_connect %}
+                {% if can_view_google_credentials and google_ready_to_connect %}
                 <span class="badge text-bg-info">Pronto para conectar</span>
-                {% else %}
+                {% elif can_view_google_credentials %}
                 <span class="badge text-bg-warning">Faltam credenciais OAuth2</span>
+                {% else %}
+                <span class="badge text-bg-secondary">Credenciais protegidas</span>
                 {% endif %}
                 <span class="badge text-bg-secondary">Pasta gerenciada: {{ google_folder_name }}</span>
                 <span class="badge text-bg-secondary">Auto criação: {{ 'Ativa' if (google_auto_create_folder|string)|lower in ['1', 'true', 'yes', 'sim', 'on'] else 'Desativada' }}</span>
             </div>
-            {% if can_edit %}
+            {% if can_connect_google %}
             <div class="d-flex gap-2">
                 <form method="POST" action="{{ url_for('backups.google_connect') }}">
                     <button type="submit" class="btn btn-outline-success" {% if not google_ready_to_connect %}disabled{% endif %}>Conectar Google</button>

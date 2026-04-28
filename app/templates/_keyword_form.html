@@ -1,4 +1,9 @@
-<form id="keywordModalForm" action="{{ url_for('keywords.nova_palavra_chave') if not keyword_id else url_for('keywords.editar_palavra_chave', keyword_id=keyword_id) }}" method="POST">
+{% if can_manage_keywords %}
+{% if keyword_id %}
+<form id="keywordModalForm" method="POST">
+{% else %}
+<form id="keywordModalForm" method="POST">
+{% endif %}
     {{ form.hidden_tag() }}
     <ul class="nav nav-tabs mb-3" id="keywordModalTabs" role="tablist">
         <li class="nav-item" role="presentation">
@@ -21,7 +26,7 @@
         <div class="form-text">Você pode informar várias tags separadas por vírgula (,) ou ponto e vírgula (;).</div>
     </div>
 
-    {% if keyword_id %}
+    {% if can_delete_keywords and keyword_id %}
     <div class="d-flex justify-content-end mt-3">
         <button
             type="button"
@@ -77,3 +82,47 @@
     </div>
     </div>
 </form>
+{% else %}
+<div class="mb-3">
+    <label class="form-label">Tag</label>
+    <div class="form-control-plaintext border rounded bg-light p-3">{{ keyword.word if keyword else '—' }}</div>
+</div>
+
+<div class="tab-pane fade show active" id="keyword-books-pane" role="tabpanel" aria-labelledby="keyword-books-tab" tabindex="0">
+    {% if keyword_id %}
+    <div id="keywordBookHistoryPanel" class="keyword-book-history-panel" data-keyword-id="{{ keyword_id }}">
+        <div class="row g-2 mb-3">
+            <div class="col-12">
+                <div class="card history-summary-card">
+                    <div class="card-body py-2">
+                        <div class="text-muted small">Quantidade de livros</div>
+                        <div class="h4 mb-0" data-keyword-books-total>0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <input type="text" class="form-control" data-keyword-book-search placeholder="Pesquisar por nome do livro ou autor...">
+        </div>
+
+        <div class="table-responsive history-table-wrap">
+            <table class="table table-sm table-hover align-middle mb-0 history-keyword-books-table">
+                <thead>
+                    <tr>
+                        <th>Livro</th>
+                        <th>Autor</th>
+                    </tr>
+                </thead>
+                <tbody data-keyword-book-rows></tbody>
+            </table>
+        </div>
+        <div class="text-center text-muted small mt-2 d-none" data-keyword-book-empty>Nenhum livro encontrado para esta tag.</div>
+    </div>
+    {% else %}
+    <div class="alert alert-info mb-0">
+        Selecione uma tag para ver os livros associados.
+    </div>
+    {% endif %}
+</div>
+{% endif %}

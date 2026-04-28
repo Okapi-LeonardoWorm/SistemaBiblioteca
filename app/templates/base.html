@@ -32,28 +32,42 @@
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
             <div class="collapse navbar-collapse" id="navbarNav">
               <ul class="navbar-nav me-auto">
-                {% if current_user.userType == 'admin' %}
+                {% if can_access_dashboard %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('navigation.dashboard') }}">Dashboard</a>
                   </li>
+                {% endif %}
+                {% if can_view_books %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('books.livros') }}">Livros</a>
                   </li>
+                {% endif %}
+                {% if can_view_loans %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('loans.emprestimos') }}">Empréstimos</a>
                   </li>
+                {% endif %}
+                {% if can_view_users %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('users.list_users') }}">Usuários</a>
                   </li>
+                {% endif %}
+                {% if can_view_keywords %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('keywords.palavras_chave') }}">Tags</a>
                   </li>
+                {% endif %}
+                {% if can_view_configs_screen %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('configs.configuracoes') }}">Configurações</a>
                   </li>
+                {% endif %}
+                {% if can_view_audit_logs_screen %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('audit_logs.audit_logs') }}">Audit Logs</a>
                   </li>
+                {% endif %}
+                {% if can_view_admin_sessions_screen %}
                   <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('admin_sessions.manage_sessions') }}">Sessões</a>
                   </li>

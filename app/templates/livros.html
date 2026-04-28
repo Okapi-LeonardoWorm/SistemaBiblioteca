@@ -24,9 +24,11 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
+            {% if can_manage_books %}
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="">
                 <i class="fas fa-plus"></i> Novo Livro
             </button>
+            {% if can_manage_book_bulk_import %}
             <div class="dropdown">
                 <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-cogs"></i> Ações
@@ -39,26 +41,19 @@
                     </li>
                 </ul>
             </div>
+            {% endif %}
+            {% endif %}
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedBookFilters" aria-expanded="false" aria-controls="advancedBookFilters">
                 Filtros avançados
             </button>
         </div>
         
-        <form method="GET" action="{{ url_for('books.livros') }}" class="d-flex align-items-center">
-            <input type="hidden" name="search" value="{{ search_term or '' }}">
-            <input type="hidden" name="include_deleted" value="{{ include_deleted_value }}">
-            <input type="hidden" name="sort_by" value="{{ sort_by or '' }}">
-            <input type="hidden" name="sort_dir" value="{{ sort_dir or '' }}">
-            {% for key, value in filters.items() %}
-            <input type="hidden" name="{{ key }}" value="{{ value }}">
-            {% endfor %}
-            <label for="per_page" class="form-label me-2 mb-0">Itens:</label>
-            <select name="per_page" id="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
-                <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
-                <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
-                <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
-            </select>
-        </form>
+        <div class="d-flex align-items-center gap-2">
+            <span class="form-label mb-0">Itens:</span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-per-page="20">20</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-per-page="50">50</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-per-page="100">100</button>
+        </div>
     </div>
 
     <div class="collapse mb-3" id="advancedBookFilters">
@@ -130,8 +125,8 @@
 
             <div class="advanced-filters-actions mt-3">
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="bookIncludeDeleted" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %}>
-                    <label class="form-check-label" for="bookIncludeDeleted">Incluir excluídos</label>
+                    <input class="form-check-input" type="checkbox" id="bookIncludeDeleted" name="include_deleted" value="1" {% if not can_include_deleted_books %}disabled{% endif %}>
+                    <label class="form-check-label {% if not can_include_deleted_books %}text-muted{% endif %}" for="bookIncludeDeleted">Incluir excluídos</label>
                 </div>
                 <a href="{{ url_for('books.livros') }}" class="btn btn-outline-secondary">Limpar filtros</a>
                 <button type="submit" class="btn btn-primary">Aplicar filtros</button>
@@ -153,7 +148,7 @@
         </thead>
         <tbody>
             {% for book in books.items %}
-            <tr data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
+            <tr {% if can_view_books %}data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}"{% endif %}>
                 <td class="mgmt-col-title">{{ truncated_text(book.bookName, 'N/A') }}</td>
                 <td class="mgmt-col-author">{{ truncated_text(book.authorName, 'N/A') }}</td>
                 <td class="mgmt-col-publisher">{{ truncated_text(book.publisherName, 'N/A') }}</td>
@@ -162,7 +157,7 @@
                 <td class="mgmt-col-status">{{ 'Sim' if book.deleted else 'Não' }}</td>
                 {% endif %}
             </tr>
-            <tr class="book-keywords-row" data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}">
+            <tr class="book-keywords-row" {% if can_view_books %}data-bs-toggle="modal" data-bs-target="#bookModal" data-book-id="{{ book.bookId }}"{% endif %}>
                 <td colspan="{{ 5 if include_deleted else 4 }}">
                     <div class="book-keywords-line">
                         {% if book.keywords %}
@@ -189,7 +184,7 @@
 
     <!-- Pagination -->
     <div class="mt-3">
-        {{ render_pagination(books, search=search_term, per_page=per_page, include_deleted=include_deleted_value, sort_by=sort_by, sort_dir=sort_dir, **filters) }}
+        {{ render_pagination(books, search=search_term, per_page=per_page, include_deleted=include_deleted_value, sort_by=sort_by, sort_dir=sort_dir) }}
     </div>
 
     <!-- Book Modal -->
@@ -205,7 +200,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    {% if can_manage_books %}
                     <button type="button" class="btn btn-primary" id="saveBookBtn">Salvar</button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -358,11 +355,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const historyPanel = modalBody.querySelector('#bookLoanHistoryPanel');
                 if (historyPanel && bookId) {
+                    const historyMeta = modalBody.querySelector('#bookLoanHistoryMeta');
                     window.ManagementUI?.initBookLoanHistoryBackref({
                         root: historyPanel,
                         bookId: bookId,
                         modalId: 'loanModal',
-                        closeModalId: 'bookModal'
+                        closeModalId: 'bookModal',
+                        canOpenLoanModal: historyMeta?.dataset.canOpenLoanModal === '1'
                     });
                 }
             })
@@ -371,29 +370,31 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    saveBookBtn.addEventListener('click', function() {
-        const form = document.getElementById('bookModalForm');
-        if (form) {
-            const formData = new FormData(form);
-            const actionUrl = form.getAttribute('action');
+    if (saveBookBtn) {
+        saveBookBtn.addEventListener('click', function() {
+            const form = document.getElementById('bookModalForm');
+            if (form) {
+                const formData = new FormData(form);
+                const actionUrl = form.getAttribute('action');
 
-            fetch(actionUrl, {
-                method: 'POST',
-                body: formData,
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Erro de validação: ' + JSON.stringify(data.errors));
-                }
-            })
-            .catch(err => {
-                alert('Ocorreu um erro ao salvar.');
-            });
-        }
-    });
+                fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Erro de validação: ' + JSON.stringify(data.errors));
+                    }
+                })
+                .catch(err => {
+                    alert('Ocorreu um erro ao salvar.');
+                });
+            }
+        });
+    }
 
     window.ManagementUI?.initLoanModalWorkflow({
         modalId: 'loanModal',
@@ -402,6 +403,20 @@ document.addEventListener('DOMContentLoaded', function() {
         returnFormId: 'loanReturnForm',
         returnErrorId: 'loanReturnError'
     });
+
+    document.querySelectorAll('[data-per-page]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const url = new URL(window.location.href);
+            url.searchParams.set('per_page', button.getAttribute('data-per-page'));
+            window.location.href = url.toString();
+        });
+    });
+
+    const includeDeletedCheckbox = document.getElementById('bookIncludeDeleted');
+    if (includeDeletedCheckbox) {
+        includeDeletedCheckbox.checked = new URL(window.location.href).searchParams.get('include_deleted') === '1';
+    }
+
 });
 </script>
 {% endblock %}

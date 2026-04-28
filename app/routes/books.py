@@ -22,8 +22,10 @@ from app.services import (
 from app.utils import (
     SUPPORTED_IMPORT_EXTENSIONS,
     build_template_bytes,
-    can_manage_user_bulk_import,
+    can_access_feature,
     detect_extension,
+    enforce_api_feature_access,
+    enforce_feature_access,
     parse_normalized_tags,
 )
 
@@ -62,7 +64,7 @@ def _normalize_book_date_inputs(form):
 
 
 def _ensure_book_bulk_import_permission():
-    if not can_manage_user_bulk_import():
+    if not can_access_feature('books_bulk_import'):
         flash('Acesso negado. Somente admin e bibliotecário podem importar livros em massa.', 'warning')
         return False
     return True
@@ -73,7 +75,7 @@ def _is_book_job_owner_or_allowed(job_data: dict) -> bool:
         return False
     if current_user.userId == job_data.get('ownerUserId'):
         return True
-    return can_manage_user_bulk_import()
+    return can_access_feature('books_bulk_import')
 
 
 def _active_books_query():
@@ -116,7 +118,13 @@ def _build_sort_links(endpoint, base_params, sort_columns, current_sort_by, curr
 @bp.route('/livros')
 @login_required
 def livros():
+    denial = enforce_feature_access('books_browse', 'Acesso negado para visualizar livros.')
+    if denial:
+        return denial
+
     include_deleted = request.args.get('include_deleted') == '1'
+    if include_deleted and not can_access_feature('books_include_deleted'):
+        include_deleted = False
     include_deleted_value = '1' if include_deleted else ''
     query = Book.query if include_deleted else _active_books_query()
     search_term = (request.args.get('search') or '').strip()
@@ -238,6 +246,13 @@ def livros():
 @bp.route('/livros/form/<int:book_id>', methods=['GET'])
 @login_required
 def get_book_form(book_id):
+    if book_id:
+        denial = enforce_feature_access('books_browse', 'Acesso negado para visualizar o livro.')
+    else:
+        denial = enforce_feature_access('books_manage', 'Acesso negado para acessar o formulário de livros.')
+    if denial:
+        return denial
+
     book = None
     if book_id:
         book = _get_book_or_404(book_id)
@@ -259,12 +274,17 @@ def get_book_form(book_id):
         form.keyWords.data = '; '.join([kw.word for kw in book.keywords])
     else:
         form = BookForm()
-    return render_template('_book_form.html', form=form, book_id=book_id, book=book)
+    form_action = url_for('books.novo_livro') if not book_id else url_for('books.editar_livro', book_id=book_id)
+    return render_template('_book_form.html', form=form, book_id=book_id, book=book, form_action=form_action)
 
 
 @bp.route('/livros/new', methods=['POST'])
 @login_required
 def novo_livro():
+    denial = enforce_feature_access('books_manage', 'Acesso negado para criar livros.')
+    if denial:
+        return denial
+
     form = BookForm()
     if form.validate_on_submit():
         _normalize_book_date_inputs(form)
@@ -311,6 +331,10 @@ def novo_livro():
 @bp.route('/livros/edit/<int:book_id>', methods=['POST'])
 @login_required
 def editar_livro(book_id):
+    denial = enforce_feature_access('books_manage', 'Acesso negado para editar livros.')
+    if denial:
+        return denial
+
     book = _get_book_or_404(book_id)
     form = BookForm(request.form)
     
@@ -384,6 +408,10 @@ def editar_livro(book_id):
 @bp.route('/excluir_livro/<int:id>', methods=['POST'])
 @login_required
 def excluir_livro(id):
+    denial = enforce_feature_access('books_delete', 'Acesso negado para excluir livros.')
+    if denial:
+        return denial
+
     livro = _get_book_or_404(id)
 
     was_already_deleted = bool(livro.deleted)
@@ -407,6 +435,10 @@ def excluir_livro(id):
 @bp.route('/reativar_livro/<int:id>', methods=['POST'])
 @login_required
 def reativar_livro(id):
+    denial = enforce_feature_access('books_delete', 'Acesso negado para reativar livros.')
+    if denial:
+        return denial
+
     livro = _get_book_or_404(id)
 
     was_already_active = not bool(livro.deleted)
@@ -430,14 +462,19 @@ def reativar_livro(id):
 @bp.route('/livros/import/bulk', methods=['GET'])
 @login_required
 def bulk_book_import_entry():
+    denial = enforce_feature_access('books_bulk_import', 'Acesso negado para importar livros em massa.')
+    if denial:
+        return denial
+
     return redirect(url_for('books.bulk_book_import_upload'))
 
 
 @bp.route('/livros/import/bulk/upload', methods=['GET', 'POST'])
 @login_required
 def bulk_book_import_upload():
-    if not _ensure_book_bulk_import_permission():
-        return redirect(url_for('books.livros'))
+    denial = enforce_feature_access('books_bulk_import', 'Acesso negado para importar livros em massa.')
+    if denial:
+        return denial
 
     if request.method == 'POST':
         upload_file = request.files.get('importFile')
@@ -491,8 +528,9 @@ def bulk_book_import_upload():
 @bp.route('/livros/import/bulk/template', methods=['GET'])
 @login_required
 def bulk_book_import_download_template():
-    if not _ensure_book_bulk_import_permission():
-        return redirect(url_for('books.livros'))
+    denial = enforce_feature_access('books_bulk_import', 'Acesso negado para importar livros em massa.')
+    if denial:
+        return denial
 
     output_format = (request.args.get('format') or 'xlsx').strip().lower()
     if output_format not in SUPPORTED_IMPORT_EXTENSIONS:
@@ -515,8 +553,9 @@ def bulk_book_import_download_template():
 @bp.route('/livros/import/bulk/progress/<job_id>', methods=['GET'])
 @login_required
 def bulk_book_import_progress(job_id):
-    if not _ensure_book_bulk_import_permission():
-        return redirect(url_for('books.livros'))
+    denial = enforce_feature_access('books_bulk_import', 'Acesso negado para importar livros em massa.')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_book_job_owner_or_allowed(job_data):
@@ -528,8 +567,9 @@ def bulk_book_import_progress(job_id):
 @bp.route('/livros/import/bulk/status/<job_id>', methods=['GET'])
 @login_required
 def bulk_book_import_status(job_id):
-    if not _ensure_book_bulk_import_permission():
-        return jsonify({'success': False, 'error': 'Acesso negado.'}), 403
+    denial = enforce_api_feature_access('books_bulk_import')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_book_job_owner_or_allowed(job_data):
@@ -541,8 +581,9 @@ def bulk_book_import_status(job_id):
 @bp.route('/livros/import/bulk/result/<job_id>', methods=['GET'])
 @login_required
 def bulk_book_import_result(job_id):
-    if not _ensure_book_bulk_import_permission():
-        return redirect(url_for('books.livros'))
+    denial = enforce_feature_access('books_bulk_import', 'Acesso negado para importar livros em massa.')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_book_job_owner_or_allowed(job_data):
@@ -557,8 +598,9 @@ def bulk_book_import_result(job_id):
 @bp.route('/livros/import/bulk/errors/<job_id>', methods=['GET'])
 @login_required
 def bulk_book_import_download_errors(job_id):
-    if not _ensure_book_bulk_import_permission():
-        return redirect(url_for('books.livros'))
+    denial = enforce_feature_access('books_bulk_import', 'Acesso negado para importar livros em massa.')
+    if denial:
+        return denial
 
     job_data = get_job(job_id)
     if not _is_book_job_owner_or_allowed(job_data):

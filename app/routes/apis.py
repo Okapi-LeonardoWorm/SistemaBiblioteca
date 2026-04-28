@@ -14,13 +14,17 @@ from app.services.dashboard_service import (
     get_top_tags,
     get_ultimos_emprestimos,
 )
-from app.utils import available_copies_for_range, calc_age, parse_date
+from app.utils import available_copies_for_range, calc_age, enforce_api_feature_access, parse_date
 
 bp = Blueprint('apis', __name__)
 
 @bp.route('/api/users/search')
 @login_required
 def api_search_users():
+    denial = enforce_api_feature_access('users_browse')
+    if denial:
+        return denial
+
     q = (request.args.get('q') or '').strip()
     try:
         limit = int(request.args.get('limit', 10))
@@ -57,6 +61,10 @@ def api_search_users():
 @bp.route('/api/books/search')
 @login_required
 def api_search_books():
+    denial = enforce_api_feature_access('books_browse')
+    if denial:
+        return denial
+
     q = (request.args.get('q') or '').strip()
     try:
         limit = int(request.args.get('limit', 10))
@@ -97,6 +105,10 @@ def api_search_books():
 @bp.route('/api/users/<int:user_id>/loan-history')
 @login_required
 def api_user_loan_history(user_id):
+    denial = enforce_api_feature_access('users_browse')
+    if denial:
+        return denial
+
     user = User.query.filter_by(userId=user_id).first()
     if not user:
         return jsonify({'success': False, 'message': 'Usuário não encontrado.'}), 404
@@ -155,6 +167,10 @@ def api_user_loan_history(user_id):
 @bp.route('/api/books/<int:book_id>/loan-history')
 @login_required
 def api_book_loan_history(book_id):
+    denial = enforce_api_feature_access('books_browse')
+    if denial:
+        return denial
+
     book = Book.query.filter_by(bookId=book_id).first()
     if not book:
         return jsonify({'success': False, 'message': 'Livro não encontrado.'}), 404
@@ -219,6 +235,10 @@ def api_book_loan_history(book_id):
 @bp.route('/api/keywords/<int:keyword_id>/book-history')
 @login_required
 def api_keyword_book_history(keyword_id):
+    denial = enforce_api_feature_access('keywords_browse')
+    if denial:
+        return denial
+
     keyword = KeyWord.query.filter_by(wordId=keyword_id, deleted=False).first()
     if not keyword:
         return jsonify({'success': False, 'message': 'Tag não encontrada.'}), 404
@@ -260,6 +280,10 @@ def api_keyword_book_history(keyword_id):
 @bp.route('/api/dashboard/kpis')
 @login_required
 def api_dashboard_kpis():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     data = get_dashboard_kpis()
     return jsonify({'success': True, 'data': data})
 
@@ -267,6 +291,10 @@ def api_dashboard_kpis():
 @bp.route('/api/dashboard/devolucoes')
 @login_required
 def api_dashboard_devolucoes():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     quick_filter = (request.args.get('quick_filter') or 'today').strip().lower()
     student_query = (request.args.get('student') or '').strip()
     series = request.args.getlist('serie')
@@ -294,6 +322,10 @@ def api_dashboard_devolucoes():
 @bp.route('/api/dashboard/devolucoes/filter-options')
 @login_required
 def api_dashboard_devolucoes_filter_options():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     data = get_devolucoes_filter_options()
     return jsonify({'success': True, 'data': data})
 
@@ -301,6 +333,10 @@ def api_dashboard_devolucoes_filter_options():
 @bp.route('/api/dashboard/tags-top')
 @login_required
 def api_dashboard_tags_top():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     try:
         limit = int(request.args.get('limit', 10))
     except ValueError:
@@ -312,6 +348,10 @@ def api_dashboard_tags_top():
 @bp.route('/api/dashboard/ultimos-emprestimos')
 @login_required
 def api_dashboard_ultimos_emprestimos():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     try:
         limit = int(request.args.get('limit', 10))
     except ValueError:
@@ -323,6 +363,10 @@ def api_dashboard_ultimos_emprestimos():
 @bp.route('/api/dashboard/engajamento')
 @login_required
 def api_dashboard_engajamento():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     period = (request.args.get('period') or '').strip().lower()
     start_date = (request.args.get('start_date') or '').strip()
     end_date = (request.args.get('end_date') or '').strip()
@@ -359,6 +403,10 @@ def api_dashboard_engajamento():
 @bp.route('/api/dashboard/popularidade')
 @login_required
 def api_dashboard_popularidade():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     start_date = (request.args.get('start_date') or '').strip()
     end_date = (request.args.get('end_date') or '').strip()
     range_name = (request.args.get('range') or 'anual').strip().lower()
@@ -395,6 +443,10 @@ def api_dashboard_popularidade():
 @bp.route('/api/dashboard/acervo')
 @login_required
 def api_dashboard_acervo():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     try:
         days_lost = int(request.args.get('days_lost', 30))
     except ValueError:
@@ -411,6 +463,10 @@ def api_dashboard_acervo():
 @bp.route('/api/dashboard/drilldown')
 @login_required
 def api_dashboard_drilldown():
+    denial = enforce_api_feature_access('dashboard_view')
+    if denial:
+        return denial
+
     source = (request.args.get('source') or '').strip().lower()
     label = (request.args.get('label') or '').strip()
     key = request.args.get('key')

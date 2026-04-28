@@ -24,9 +24,11 @@
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div class="d-flex align-items-center gap-2">
+            {% if can_manage_users %}
             <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="">
                 <i class="fas fa-plus"></i> Novo Usuário
             </button>
+            {% if can_manage_user_bulk_import %}
             <div class="dropdown">
                 <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-cogs"></i> Ações
@@ -39,6 +41,8 @@
                     </li>
                 </ul>
             </div>
+            {% endif %}
+            {% endif %}
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedUserFilters" aria-expanded="false" aria-controls="advancedUserFilters">
                 Filtros avançados
             </button>
@@ -127,8 +131,13 @@
 
             <div class="advanced-filters-actions mt-3">
                 <div class="form-check">
+                    {% if can_delete_users %}
                     <input class="form-check-input" type="checkbox" id="userIncludeDeleted" name="include_deleted" value="1" {% if include_deleted %}checked{% endif %}>
                     <label class="form-check-label" for="userIncludeDeleted">Incluir excluídos</label>
+                    {% else %}
+                    <input class="form-check-input" type="checkbox" id="userIncludeDeleted" value="1" disabled>
+                    <label class="form-check-label text-muted" for="userIncludeDeleted">Incluir excluídos</label>
+                    {% endif %}
                 </div>
                 <a href="{{ url_for('users.list_users') }}" class="btn btn-outline-secondary">Limpar filtros</a>
                 <button type="submit" class="btn btn-primary">Aplicar filtros</button>
@@ -150,7 +159,7 @@
         </thead>
         <tbody>
             {% for user in users.items %}
-            <tr data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="{{ user.userId }}">
+            <tr {% if can_manage_users %}data-bs-toggle="modal" data-bs-target="#userModal" data-user-id="{{ user.userId }}"{% endif %}>
                 <td class="mgmt-col-user-username"><span class="fade-hover-text" data-full="{{ user.identificationCode }}">{{ render_user_identifier(user) }}</span></td>
                 <td class="mgmt-col-user-type">{{ truncated_text(user.userType, 'N/A') }}</td>
                 <td class="mgmt-col-user-phone">{{ truncated_text(user.userPhone, 'N/A') }}</td>
@@ -185,7 +194,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    {% if can_manage_users %}
                     <button type="button" class="btn btn-primary" id="saveUserBtn">Salvar</button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -204,7 +215,9 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    {% if can_manage_loans %}
                     <button type="button" class="btn btn-primary" id="saveLoanBtn">Salvar</button>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -311,34 +324,36 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    saveUserBtn.addEventListener('click', function() {
-        const form = document.getElementById('userModalForm');
-        if (form) {
-            const formData = new FormData(form);
-            const actionUrl = form.getAttribute('action');
+    if (saveUserBtn) {
+        saveUserBtn.addEventListener('click', function() {
+            const form = document.getElementById('userModalForm');
+            if (form) {
+                const formData = new FormData(form);
+                const actionUrl = form.getAttribute('action');
 
-            fetch(actionUrl, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-Token': formData.get('csrf_token') // For frameworks that need it
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    // Handle errors - for now, just an alert
-                    alert('Erro de validação: ' + JSON.stringify(data.errors));
-                }
-            })
-            .catch(err => {
-                console.error('Submit Error:', err);
-                alert('Ocorreu um erro ao salvar.');
-            });
-        }
-    });
+                fetch(actionUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-Token': formData.get('csrf_token') // For frameworks that need it
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        // Handle errors - for now, just an alert
+                        alert('Erro de validação: ' + JSON.stringify(data.errors));
+                    }
+                })
+                .catch(err => {
+                    console.error('Submit Error:', err);
+                    alert('Ocorreu um erro ao salvar.');
+                });
+            }
+        });
+    }
 
     window.ManagementUI?.initLoanModalWorkflow({
         modalId: 'loanModal',

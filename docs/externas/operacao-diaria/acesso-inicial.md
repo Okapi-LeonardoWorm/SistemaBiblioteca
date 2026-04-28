@@ -36,7 +36,7 @@ Observacoes:
 ## Erros comuns e como resolver
 
 - Usuario ou senha invalidos: revisar dados digitados e tentar novamente.
-- Nao consigo entrar no dashboard: apenas administradores acessam painel administrativo; use o menu operacional quando aplicavel.
+- Nao consigo entrar no dashboard: Seu usuário não tem permissão para acessar essa tela.
 - Ja estou logado e nao consigo abrir a tela de login: comportamento esperado; o sistema redireciona para dashboard (admin) ou menu (demais perfis).
 
 ## Resultado esperado

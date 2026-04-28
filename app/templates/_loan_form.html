@@ -3,12 +3,13 @@
     
     {% if loan_id %}
     <div class="d-flex justify-content-end mb-3">
+        {% if can_return_loans or can_cancel_loans %}
         <div class="dropdown">
             <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
                 Ações
             </button>
             <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                {% if loan.status.name in ['ACTIVE', 'OVERDUE'] %}
+                {% if can_return_loans and loan.status.name in ['ACTIVE', 'OVERDUE'] %}
                     <li>
                         <a class="dropdown-item" href="#" id="returnLoanFromEditBtn" data-loan-id="{{ loan_id }}">
                             <i class="fas fa-undo me-2"></i>Informar retorno
@@ -16,7 +17,7 @@
                     </li>
                 {% endif %}
                 
-                {% if cancellation_available %}
+                {% if can_cancel_loans and cancellation_available %}
                     <li>
                         <a class="dropdown-item text-danger" href="#" onclick="cancelLoan(event, {{ loan_id }});">
                             <i class="fas fa-ban me-2"></i>Cancelar
@@ -24,11 +25,12 @@
                     </li>
                 {% endif %}
                 
-                {% if not (loan.status.name in ['ACTIVE', 'OVERDUE']) and not cancellation_available %}
+                {% if not (can_return_loans and loan.status.name in ['ACTIVE', 'OVERDUE']) and not (can_cancel_loans and cancellation_available) %}
                     <li><span class="dropdown-item disabled">Nenhuma ação disponível</span></li>
                 {% endif %}
             </ul>
         </div>
+        {% endif %}
     </div>
     {% endif %}
 
